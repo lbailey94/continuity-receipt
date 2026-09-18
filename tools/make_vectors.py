@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Continuity Receipt v0 test vectors (spec §9)."""
+"""Generate the Continuity Receipt test vectors (0.1 conformance + 0.2 additions)."""
 import json
 import sys
 from pathlib import Path
@@ -9,18 +9,25 @@ sys.path.insert(0, str(ROOT))
 
 from continuity_receipt import keys, records  # noqa: E402
 from continuity_receipt.bundle import TaskChain, receipt_digest  # noqa: E402
-from continuity_receipt.canon import commit_field, sha256_prefixed  # noqa: E402
+from continuity_receipt.canon import canonical_bytes, commit_field, sha256_prefixed  # noqa: E402
 
 VECTORS = ROOT / "vectors"
 POLICY = "2026-09-17.1"
+SPEC_01 = "continuity-receipt/0.1"
+SPEC_02 = "continuity-receipt/0.2"
 
 GATE_DID, GATE_KEY = keys.generate(keys.deterministic_seed("gate-1"))
 AGENT_DID, AGENT_KEY = keys.generate(keys.deterministic_seed("agent-1"))
-COUNTERPARTY_DID, _COUNTERPARTY_KEY = keys.generate(keys.deterministic_seed("counterparty-1"))
+COUNTERPARTY_DID, COUNTERPARTY_KEY = keys.generate(keys.deterministic_seed("counterparty-1"))
+SUCCESSOR_DID, _SUCCESSOR_KEY = keys.generate(keys.deterministic_seed("gate-2"))
 
 
 def digest(label: str) -> str:
     return sha256_prefixed(label.encode())
+
+
+def merkle_digest(label: str) -> str:
+    return "merkle-sha256:" + digest(label)[len("sha256:") :]
 
 
 def pass_body(spend_cap=None) -> dict:
@@ -38,7 +45,7 @@ def pass_body(spend_cap=None) -> dict:
     return body
 
 
-def decision_body() -> dict:
+def decision_body(provenance_hash: str | None = None) -> dict:
     return {
         "action": "memory.search",
         "action_args_hash": digest("args:search:1"),
@@ -46,7 +53,7 @@ def decision_body() -> dict:
         "input_provenance": {
             "policy_id": "egress.default",
             "allowed_sources": ["gate"],
-            "observed_sources_hash": digest("sources:gate-only"),
+            "observed_sources_hash": provenance_hash or digest("sources:gate-only"),
         },
         "decision": "allow",
         "policy_version": POLICY,
@@ -73,7 +80,7 @@ def delivery_body(extra: dict | None = None) -> dict:
         "request_hash": digest("request:1"),
         "response_hash": digest("response:1"),
         "counterparty": {"id": COUNTERPARTY_DID},
-        "spec_ref": "continuity-receipt/0.1",
+        "spec_ref": "continuity-receipt/0.2",
     }
     if extra:
         body.update(extra)
@@ -108,28 +115,51 @@ def termination_body() -> dict:
     }
 
 
+def succession_body() -> dict:
+    return {
+        "from_authority": GATE_DID,
+        "to_authority": SUCCESSOR_DID,
+        "effective_at": "2026-09-18T00:00:00Z",
+        "reason": "handoff",
+    }
+
+
 def add(chain: TaskChain, record_type: str, body: dict) -> dict:
     return chain.add(record_type, "gate", GATE_DID, GATE_KEY, body)
 
 
-def minimal_chain(task_id=None) -> TaskChain:
-    chain = TaskChain(task_id)
-    add(chain, "session.pass.created", pass_body())
-    add(chain, "task.decision", decision_body())
-    add(chain, "task.execution", execution_body())
-    add(chain, "task.termination", termination_body())
-    return chain
+def chain(spec: str = SPEC_02, ms: bool = False) -> TaskChain:
+    return TaskChain(spec=spec, ms_timestamps=ms)
 
 
-def full_chain(task_id=None) -> TaskChain:
-    chain = TaskChain(task_id)
-    add(chain, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
-    add(chain, "task.decision", decision_body())
-    add(chain, "task.execution", execution_body())
-    add(chain, "delivery.attestation", delivery_body())
-    add(chain, "settlement", settlement_body())
-    add(chain, "task.termination", termination_body())
-    return chain
+def minimal_chain(task_id=None, spec: str = SPEC_02, ms: bool = False) -> TaskChain:
+    c = TaskChain(task_id, spec=spec, ms_timestamps=ms)
+    add(c, "session.pass.created", pass_body())
+    add(c, "task.decision", decision_body())
+    add(c, "task.execution", execution_body())
+    add(c, "task.termination", termination_body())
+    return c
+
+
+def full_chain(task_id=None, spec: str = SPEC_02) -> TaskChain:
+    c = TaskChain(task_id, spec=spec)
+    add(c, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(c, "task.decision", decision_body())
+    add(c, "task.execution", execution_body())
+    add(c, "delivery.attestation", delivery_body())
+    add(c, "settlement", settlement_body())
+    add(c, "task.termination", termination_body())
+    return c
+
+
+def revocation_statement(key_did: str, private_key, when: str, reason="key-compromise") -> dict:
+    statement = {"key": key_did, "revoked_at": when, "reason": reason}
+    statement["sig"] = {
+        "alg": "ed25519",
+        "key": key_did,
+        "value": keys.sign(private_key, canonical_bytes(statement)),
+    }
+    return statement
 
 
 def write(name: str, bundle: dict) -> str:
@@ -142,25 +172,38 @@ def main() -> int:
     VECTORS.mkdir(exist_ok=True)
     rows = []
 
-    write("01_happy_minimal.json", minimal_chain().bundle())
-    rows.append(("01_happy_minimal.json", "TRUSTED", None, ""))
+    def record(name, verdict, code="", require_anchor=False, note="", schema_valid=True):
+        rows.append(
+            {
+                "file": name,
+                "expected_verdict": verdict,
+                "expected_code": code or None,
+                "require_anchor": require_anchor,
+                "note": note,
+                "schema_valid": schema_valid,
+            }
+        )
 
-    write("02_happy_full.json", full_chain().bundle())
-    rows.append(("02_happy_full.json", "TRUSTED", None, ""))
+    # --- 0.1 conformance set (frozen; regenerated with the 0.1 spec id) -----
+    write("01_happy_minimal.json", minimal_chain(spec=SPEC_01).bundle())
+    record("01_happy_minimal.json", "TRUSTED")
 
-    tampered = minimal_chain().bundle()
+    write("02_happy_full.json", full_chain(spec=SPEC_01).bundle())
+    record("02_happy_full.json", "TRUSTED")
+
+    tampered = minimal_chain(spec=SPEC_01).bundle()
     tampered["receipts"][2]["body"]["resources"]["cpu_ms"] = 999999
     write("03_tampered_body.json", tampered)
-    rows.append(("03_tampered_body.json", "UNTRUSTED", "bad_signature", ""))
+    record("03_tampered_body.json", "UNTRUSTED", "bad_signature")
 
-    no_term = TaskChain()
+    no_term = chain(SPEC_01)
     add(no_term, "session.pass.created", pass_body())
     add(no_term, "task.decision", decision_body())
     add(no_term, "task.execution", execution_body())
     write("04_missing_termination.json", no_term.bundle())
-    rows.append(("04_missing_termination.json", "UNTRUSTED", "missing_termination", ""))
+    record("04_missing_termination.json", "UNTRUSTED", "missing_termination")
 
-    over_cap = TaskChain()
+    over_cap = chain(SPEC_01)
     add(over_cap, "session.pass.created", pass_body(spend_cap={"minor": 100, "currency": "USD"}))
     add(over_cap, "task.decision", decision_body())
     add(over_cap, "task.execution", execution_body())
@@ -168,9 +211,9 @@ def main() -> int:
     add(over_cap, "settlement", settlement_body(minor=5000))
     add(over_cap, "task.termination", termination_body())
     write("05_cap_exceeded.json", over_cap.bundle())
-    rows.append(("05_cap_exceeded.json", "UNTRUSTED", "cap_exceeded", ""))
+    record("05_cap_exceeded.json", "UNTRUSTED", "cap_exceeded")
 
-    early_settle = TaskChain()
+    early_settle = chain(SPEC_01)
     add(early_settle, "session.pass.created", pass_body())
     add(early_settle, "task.decision", decision_body())
     add(early_settle, "task.execution", execution_body())
@@ -178,13 +221,13 @@ def main() -> int:
     add(early_settle, "delivery.attestation", delivery_body())
     add(early_settle, "task.termination", termination_body())
     write("06_delivery_before_settlement.json", early_settle.bundle())
-    rows.append(("06_delivery_before_settlement.json", "UNTRUSTED", "delivery_before_settlement", ""))
+    record("06_delivery_before_settlement.json", "UNTRUSTED", "delivery_before_settlement")
 
     salt = keys.random_salt_hex()
     redacted_value = ["quality-ok"]
     redacted_field = {"redacted": True, "commit": commit_field(salt, redacted_value)}
 
-    redacted_chain = TaskChain()
+    redacted_chain = chain(SPEC_01)
     add(redacted_chain, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
     add(redacted_chain, "task.decision", decision_body())
     add(redacted_chain, "task.execution", execution_body())
@@ -192,15 +235,14 @@ def main() -> int:
     add(redacted_chain, "settlement", settlement_body())
     add(redacted_chain, "task.termination", termination_body())
     write("07_redacted_no_disclosure.json", redacted_chain.bundle())
-    rows.append(("07_redacted_no_disclosure.json", "PROVISIONAL", None, ""))
+    record("07_redacted_no_disclosure.json", "PROVISIONAL")
 
     disclosed = redacted_chain.bundle()
-    path_key = "receipts[3].body.quality_flags"
-    disclosed["disclosure_map"] = {path_key: {"salt": salt, "value": redacted_value}}
+    disclosed["disclosure_map"] = {"receipts[3].body.quality_flags": {"salt": salt, "value": redacted_value}}
     write("08_redacted_disclosed.json", disclosed)
-    rows.append(("08_redacted_disclosed.json", "TRUSTED", None, ""))
+    record("08_redacted_disclosed.json", "TRUSTED")
 
-    erased = TaskChain()
+    erased = chain(SPEC_01)
     erased_body = delivery_body(
         {"quality_flags": {"redacted": True, "commit": redacted_field["commit"], "erased": True}}
     )
@@ -211,29 +253,130 @@ def main() -> int:
     add(erased, "settlement", settlement_body())
     add(erased, "task.termination", termination_body())
     write("09_erased_content.json", erased.bundle())
-    rows.append(("09_erased_content.json", "INSUFFICIENT_EVIDENCE", None, ""))
+    record("09_erased_content.json", "INSUFFICIENT_EVIDENCE")
 
-    anchored = minimal_chain().bundle()
+    anchored = minimal_chain(spec=SPEC_01).bundle()
     anchored["anchors"] = [
         {"target": anchored["receipts"][0]["receipt_id"], "hash": "sha256:" + "de" * 32}
     ]
     write("10a_anchor_invalid.json", anchored)
-    rows.append(("10a_anchor_invalid.json", "UNTRUSTED", "anchor_invalid", ""))
+    record("10a_anchor_invalid.json", "UNTRUSTED", "anchor_invalid")
 
-    write("10b_anchor_missing.json", minimal_chain().bundle())
-    rows.append(("10b_anchor_missing.json", "PROVISIONAL", None, "require_anchor"))
+    write("10b_anchor_missing.json", minimal_chain(spec=SPEC_01).bundle())
+    record("10b_anchor_missing.json", "PROVISIONAL", require_anchor=True, note="--require-anchor")
+
+    # --- 0.2 additions ------------------------------------------------------
+    succession = chain()
+    add(succession, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(succession, "task.decision", decision_body())
+    add(succession, "task.execution", execution_body())
+    add(succession, "authority.succession", succession_body())
+    add(succession, "delivery.attestation", delivery_body())
+    add(succession, "settlement", settlement_body())
+    add(succession, "task.termination", termination_body())
+    write("11_succession_handoff.json", succession.bundle())
+    record("11_succession_handoff.json", "TRUSTED", note="0.2 authority.succession")
+
+    write("12_ms_timestamps.json", minimal_chain(ms=True).bundle())
+    record("12_ms_timestamps.json", "TRUSTED", note="0.2 millisecond timestamps")
+
+    attested = chain()
+    add(attested, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(attested, "task.decision", decision_body())
+    add(attested, "task.execution", execution_body())
+    att_body = delivery_body()
+    att_body["counterparty"]["attestation"] = records.sign_body_attestation(
+        att_body, COUNTERPARTY_KEY, COUNTERPARTY_DID
+    )
+    add(attested, "delivery.attestation", att_body)
+    add(attested, "settlement", settlement_body())
+    add(attested, "task.termination", termination_body())
+    write("13_attestation_valid.json", attested.bundle())
+    record("13_attestation_valid.json", "TRUSTED", note="0.2 counterparty attestation")
+
+    tampered_att = chain()
+    add(tampered_att, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(tampered_att, "task.decision", decision_body())
+    add(tampered_att, "task.execution", execution_body())
+    bad_body = delivery_body()
+    attestation = records.sign_body_attestation(bad_body, COUNTERPARTY_KEY, COUNTERPARTY_DID)
+    attestation["value"] = "A" + attestation["value"][1:]
+    bad_body["counterparty"]["attestation"] = attestation
+    add(tampered_att, "delivery.attestation", bad_body)
+    add(tampered_att, "settlement", settlement_body())
+    add(tampered_att, "task.termination", termination_body())
+    write("13b_attestation_tampered.json", tampered_att.bundle())
+    record("13b_attestation_tampered.json", "UNTRUSTED", "bad_attestation", note="0.2 attestation tampered")
+
+    revoked = minimal_chain().bundle()
+    revoked["revocations"] = [revocation_statement(GATE_DID, GATE_KEY, "2020-01-01T00:00:00Z")]
+    write("14a_revoked_key.json", revoked)
+    record("14a_revoked_key.json", "UNTRUSTED", "key_revoked", note="revocation before issuance")
+
+    after = minimal_chain().bundle()
+    after["revocations"] = [revocation_statement(GATE_DID, GATE_KEY, "2030-01-01T00:00:00Z")]
+    write("14b_revocation_after_issue.json", after)
+    record("14b_revocation_after_issue.json", "TRUSTED", note="revocation after issuance")
+
+    merkle = chain()
+    add(merkle, "session.pass.created", pass_body())
+    add(merkle, "task.decision", decision_body(provenance_hash=merkle_digest("sources:gate-only")))
+    add(merkle, "task.execution", execution_body())
+    add(merkle, "task.termination", termination_body())
+    write("15_merkle_provenance.json", merkle.bundle())
+    record("15_merkle_provenance.json", "TRUSTED", note="0.2 merkle provenance root")
+
+    bad_prov = chain()
+    add(bad_prov, "session.pass.created", pass_body())
+    add(bad_prov, "task.decision", decision_body(provenance_hash="blake3:" + "ab" * 32))
+    add(bad_prov, "task.execution", execution_body())
+    add(bad_prov, "task.termination", termination_body())
+    write("15b_provenance_invalid.json", bad_prov.bundle())
+    record(
+        "15b_provenance_invalid.json",
+        "UNTRUSTED",
+        "provenance_invalid",
+        note="unsupported hash form",
+        schema_valid=False,
+    )
+
+    anchor_typed = minimal_chain().bundle()
+    first = anchor_typed["receipts"][0]
+    anchor_typed["anchors"] = [
+        {
+            "target": first["receipt_id"],
+            "hash": receipt_digest(first),
+            "anchor": {"type": "quantum-teleport", "value": "n/a"},
+        }
+    ]
+    write("10c_anchor_unknown_type.json", anchor_typed)
+    record(
+        "10c_anchor_unknown_type.json",
+        "UNTRUSTED",
+        "anchor_invalid",
+        note="0.2 anchor type enum",
+        schema_valid=False,
+    )
+
+    # --- indexes ------------------------------------------------------------
+    (VECTORS / "manifest.json").write_text(
+        json.dumps({"spec": SPEC_02, "vectors": rows}, indent=2) + "\n", encoding="utf-8"
+    )
 
     index_lines = [
-        "# Continuity Receipt v0 — test vector index",
+        "# Continuity Receipt — test vector index",
         "",
-        "Generated by `tools/make_vectors.py`. Verify with:",
+        "Generated by `tools/make_vectors.py`; machine-readable expectations in `manifest.json`.",
+        "Verify with:",
         "`python3 -m continuity_receipt.verify vectors/<file> [--require-anchor]`",
         "",
         "| Vector | Expected verdict | Primary error | Notes |",
         "|---|---|---|---|",
     ]
-    for name, verdict, code, note in rows:
-        index_lines.append(f"| {name} | {verdict} | {code or '—'} | {note} |")
+    for row in rows:
+        index_lines.append(
+            f"| {row['file']} | {row['expected_verdict']} | {row['expected_code'] or '—'} | {row['note']} |"
+        )
     (VECTORS / "INDEX.md").write_text("\n".join(index_lines) + "\n", encoding="utf-8")
 
     print(f"wrote {len(rows)} vectors to {VECTORS}")

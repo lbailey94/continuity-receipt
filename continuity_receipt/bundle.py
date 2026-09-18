@@ -1,4 +1,4 @@
-"""Task chains and bundles (v0).
+"""Task chains and bundles (0.1 + 0.2).
 
 Chain-link rule (freezes a spec ambiguity): `prev` and signatures are both
 computed over the canonical bytes of the receipt **excluding** the `sig`
@@ -13,8 +13,10 @@ def receipt_digest(receipt: dict) -> str:
 
 
 class TaskChain:
-    def __init__(self, task_id: str | None = None):
+    def __init__(self, task_id: str | None = None, spec: str | None = None, ms_timestamps: bool = False):
         self.task_id = task_id or ("urn:uuid:" + str(records.uuid7()))
+        self.spec = spec or records.SPEC_ID
+        self.ms_timestamps = ms_timestamps
         self.receipts: list[dict] = []
 
     def add(
@@ -34,14 +36,21 @@ class TaskChain:
             len(self.receipts),
             prev,
             body,
+            spec=self.spec,
+            issued_at=records.utc_now_rfc3339(ms=self.ms_timestamps),
         )
         receipt = records.sign_receipt(receipt, private_key, issuer_did)
         self.receipts.append(receipt)
         return receipt
 
-    def bundle(self, disclosure_map: dict | None = None, anchors: list | None = None) -> dict:
+    def bundle(
+        self,
+        disclosure_map: dict | None = None,
+        anchors: list | None = None,
+        revocations: list | None = None,
+    ) -> dict:
         bundle = {
-            "spec": records.SPEC_ID,
+            "spec": self.spec,
             "task_id": self.task_id,
             "receipts": self.receipts,
         }
@@ -49,4 +58,6 @@ class TaskChain:
             bundle["disclosure_map"] = disclosure_map
         if anchors:
             bundle["anchors"] = anchors
+        if revocations:
+            bundle["revocations"] = revocations
         return bundle

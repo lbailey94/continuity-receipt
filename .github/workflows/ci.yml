@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install 'cryptography>=42' jsonschema
+      - name: Conformance suite (vectors + schema + primitives)
+        run: python3 -m unittest discover -s tests -v
+      - name: Verify each vector via the CLI surface
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          manifest = json.loads(Path("vectors/manifest.json").read_text())
+          for entry in manifest["vectors"]:
+              cmd = [sys.executable, "-m", "continuity_receipt.verify", f"vectors/{entry['file']}"]
+              if entry["require_anchor"]:
+                  cmd.append("--require-anchor")
+              proc = subprocess.run(cmd, capture_output=True, text=True)
+              expected_rc = 0 if entry["expected_verdict"] == "TRUSTED" else 1
+              if proc.returncode != expected_rc:
+                  raise SystemExit(f"{entry['file']}: rc {proc.returncode} != {expected_rc}")
+          print(f"CLI verified {len(manifest['vectors'])} vectors")
+          PY

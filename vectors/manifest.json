@@ -1,0 +1,165 @@
+{
+  "spec": "continuity-receipt/0.2",
+  "vectors": [
+    {
+      "file": "01_happy_minimal.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "02_happy_full.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "03_tampered_body.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "bad_signature",
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "04_missing_termination.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "missing_termination",
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "05_cap_exceeded.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "cap_exceeded",
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "06_delivery_before_settlement.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "delivery_before_settlement",
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "07_redacted_no_disclosure.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "08_redacted_disclosed.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "09_erased_content.json",
+      "expected_verdict": "INSUFFICIENT_EVIDENCE",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "10a_anchor_invalid.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "anchor_invalid",
+      "require_anchor": false,
+      "note": "",
+      "schema_valid": true
+    },
+    {
+      "file": "10b_anchor_missing.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": true,
+      "note": "--require-anchor",
+      "schema_valid": true
+    },
+    {
+      "file": "11_succession_handoff.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.2 authority.succession",
+      "schema_valid": true
+    },
+    {
+      "file": "12_ms_timestamps.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.2 millisecond timestamps",
+      "schema_valid": true
+    },
+    {
+      "file": "13_attestation_valid.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.2 counterparty attestation",
+      "schema_valid": true
+    },
+    {
+      "file": "13b_attestation_tampered.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "bad_attestation",
+      "require_anchor": false,
+      "note": "0.2 attestation tampered",
+      "schema_valid": true
+    },
+    {
+      "file": "14a_revoked_key.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "key_revoked",
+      "require_anchor": false,
+      "note": "revocation before issuance",
+      "schema_valid": true
+    },
+    {
+      "file": "14b_revocation_after_issue.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "revocation after issuance",
+      "schema_valid": true
+    },
+    {
+      "file": "15_merkle_provenance.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.2 merkle provenance root",
+      "schema_valid": true
+    },
+    {
+      "file": "15b_provenance_invalid.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "provenance_invalid",
+      "require_anchor": false,
+      "note": "unsupported hash form",
+      "schema_valid": false
+    },
+    {
+      "file": "10c_anchor_unknown_type.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "anchor_invalid",
+      "require_anchor": false,
+      "note": "0.2 anchor type enum",
+      "schema_valid": false
+    }
+  ]
+}

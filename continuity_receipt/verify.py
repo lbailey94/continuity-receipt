@@ -1,4 +1,4 @@
-"""Continuity Receipt bundle verification (v0).
+"""Continuity Receipt bundle verification (0.1 + 0.2).
 
 Verdicts: TRUSTED | PROVISIONAL | INSUFFICIENT_EVIDENCE | UNTRUSTED
 (IETF CTQ-aligned semantics; see spec §7).
@@ -10,6 +10,9 @@ from dataclasses import dataclass, field as dc_field
 from . import keys, records
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
+
+ANCHOR_TYPES = ("opentimestamps", "public-chain", "custom")
+PROVENANCE_PREFIXES = ("sha256:", "merkle-sha256:")
 
 
 @dataclass
@@ -56,7 +59,7 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
         _fatal(result, "malformed", "bundle is not an object")
         return _finish(result)
 
-    if bundle.get("spec") != records.SPEC_ID:
+    if bundle.get("spec") not in records.SUPPORTED_SPECS:
         _fatal(result, "version_unsupported", f"spec={bundle.get('spec')!r}")
         return _finish(result)
 
@@ -74,6 +77,8 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
             _fatal(result, "malformed", f"receipt {index} is not an object")
             continue
         rid = receipt.get("receipt_id")
+        if receipt.get("spec") not in records.SUPPORTED_SPECS:
+            _fatal(result, "version_unsupported", f"receipt spec={receipt.get('spec')!r}", rid)
         if receipt.get("task_id") != task_id:
             _fatal(result, "task_mismatch", "receipt task_id != bundle task_id", rid)
         record_type = receipt.get("type")
@@ -88,6 +93,9 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
         missing = [name for name in records.REQUIRED_FIELDS[record_type] if name not in body]
         if missing:
             _fatal(result, "malformed", f"missing body fields {missing}", rid)
+
+        if not records.validate_timestamp(receipt.get("issued_at")):
+            _fatal(result, "malformed", f"issued_at not RFC 3339 UTC: {receipt.get('issued_at')!r}", rid)
 
         if receipt.get("seq") != index:
             _fatal(result, "chain_break", f"seq {receipt.get('seq')} != position {index}", rid)
@@ -106,9 +114,12 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
 
     _check_cross_record(result, receipts, type_by_seq)
     _check_redactions(result, receipts, bundle.get("disclosure_map") or {})
+    _check_attestations(result, receipts)
+    _check_provenance(result, receipts)
+    _check_revocations(result, bundle, receipts)
     _check_anchors(result, bundle, receipts, require_anchor)
 
-    result.summary = {
+    summary = {
         "receipts": len(receipts),
         "types": [r.get("type") for r in receipts if isinstance(r, dict)],
         "issuers": sorted(
@@ -117,6 +128,7 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
         "terminated": "task.termination" in type_by_seq.values(),
         "settled": "settlement" in type_by_seq.values(),
     }
+    result.summary = {**summary, **result.summary}
     return _finish(result)
 
 
@@ -188,6 +200,128 @@ def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict
             result.provisional_reasons.append(f"redacted_without_disclosure:{path}")
 
 
+def _check_attestations(result: VerifyResult, receipts: list) -> None:
+    """0.2: counterparty attestations are verified per-signature and reported.
+
+    Absence of an attestation is visible in the summary but does not change the
+    verdict (documented in the threat model; counterparty id alone is the
+    minimum required evidence).
+    """
+    seen = []
+    for receipt in receipts:
+        if receipt.get("type") != "delivery.attestation":
+            continue
+        body = receipt.get("body", {})
+        counterparty = body.get("counterparty", {}) if isinstance(body, dict) else {}
+        attestation = counterparty.get("attestation") if isinstance(counterparty, dict) else None
+        if not attestation:
+            seen.append(
+                {
+                    "receipt_id": receipt.get("receipt_id"),
+                    "counterparty": counterparty.get("id") if isinstance(counterparty, dict) else None,
+                    "attestation": "absent",
+                }
+            )
+            continue
+        valid = (
+            isinstance(attestation, dict)
+            and attestation.get("alg") == "ed25519"
+            and isinstance(attestation.get("key"), str)
+            and isinstance(attestation.get("value"), str)
+            and keys.verify(
+                attestation["key"],
+                canonical_bytes(records.attestation_view(body)),
+                attestation["value"],
+            )
+        )
+        seen.append(
+            {
+                "receipt_id": receipt.get("receipt_id"),
+                "counterparty": counterparty.get("id") if isinstance(counterparty, dict) else None,
+                "attestation": "valid" if valid else "invalid",
+                "key": attestation.get("key") if isinstance(attestation, dict) else None,
+            }
+        )
+        if not valid:
+            _fatal(
+                result,
+                "bad_attestation",
+                "counterparty attestation does not verify",
+                receipt.get("receipt_id"),
+            )
+    if seen:
+        result.summary["attestations"] = seen
+
+
+def _check_provenance(result: VerifyResult, receipts: list) -> None:
+    """0.2: observed_sources_hash is a flat sha256 or a merkle-sha256 root."""
+    for receipt in receipts:
+        if receipt.get("type") != "task.decision":
+            continue
+        provenance = receipt.get("body", {}).get("input_provenance")
+        if not isinstance(provenance, dict):
+            continue
+        observed = provenance.get("observed_sources_hash")
+        if observed is None:
+            continue
+        if not isinstance(observed, str) or not observed.startswith(PROVENANCE_PREFIXES):
+            _fatal(
+                result,
+                "provenance_invalid",
+                f"observed_sources_hash has unsupported form: {observed!r}",
+                receipt.get("receipt_id"),
+            )
+
+
+def _check_revocations(result: VerifyResult, bundle: dict, receipts: list) -> None:
+    """0.2: bundle-level revocation statements (self-signed by the revoked key).
+
+    A receipt is UNTRUSTED (`key_revoked`) when its issuer key was revoked at or
+    before the receipt's issued_at. Receipts issued before revocation remain
+    valid; invalid revocation statements are themselves an error (fail-closed).
+    """
+    revocations = bundle.get("revocations") or []
+    if not isinstance(revocations, list):
+        _fatal(result, "bad_revocation", "revocations must be a list")
+        return
+    revoked: list[tuple[str, object]] = []
+    checked = 0
+    for statement in revocations:
+        if not isinstance(statement, dict):
+            _fatal(result, "bad_revocation", "revocation statement is not an object")
+            continue
+        key_id, revoked_at, sig = statement.get("key"), statement.get("revoked_at"), statement.get("sig")
+        if not isinstance(key_id, str) or not records.validate_timestamp(revoked_at):
+            _fatal(result, "bad_revocation", f"malformed revocation statement for {key_id!r}")
+            continue
+        if not isinstance(sig, dict) or sig.get("alg") != "ed25519" or not sig.get("value"):
+            _fatal(result, "bad_revocation", f"revocation statement unsigned for {key_id!r}")
+            continue
+        message = canonical_bytes({k: v for k, v in statement.items() if k != "sig"})
+        if not keys.verify(key_id, message, sig["value"]):
+            _fatal(result, "bad_revocation", f"revocation signature invalid for {key_id!r}")
+            continue
+        revoked.append((key_id, records.parse_timestamp(revoked_at)))
+        checked += 1
+
+    for receipt in receipts:
+        key_id = receipt.get("issuer", {}).get("id")
+        issued = receipt.get("issued_at")
+        if not isinstance(key_id, str) or not records.validate_timestamp(issued):
+            continue
+        issued_at = records.parse_timestamp(issued)
+        for revoked_key, revoked_at in revoked:
+            if revoked_key == key_id and issued_at >= revoked_at:
+                _fatal(
+                    result,
+                    "key_revoked",
+                    f"issuer key {key_id} was revoked at {revoked_at.isoformat()}",
+                    receipt.get("receipt_id"),
+                )
+    if revocations:
+        result.summary["revocations_checked"] = checked
+
+
 def _required_field_for_path(path: str, receipts: list) -> str | None:
     parts = path.split(".")
     if len(parts) >= 3 and parts[0].startswith("receipts[") and parts[1] == "body":
@@ -209,10 +343,24 @@ def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_a
             result.provisional_reasons.append("anchor_missing")
         return
     by_id = {r.get("receipt_id"): r for r in receipts if isinstance(r, dict)}
+    kinds = []
     for anchor in anchors:
         target = by_id.get(anchor.get("target"))
         if target is None or anchor.get("hash") != receipt_digest(target):
             _fatal(result, "anchor_invalid", f"anchor invalid for {anchor.get('target')}")
+            continue
+        meta = anchor.get("anchor")
+        if meta is not None:
+            if not isinstance(meta, dict) or meta.get("type") not in ANCHOR_TYPES:
+                _fatal(
+                    result,
+                    "anchor_invalid",
+                    f"unknown anchor type: {meta.get('type') if isinstance(meta, dict) else meta!r}",
+                )
+                continue
+            kinds.append(meta.get("type"))
+    if anchors:
+        result.summary["anchors"] = kinds or ["hash-only"]
 
 
 def _finish(result: VerifyResult) -> VerifyResult:

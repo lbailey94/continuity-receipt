@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.2.0 — 2026-09-18
+
+Interoperability and robustness release; `0.1` remains supported.
+
+- **New record type** `authority.succession` (authority hand-off).
+- **Millisecond timestamps** (optional 1–3 fractional digits); second precision
+  still valid. Ordering within a chain remains by `seq`.
+- **Counterparty attestations** — signing rule defined (body with
+  `counterparty.attestation` removed) and verified per-signature; invalid
+  attestation → `bad_attestation`. Absence is reported, not penalized.
+- **Revocation statements** — bundle-level, self-signed by the revoked key;
+  receipts issued at or after `revoked_at` fail with `key_revoked`; earlier
+  receipts remain valid. Invalid statements fail closed (`bad_revocation`).
+- **Provenance roots** — `observed_sources_hash` accepts `merkle-sha256:`;
+  unsupported forms fail with `provenance_invalid`.
+- **Anchor typing** — anchor metadata `type` ∈ {`opentimestamps`,
+  `public-chain`, `custom`}; unknown types → `anchor_invalid`.
+- **JSON Schema** (`schema/continuity-receipt-0.2.schema.json`) validated
+  against every schema-valid vector in CI.
+- **CI** (GitHub Actions) + **machine-readable vector manifest**
+  (`vectors/manifest.json`) + CLI-surface verification of all vectors.
+- **THREAT_MODEL.md** (13 threat classes, including the open
+  pre-revocation-compromise gap) and **CONTRIBUTING.md** (DCO, no CLA).
+- Test set grows from 11 to 20 vectors; suite is 10 tests (vectors, schema,
+  primitives).
+
+Deferred to 0.3 with reasons in `SPEC.md` §11: CBOR equivalence, commitment
+HMAC/domain separation, revocation distribution, anchor proof verification,
+succession multi-signatures.
+
 ## 0.1.0 — 2026-09-18
 
 Initial public release.

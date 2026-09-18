@@ -2,7 +2,7 @@
 
 **An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
 
-**Spec version:** `continuity-receipt/0.1` — published 2026-09-18 (draft; open items listed in `SPEC.md` §11).
+**Spec version:** `continuity-receipt/0.2` — published 2026-09-18 (`0.1` remains supported; open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
 A Continuity Receipt is a signed, hash-chained record of one governed task:
@@ -21,12 +21,15 @@ Verification verdicts (IETF CTQ-aligned):
 ## Layout
 
 ```
-SPEC.md                    the v0.1 specification (normative)
-ROADMAP.md                 what lands in 0.1.x / 0.2, and the selection rule
+SPEC.md                    the v0.2 specification (normative; 0.1 supported)
+schema/                    JSON Schema (2020-12) for 0.1 + 0.2 bundles
+THREAT_MODEL.md            what receipts prove, and what they do not
+CONTRIBUTING.md            DCO, test rules, scope
+ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
-vectors/                   11 test vectors + INDEX.md (expected verdicts)
+vectors/                   20 test vectors + INDEX.md + manifest.json
 tools/make_vectors.py      regenerates the vectors deterministically
-tests/test_vectors.py      conformance run over all 11 vectors
+tests/                     conformance suite (vectors, schema, primitives)
 ```
 
 ## Quickstart
@@ -45,25 +48,19 @@ python3 -m continuity_receipt.verify vectors/10b_anchor_missing.json --require-a
 python3 -m unittest discover -s tests -v
 ```
 
-## Test vectors (spec §9)
+## Test vectors
 
-| # | Vector | Expected | Primary error |
-|---|---|---|---|
-| 1 | `01_happy_minimal.json` | TRUSTED | — |
-| 2 | `02_happy_full.json` | TRUSTED | — |
-| 3 | `03_tampered_body.json` | UNTRUSTED | `bad_signature` |
-| 4 | `04_missing_termination.json` | UNTRUSTED | `missing_termination` |
-| 5 | `05_cap_exceeded.json` | UNTRUSTED | `cap_exceeded` |
-| 6 | `06_delivery_before_settlement.json` | UNTRUSTED | `delivery_before_settlement` |
-| 7 | `07_redacted_no_disclosure.json` | PROVISIONAL | — |
-| 8 | `08_redacted_disclosed.json` | TRUSTED | — |
-| 9 | `09_erased_content.json` | INSUFFICIENT_EVIDENCE | — |
-| 10a | `10a_anchor_invalid.json` | UNTRUSTED | `anchor_invalid` |
-| 10b | `10b_anchor_missing.json` | PROVISIONAL | `anchor_missing` (`--require-anchor`) |
+20 vectors with machine-readable expectations in `vectors/manifest.json`
+(human index: `vectors/INDEX.md`): 0.1 conformance (`01`–`10c`) plus 0.2
+additions — succession records, millisecond timestamps, counterparty
+attestations, revocation semantics, Merkle provenance, and anchor typing.
+Every schema-valid vector is also checked against
+`schema/continuity-receipt-0.2.schema.json` in CI.
 
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest.
 - **Origin implementation:** [WhiteMagic](https://github.com/lbailey94/whitemagic) — an MIT, local-first memory substrate for agents (this spec repo is Apache-2.0; the two are separate works).
 - **Standards context:** the format is intended as a contribution to the emerging neutral layer (W3C AI Agent Memory Interoperability CG; IETF agentproto work). It is not endorsed by those bodies, and no claim of adoption is made.
 

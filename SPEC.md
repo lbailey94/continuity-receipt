@@ -1,10 +1,25 @@
-# Continuity Receipt — v0.1 Specification
+# Continuity Receipt — v0.2 Specification
 
-**Status:** `continuity-receipt/0.1` — published 2026-09-18 as a draft for public
-review (open items in §11). Pins were frozen with the reference implementation.
-**Date:** 2026-09-17 (draft); published 2026-09-18.
+**Status:** `continuity-receipt/0.2` — published 2026-09-18; `0.1` remains
+supported by the verifier. Open items in §11.
+**Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18.
 **Home:** this repository — versioned independently of any product release
-train. Consumes karma-ledger primitives; not coupled to any 9.x release.
+train.
+
+## 0.2 changes at a glance
+
+- New record type `authority.succession` — authority hand-off (§4.7).
+- Millisecond timestamps allowed (optional 1–3 fractional digits; §3).
+- Counterparty attestation signing rule + per-signature verification
+  reporting (§4.4, §7).
+- Bundle-level self-signed revocation statements with time semantics
+  (`key_revoked`; §7).
+- Provenance sets may use `merkle-sha256:` roots (§4.2, §7).
+- Anchor metadata shape frozen with a type enum
+  (`opentimestamps` | `public-chain` | `custom`; §7).
+- JSON Schema (`schema/continuity-receipt-0.2.schema.json`), CI, and a
+  machine-readable vector manifest (`vectors/manifest.json`).
+- CBOR and commitment hardening deferred to 0.3 with rationale (§11).
 
 ---
 
@@ -71,7 +86,9 @@ Rules:
   **excluding the `sig` member**, and `prev`/signatures are both computed over
   that same view — one rule for both.
 - `sig` covers JCS-canonical bytes of the object excluding the `sig` member.
-- Timestamps are RFC 3339 UTC, second precision (v0).
+- Timestamps are RFC 3339 UTC: second precision in 0.1; optional millisecond
+  precision (1–3 fractional digits) in 0.2. Ordering within a chain is by
+  `seq`, never by timestamp; verifiers must not fail on clock skew alone.
 - Money is integer minor units + ISO-4217-like currency code, never floats.
 - Identifiers are UUIDv7 URNs or DID URIs; no emails, names, or free-text PII
   in required fields.
@@ -105,6 +122,11 @@ the wider project suite.
 ### 4.4 `delivery.attestation`
 `request_hash`, `response_hash`, `counterparty` {`id`, `attestation`? (sig)},
 `spec_ref`? (what "done" means), `quality_flags[]`?.
+**Attestation rule (0.2):** when `counterparty.attestation` is present it is an
+Ed25519 signature over the canonical bytes of the receipt body with
+`counterparty.attestation` removed. Presence is optional; absence is reported
+in the verifier summary but does not change the verdict. Consumers that
+require counterparty attestations must check for them explicitly.
 ### 4.5 `task.termination`
 `reason` (`completed|budget_exhausted|time_expired|killed|error`),
 `limits_at_stop` {`cpu_ms`, `wall_ms`, `spend_minor`, `currency`},
@@ -115,6 +137,13 @@ complete.** (The "proof it stopped" link.)
 `rail` (`x402|invoice|stripe|offchain|none`), `rail_ref`, `amount`
 {`minor`, `currency`}, `gated_on_delivery` (bool), `settled_at`,
 `dispute_window_s`?.
+
+### 4.7 `authority.succession` (0.2)
+`from_authority`, `to_authority` (identifiers), `effective_at`, `reason`
+(`handoff|expiry|operator_change`). Records an authority hand-off; the
+successor's subsequent receipts carry the new issuer key. Outside of
+succession, key rotation is a new `issuer.key` plus re-signing (0.2 adds
+bundle-level revocation statements, §7).
 
 ## 5. Canonicalization and signing
 
@@ -159,15 +188,25 @@ complete.** (The "proof it stopped" link.)
 ## 7. Verification algorithm and semantics
 
 Ordered checks (first failure wins):
-1. Parse + schema per record type; canonical bytes reconstructable.
+1. Parse + schema per record type; canonical bytes reconstructable; envelope
+   `issued_at` is RFC 3339 UTC (0.2: milliseconds allowed).
 2. Chain: `seq` contiguous, `prev` hashes match.
-3. Signatures valid for each issuer.
+3. Signatures valid for each issuer. Counterparty attestations (when present)
+   verify under the §4.4 rule; each result is reported individually.
 4. Cross-record consistency: `mandate_ref` present at creation; decision policy
    version equals authority policy version; settlement amount ≤ run cap;
    `delivery` precedes `settlement` when `gated_on_delivery`; **termination
-   present**.
-5. Anchors (v0 optional): if present, verify commitment; if absent, note
-   `anchor_missing` (not fatal in v0).
+   present**; provenance hash form is `sha256:` or `merkle-sha256:`.
+5. Revocations (0.2, bundle-level): each statement is self-signed by the key it
+   revokes; a receipt whose issuer key was revoked at or before its
+   `issued_at` fails (`key_revoked`). Receipts issued before revocation remain
+   valid.
+6. Anchors (optional): if present, the committed digest must match the
+   receipt; anchor metadata, when present, must declare one of the known types
+   (`opentimestamps`, `public-chain`, `custom`); if anchors are absent and the
+   caller required one, note `anchor_missing` (not fatal by default). External
+   proof verification is performed with the anchor provider's tooling, not by
+   this verifier.
 
 Output semantics (IETF CTQ-aligned):
 `TRUSTED` (all checks pass), `PROVISIONAL` (structure intact; some optional
@@ -178,7 +217,9 @@ break, cap exceeded, missing termination for a "completed" claim).
 Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 `task_mismatch`, `policy_mismatch`, `cap_exceeded`,
 `delivery_before_settlement`, `missing_termination`, `anchor_invalid`,
-`redacted_required`, `commit_mismatch`, `version_unsupported`.
+`redacted_required`, `commit_mismatch`, `version_unsupported`;
+0.2 adds `bad_attestation`, `bad_revocation`, `key_revoked`,
+`provenance_invalid`.
 
 ## 8. Interop mapping (informative)
 
@@ -190,43 +231,67 @@ Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 | ERC-8004 Validation Registry | request/response hashes anchored when it ships |
 | x402 | `settlement.rail_ref` = tx hash; gating enforced at the server |
 
-## 9. Test vectors (v0 set — full JSON shipped with the verifier)
+## 9. Test vectors
 
-| # | Vector | Expected |
+The full set ships with the verifier:
+**machine-readable expectations** in `vectors/manifest.json` (file → expected
+verdict → expected error code → anchor requirement), and a human index in
+`vectors/INDEX.md`. The JSON Schema is
+`schema/continuity-receipt-0.2.schema.json`; every schema-valid vector is
+validated against it in CI.
+
+0.1 conformance set (frozen): `01`–`10c` — happy paths, tampering, missing
+termination, cap/delivery ordering, redaction/erasure, anchors.
+
+0.2 additions:
+
+| Vector | Expected | Exercises |
 |---|---|---|
-| 1 | Minimal happy path (pass → 1 tool call → termination → no settlement) | TRUSTED |
-| 2 | Full path with x402 settlement, gated_on_delivery = true | TRUSTED |
-| 3 | Tampered body byte | UNTRUSTED (`bad_signature`) |
-| 4 | Removed termination record ("completed" claim) | UNTRUSTED (`missing_termination`) |
-| 5 | Cap exceeded: settlement > run cap | UNTRUSTED (`cap_exceeded`) |
-| 6 | Settlement before delivery attestation | UNTRUSTED (`delivery_before_settlement`) |
-| 7 | Redacted optional field with commitment, salt withheld | PROVISIONAL |
-| 8 | Redacted optional field, salt later revealed in disclosure_map | TRUSTED |
-| 9 | Genuinely erased content (key gone) | INSUFFICIENT_EVIDENCE |
-| 10 | Anchor mismatched / absent (two sub-cases) | UNTRUSTED (`anchor_invalid`) / PROVISIONAL (`anchor_missing`) |
+| `11_succession_handoff.json` | TRUSTED | `authority.succession` record |
+| `12_ms_timestamps.json` | TRUSTED | millisecond `issued_at` |
+| `13_attestation_valid.json` | TRUSTED | counterparty attestation verifies |
+| `13b_attestation_tampered.json` | UNTRUSTED (`bad_attestation`) | attestation tampering |
+| `14a_revoked_key.json` | UNTRUSTED (`key_revoked`) | revocation before issuance |
+| `14b_revocation_after_issue.json` | TRUSTED | revocation after issuance |
+| `15_merkle_provenance.json` | TRUSTED | `merkle-sha256:` provenance root |
+| `15b_provenance_invalid.json` | UNTRUSTED (`provenance_invalid`) | unsupported hash form |
+| `10c_anchor_unknown_type.json` | UNTRUSTED (`anchor_invalid`) | anchor type enum |
 
 ## 10. Versioning
 
-`spec: continuity-receipt/0.1` in every envelope. Additive fields within 0.x;
-breaking changes require 0.2 + new test vector set. The verifier refuses
-unknown major versions (`version_unsupported`) and warns on unknown minor
-fields (does not fail).
+`spec: continuity-receipt/0.2` in new envelopes; `0.1` remains supported
+(bundle-level and per-receipt). Additive fields within 0.x; breaking changes
+require a new minor version plus a new vector set. The verifier refuses
+unknown spec versions (`version_unsupported`); unknown *additional* members
+are preserved and ignored (they are inside the signed bytes, so they cannot be
+injected after signing).
 
 ## 11. Open items
 
-Resolved for `continuity-receipt/0.1` (pinned 2026-09-18):
-1. **CBOR equivalence:** deferred — 0.1 is JSON-only (see §5); CBOR profiles
-   are a 0.2 interop target.
-2. **Salt/commit scheme:** `sha256(salt_bytes || 0x7c || JCS(value))`, 16-byte
-   random salt per field, hex in the disclosure map (see §6). HMAC and
-   domain-separation tags deferred to 0.2.
-3. **`observed_sources_hash`:** flat SHA-256 in 0.1; Merkle roots deferred to
-   0.2.
-4. **Redaction mechanics:** issuance-time re-signing of the tail, as
-   implemented by `continuity_receipt.disclose` (see §6).
+**Resolved for 0.1** (pinned 2026-09-18): JSON-only canonicalization; salt
+scheme `sha256(salt_bytes || 0x7c || JCS(value))`; flat `observed_sources_hash`;
+redaction as issuance-time re-signing.
 
-Still open (not blocking 0.1 freeze):
-5. Required-field minimalism vs insurance needs (review with one underwriter
-   at P2, after ~3 months of receipts).
-6. Succession receipts (authority hand-off) — same envelope; type definition
-   deferred to Layer 7 work.
+**Resolved for 0.2** (2026-09-18): millisecond timestamps; counterparty
+attestation rule; bundle-level revocation statements (receipts before
+revocation remain valid); `authority.succession`; `merkle-sha256:` provenance
+roots; anchor metadata type enum; JSON Schema + CI; machine-readable vector
+manifest.
+
+**Deferred to 0.3, with reasons:**
+1. **CBOR equivalence** — no implementer need demonstrated yet, and the signed
+   domain is JSON canonical bytes; adding a second encoding requires an
+   equivalence proof and vectors, not a paragraph.
+2. **Commitment hardening (HMAC / domain separation)** — current per-field
+   random salts make substitution require a salt collision; the analysis is on
+   record in `THREAT_MODEL.md` §9. Revisit with a concrete attack or an
+   implementer request.
+3. **Revocation distribution** — statements travel in the bundle for now; no
+   CRL/monitoring layer exists. Key compromise before revocation is published
+   remains indistinguishable.
+4. **Anchor proof verification** — OpenTimestamps is the recommended v0
+   practice; the verifier checks shape and digest binding only.
+5. **Succession hardening** — multi-party signatures on succession records.
+
+**Still open:** required-field minimalism vs insurance needs (review with one
+underwriter, after ~3 months of real receipts).
