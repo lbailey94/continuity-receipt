@@ -1,0 +1,246 @@
+"""Continuity Receipt bundle verification (v0).
+
+Verdicts: TRUSTED | PROVISIONAL | INSUFFICIENT_EVIDENCE | UNTRUSTED
+(IETF CTQ-aligned semantics; see spec §7).
+"""
+import json
+import sys
+from dataclasses import dataclass, field as dc_field
+
+from . import keys, records
+from .bundle import receipt_digest
+from .canon import canonical_bytes, commit_field
+
+
+@dataclass
+class VerifyResult:
+    verdict: str = "TRUSTED"
+    errors: list = dc_field(default_factory=list)
+    provisional_reasons: list = dc_field(default_factory=list)
+    insufficient_reasons: list = dc_field(default_factory=list)
+    summary: dict = dc_field(default_factory=dict)
+
+    def codes(self) -> list[str]:
+        return [entry["code"] for entry in self.errors]
+
+    def as_dict(self) -> dict:
+        return {
+            "verdict": self.verdict,
+            "errors": self.errors,
+            "provisional_reasons": self.provisional_reasons,
+            "insufficient_reasons": self.insufficient_reasons,
+            "summary": self.summary,
+        }
+
+
+def _fatal(result: VerifyResult, code: str, detail: str, receipt_id: str | None = None):
+    result.errors.append({"code": code, "detail": detail, "receipt_id": receipt_id})
+
+
+def _iter_redactions(node, path, out):
+    if isinstance(node, dict):
+        if node.get("redacted") is True:
+            out.append((path, node))
+            return
+        for key, value in node.items():
+            _iter_redactions(value, f"{path}.{key}" if path else key, out)
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            _iter_redactions(value, f"{path}[{index}]", out)
+
+
+def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
+    result = VerifyResult()
+
+    if not isinstance(bundle, dict):
+        _fatal(result, "malformed", "bundle is not an object")
+        return _finish(result)
+
+    if bundle.get("spec") != records.SPEC_ID:
+        _fatal(result, "version_unsupported", f"spec={bundle.get('spec')!r}")
+        return _finish(result)
+
+    receipts = bundle.get("receipts")
+    if not isinstance(receipts, list) or not receipts:
+        _fatal(result, "malformed", "bundle has no receipts")
+        return _finish(result)
+
+    task_id = bundle.get("task_id")
+    expected_prev = None
+    type_by_seq: dict[int, str] = {}
+
+    for index, receipt in enumerate(receipts):
+        if not isinstance(receipt, dict):
+            _fatal(result, "malformed", f"receipt {index} is not an object")
+            continue
+        rid = receipt.get("receipt_id")
+        if receipt.get("task_id") != task_id:
+            _fatal(result, "task_mismatch", "receipt task_id != bundle task_id", rid)
+        record_type = receipt.get("type")
+        if record_type not in records.RECORD_TYPES:
+            _fatal(result, "unknown_type", f"type={record_type!r}", rid)
+            continue
+        type_by_seq[index] = record_type
+        body = receipt.get("body")
+        if not isinstance(body, dict):
+            _fatal(result, "malformed", "body is not an object", rid)
+            continue
+        missing = [name for name in records.REQUIRED_FIELDS[record_type] if name not in body]
+        if missing:
+            _fatal(result, "malformed", f"missing body fields {missing}", rid)
+
+        if receipt.get("seq") != index:
+            _fatal(result, "chain_break", f"seq {receipt.get('seq')} != position {index}", rid)
+        if receipt.get("prev") != expected_prev:
+            _fatal(result, "chain_break", "prev digest mismatch", rid)
+        expected_prev = receipt_digest(receipt)
+
+        sig = receipt.get("sig")
+        if not isinstance(sig, dict) or sig.get("alg") != "ed25519" or not sig.get("value"):
+            _fatal(result, "bad_signature", "missing or unsupported sig", rid)
+        else:
+            issuer = receipt.get("issuer", {}).get("id", "")
+            message = canonical_bytes(records.unsigned_view(receipt))
+            if not keys.verify(issuer, message, sig["value"]):
+                _fatal(result, "bad_signature", "signature does not verify", rid)
+
+    _check_cross_record(result, receipts, type_by_seq)
+    _check_redactions(result, receipts, bundle.get("disclosure_map") or {})
+    _check_anchors(result, bundle, receipts, require_anchor)
+
+    result.summary = {
+        "receipts": len(receipts),
+        "types": [r.get("type") for r in receipts if isinstance(r, dict)],
+        "issuers": sorted(
+            {r.get("issuer", {}).get("id", "") for r in receipts if isinstance(r, dict)}
+        ),
+        "terminated": "task.termination" in type_by_seq.values(),
+        "settled": "settlement" in type_by_seq.values(),
+    }
+    return _finish(result)
+
+
+def _check_cross_record(result: VerifyResult, receipts: list, type_by_seq: dict) -> None:
+    pass_receipts = [r for r in receipts if r.get("type") == "session.pass.created"]
+    if not pass_receipts:
+        _fatal(result, "malformed", "chain has no session.pass.created receipt")
+        return
+    pass_body = pass_receipts[0]["body"]
+    policy_version = pass_body.get("policy_version")
+
+    for receipt in receipts:
+        if receipt.get("type") == "task.decision":
+            if receipt["body"].get("policy_version") != policy_version:
+                _fatal(
+                    result,
+                    "policy_mismatch",
+                    f"decision policy {receipt['body'].get('policy_version')!r} "
+                    f"!= pass policy {policy_version!r}",
+                    receipt.get("receipt_id"),
+                )
+
+    spend_cap = pass_body.get("spend_cap")
+    settlement_indexes = [i for i, t in type_by_seq.items() if t == "settlement"]
+    delivery_indexes = [i for i, t in type_by_seq.items() if t == "delivery.attestation"]
+
+    for index in settlement_indexes:
+        settlement = receipts[index]
+        amount = settlement["body"].get("amount", {})
+        if spend_cap is not None and (
+            amount.get("currency") != spend_cap.get("currency")
+            or int(amount.get("minor", 0)) > int(spend_cap.get("minor", 0))
+        ):
+            _fatal(
+                result,
+                "cap_exceeded",
+                f"settlement {amount} exceeds cap {spend_cap}",
+                settlement.get("receipt_id"),
+            )
+        if settlement["body"].get("gated_on_delivery") and (
+            not delivery_indexes or min(delivery_indexes) > index
+        ):
+            _fatal(
+                result,
+                "delivery_before_settlement",
+                "gated settlement recorded before any delivery attestation",
+                settlement.get("receipt_id"),
+            )
+
+    if "task.termination" not in type_by_seq.values():
+        _fatal(result, "missing_termination", "task has no termination receipt")
+
+
+def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict) -> None:
+    redactions: list[tuple[str, dict]] = []
+    _iter_redactions(receipts, "receipts", redactions)
+    for path, field in redactions:
+        if _required_field_for_path(path, receipts):
+            _fatal(result, "redacted_required", f"required field redacted at {path}")
+            continue
+        entry = disclosure_map.get(path)
+        if entry and "salt" in entry and "value" in entry:
+            if commit_field(entry["salt"], entry["value"]) != field.get("commit"):
+                _fatal(result, "commit_mismatch", f"commit mismatch at {path}")
+            continue
+        if field.get("erased"):
+            result.insufficient_reasons.append(f"erased_content:{path}")
+        else:
+            result.provisional_reasons.append(f"redacted_without_disclosure:{path}")
+
+
+def _required_field_for_path(path: str, receipts: list) -> str | None:
+    parts = path.split(".")
+    if len(parts) >= 3 and parts[0].startswith("receipts[") and parts[1] == "body":
+        index_text = parts[0][len("receipts[") :].rstrip("]")
+        try:
+            receipt = receipts[int(index_text)]
+        except (ValueError, IndexError):
+            return None
+        record_type = receipt.get("type")
+        if record_type in records.REQUIRED_FIELDS and parts[2] in records.REQUIRED_FIELDS[record_type]:
+            return parts[2]
+    return None
+
+
+def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_anchor: bool) -> None:
+    anchors = bundle.get("anchors")
+    if not anchors:
+        if require_anchor:
+            result.provisional_reasons.append("anchor_missing")
+        return
+    by_id = {r.get("receipt_id"): r for r in receipts if isinstance(r, dict)}
+    for anchor in anchors:
+        target = by_id.get(anchor.get("target"))
+        if target is None or anchor.get("hash") != receipt_digest(target):
+            _fatal(result, "anchor_invalid", f"anchor invalid for {anchor.get('target')}")
+
+
+def _finish(result: VerifyResult) -> VerifyResult:
+    if result.errors:
+        result.verdict = "UNTRUSTED"
+    elif result.insufficient_reasons:
+        result.verdict = "INSUFFICIENT_EVIDENCE"
+    elif result.provisional_reasons:
+        result.verdict = "PROVISIONAL"
+    else:
+        result.verdict = "TRUSTED"
+    return result
+
+
+def main(argv=None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="continuity-receipt-verify")
+    parser.add_argument("bundle", help="path to a bundle JSON file")
+    parser.add_argument("--require-anchor", action="store_true")
+    args = parser.parse_args(argv)
+
+    with open(args.bundle, "r", encoding="utf-8") as handle:
+        bundle = json.load(handle)
+    result = verify_bundle(bundle, require_anchor=args.require_anchor)
+    print(json.dumps(result.as_dict(), indent=2))
+    return 0 if result.verdict == "TRUSTED" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

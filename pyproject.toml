@@ -1,0 +1,17 @@
+[project]
+name = "continuity-receipt"
+version = "0.1.0"
+description = "Continuity Receipt v0.1 — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = ["cryptography>=42"]
+
+[project.urls]
+Homepage = "https://github.com/lbailey94/continuity-receipt"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["continuity_receipt"]
