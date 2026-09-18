@@ -22,6 +22,7 @@ Verification verdicts (IETF CTQ-aligned):
 
 ```
 SPEC.md                    the v0.1 specification (normative)
+ROADMAP.md                 what lands in 0.1.x / 0.2, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 vectors/                   11 test vectors + INDEX.md (expected verdicts)
 tools/make_vectors.py      regenerates the vectors deterministically
