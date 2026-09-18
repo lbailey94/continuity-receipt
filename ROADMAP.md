@@ -17,7 +17,11 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 - [x] `CONTRIBUTING.md` + DCO (no CLA).
 - [x] Machine-readable vector manifest (`vectors/manifest.json`).
 - [x] Anchor policy decided (`ANCHORING.md`): OpenTimestamps recommended default, `public-chain` supported for counterparties that require it, `custom` opaque; type enum frozen; proof verification delegated to provider tooling until 0.3.
-- [ ] PyPI packaging (`continuity-receipt`) — name availability check pending.
+- [x] PyPI packaging prepared: `continuity-receipt` name available (2026-09-18);
+  sdist + wheel + console scripts (`continuity-receipt-verify`,
+  `continuity-receipt-disclose`); CI job builds the wheel, installs it, and
+  runs vectors through the installed CLI.
+- [ ] PyPI upload (first release; maintainer token).
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.

@@ -36,3 +36,28 @@ jobs:
                   raise SystemExit(f"{entry['file']}: rc {proc.returncode} != {expected_rc}")
           print(f"CLI verified {len(manifest['vectors'])} vectors")
           PY
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist and wheel
+        run: |
+          pip install build
+          python3 -m build
+      - name: Install the wheel and exercise the console scripts
+        run: |
+          python3 -m venv /tmp/cr-venv
+          . /tmp/cr-venv/bin/activate
+          pip install dist/*.whl
+          continuity-receipt-verify vectors/02_happy_full.json > /tmp/trusted.json
+          python3 -c "import json; assert json.load(open('/tmp/trusted.json'))['verdict'] == 'TRUSTED'"
+          if continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor; then
+            echo "expected nonzero exit for anchor-missing with --require-anchor" >&2
+            exit 1
+          fi
+          continuity-receipt-disclose --help > /dev/null
+          continuity-receipt-verify --help > /dev/null

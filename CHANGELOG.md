@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Packaging: `pyproject.toml` at 0.2.0 with console scripts
+  (`continuity-receipt-verify`, `continuity-receipt-disclose`), a full sdist
+  via `MANIFEST.in`, and a CI job that builds the wheel, installs it, and
+  exercises both console scripts. PyPI name `continuity-receipt` is available;
+  upload pending maintainer token.
 - `ANCHORING.md` — anchoring policy and decision record: OpenTimestamps as the
   recommended default issuance path, `public-chain` supported for
   counterparties that require it, `custom` as an opaque escape hatch;

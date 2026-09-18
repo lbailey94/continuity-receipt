@@ -1,16 +1,41 @@
 [project]
 name = "continuity-receipt"
-version = "0.1.0"
-description = "Continuity Receipt v0.1 — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
+version = "0.2.0"
+description = "Continuity Receipt — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
+readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Lucas Bailey" }]
+keywords = [
+    "agent-memory",
+    "provenance",
+    "verification",
+    "receipts",
+    "interoperability",
+    "ed25519",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = ["cryptography>=42"]
 
 [project.urls]
 Homepage = "https://github.com/lbailey94/continuity-receipt"
+Repository = "https://github.com/lbailey94/continuity-receipt"
+Issues = "https://github.com/lbailey94/continuity-receipt/issues"
+Specification = "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC.md"
+
+[project.scripts]
+continuity-receipt-verify = "continuity_receipt.verify:main"
+continuity-receipt-disclose = "continuity_receipt.disclose:main"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

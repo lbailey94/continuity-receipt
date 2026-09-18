@@ -1,0 +1,13 @@
+include LICENSE
+include README.md
+include SPEC.md
+include ANCHORING.md
+include CHANGELOG.md
+include ROADMAP.md
+include THREAT_MODEL.md
+include CONTRIBUTING.md
+include SIGNING.md
+recursive-include schema *.json
+recursive-include vectors *.json *.md
+recursive-include tools *.py
+recursive-include tests *.py
