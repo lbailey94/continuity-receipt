@@ -35,14 +35,32 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 
 ## 0.3 candidates (in suggested order)
 
-1. **PyPI packaging** and `pip install` path (finish 0.1.x item).
-2. **Revocation distribution design** — how statements travel beyond the bundle (static files, transparency log, or monitoring); closes part of the pre-revocation-compromise gap.
-3. **Anchor proof verification** — OpenTimestamps proof checking in the verifier (or a companion tool), plus proof-renewal guidance.
-4. **Succession hardening** — multi-party signatures on succession records (both authorities attest).
-5. **Commitment hardening** — HMAC commitments and domain separation; adopt only with a demonstrated attack or implementer request (analysis on record in `THREAT_MODEL.md`).
-6. **CBOR profile** (RFC 8949 §4.2) with byte-equivalence vectors — only when an implementer needs it; the signed domain remains JSON canonical bytes until then.
-7. **Conformance packaging** — vector manifest prepared for the W3C CG's conformance surface; verifier capability disclosure.
-8. **Required-field minimalism review** with an underwriter (after ~3 months of real receipts).
+1. **Rust second implementation** — `rust/` crate (name `continuity-receipt`
+   available on crates.io): JCS canonicalization (pinned subset), Ed25519 +
+   `did:key`, full verdict/error-code semantics, revocation/attestation/
+   anchor/merkle handling, CLI binaries, and a vector runner over
+   `vectors/manifest.json`. CI gains a **differential job**: Python verifier
+   vs Rust verifier across all vectors plus a generated fuzz corpus, with
+   results published. Purpose: the CG's ≥2-independent-implementations bar,
+   native embedding for WhiteMagic (Rust), single-binary deployment for
+   gate-hard images. Target: crates.io `continuity-receipt` 0.3.0; the
+   Python implementation remains the reference.
+2. **Anchor proof verification** — OpenTimestamps proof checking (companion
+   tool or crate feature) + renewal guidance (policy: `ANCHORING.md`).
+3. **Conformance packaging** — machine-readable verifier capability
+   disclosure + vector manifest prepared for the CG conformance surface;
+   SAIHM field-mapping crosswalk and memorywire five-op interop profile.
+4. **Revocation distribution design** — static files, transparency log, or
+   monitoring; closes part of the pre-revocation-compromise gap.
+5. **Succession hardening** — multi-party signatures on succession records
+   (both authorities attest).
+6. **Commitment hardening** — HMAC commitments and domain separation; adopt
+   only with a demonstrated attack or implementer request (`THREAT_MODEL.md` §9).
+7. **CBOR profile** (RFC 8949 §4.2) with byte-equivalence vectors — only
+   when an implementer needs it; the signed domain remains JSON canonical
+   bytes until then. The Rust implementation may be that implementer.
+8. **Required-field minimalism review** with an underwriter (after ~3 months
+   of real receipts).
 
 ## 0.4+ / open questions
 
