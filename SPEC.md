@@ -289,8 +289,10 @@ manifest.
 3. **Revocation distribution** — statements travel in the bundle for now; no
    CRL/monitoring layer exists. Key compromise before revocation is published
    remains indistinguishable.
-4. **Anchor proof verification** — OpenTimestamps is the recommended v0
-   practice; the verifier checks shape and digest binding only.
+4. **Anchor proof verification** — policy is decided (`ANCHORING.md`):
+   OpenTimestamps is the recommended default, public-chain is a supported
+   peer type, and the verifier checks shape and digest binding only until a
+   0.3 companion tool verifies proofs.
 5. **Succession hardening** — multi-party signatures on succession records.
 
 **Still open:** required-field minimalism vs insurance needs (review with one

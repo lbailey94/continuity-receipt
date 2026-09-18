@@ -16,7 +16,7 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 - [x] `THREAT_MODEL.md` — 13 threat classes, incl. the open pre-revocation-compromise gap and the commitment-substitution analysis.
 - [x] `CONTRIBUTING.md` + DCO (no CLA).
 - [x] Machine-readable vector manifest (`vectors/manifest.json`).
-- [x] Anchor shape decided: OpenTimestamps as recommended v0 practice; type enum frozen; external proof verification delegated to provider tooling.
+- [x] Anchor policy decided (`ANCHORING.md`): OpenTimestamps recommended default, `public-chain` supported for counterparties that require it, `custom` opaque; type enum frozen; proof verification delegated to provider tooling until 0.3.
 - [ ] PyPI packaging (`continuity-receipt`) — name availability check pending.
 
 ### 0.2.0 (2026-09-18)

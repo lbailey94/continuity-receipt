@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `ANCHORING.md` — anchoring policy and decision record: OpenTimestamps as the
+  recommended default issuance path, `public-chain` supported for
+  counterparties that require it, `custom` as an opaque escape hatch;
+  verifier scope stays shape + digest binding only, proof verification
+  targeted for 0.3.
+
 ## 0.2.0 — 2026-09-18
 
 Interoperability and robustness release; `0.1` remains supported.
