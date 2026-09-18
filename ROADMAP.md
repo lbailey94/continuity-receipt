@@ -21,7 +21,8 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
   sdist + wheel + console scripts (`continuity-receipt-verify`,
   `continuity-receipt-disclose`); CI job builds the wheel, installs it, and
   runs vectors through the installed CLI.
-- [ ] PyPI upload (first release; maintainer token).
+- [x] PyPI upload — `continuity-receipt` 0.2.0 published 2026-09-18
+  (pypi.org/project/continuity-receipt), verified from a clean venv.
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.

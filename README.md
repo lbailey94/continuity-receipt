@@ -36,16 +36,18 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
+# from PyPI (0.2.0) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
-pip install 'cryptography>=42'
+pip install continuity-receipt
+continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
+continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
+continuity-receipt-disclose --help
 
-# verify a vector (TRUSTED / PROVISIONAL / INSUFFICIENT_EVIDENCE / UNTRUSTED)
+# or run from a checkout
+pip install 'cryptography>=42'
 python3 -m continuity_receipt.verify vectors/02_happy_full.json
 
-# vectors that require an anchor policy
-python3 -m continuity_receipt.verify vectors/10b_anchor_missing.json --require-anchor
-
-# run the conformance suite (11/11 expected)
+# run the conformance suite (10 tests over 20 vectors + schema + primitives)
 python3 -m unittest discover -s tests -v
 ```
 
