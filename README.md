@@ -28,6 +28,7 @@ ANCHORING.md               anchoring policy: OpenTimestamps default, chain optio
 CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
+rust/                      second implementation (verifier crate; cargo test)
 vectors/                   20 test vectors + INDEX.md + manifest.json
 tools/make_vectors.py      regenerates the vectors deterministically
 tests/                     conformance suite (vectors, schema, primitives)
@@ -64,6 +65,9 @@ Every schema-valid vector is also checked against
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
 - **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest.
+- **Second implementation (0.3 alpha):** `rust/` — an independent Rust verifier
+  (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
+  checks all 20 vectors and CI diffs it against the Python reference (20/20).
 - **Origin implementation:** [WhiteMagic](https://github.com/lbailey94/whitemagic) — an MIT, local-first memory substrate for agents (this spec repo is Apache-2.0; the two are separate works).
 - **Standards context:** the format is intended as a contribution to the emerging neutral layer (W3C AI Agent Memory Interoperability CG; IETF agentproto work). It is not endorsed by those bodies, and no claim of adoption is made.
 

@@ -61,3 +61,20 @@ jobs:
           fi
           continuity-receipt-disclose --help > /dev/null
           continuity-receipt-verify --help > /dev/null
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install verifier dependency
+        run: pip install 'cryptography>=42'
+      - name: Rust conformance suite
+        run: cargo test --manifest-path rust/Cargo.toml
+      - name: Differential check (Python vs Rust over all vectors)
+        run: |
+          cargo build --manifest-path rust/Cargo.toml
+          python3 tools/differential_vectors.py

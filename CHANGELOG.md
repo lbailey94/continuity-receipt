@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Rust second implementation (0.3.0-alpha.1)** in `rust/`: full verifier port
+  (JCS canonicalization, Ed25519 + `did:key`, chain/verdict semantics,
+  revocation statements, counterparty attestations, anchors, Merkle
+  provenance) with a CLI matching the Python interface. `cargo test` passes
+  all 20 vectors; CI gains a Rust job and a differential check comparing
+  Python and Rust outputs over every vector (20/20). Python remains the
+  reference implementation.
 - Packaging: `pyproject.toml` at 0.2.0 with console scripts
   (`continuity-receipt-verify`, `continuity-receipt-disclose`), a full sdist
   via `MANIFEST.in`, and a CI job that builds the wheel, installs it, and

@@ -35,16 +35,16 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 
 ## 0.3 candidates (in suggested order)
 
-1. **Rust second implementation** — `rust/` crate (name `continuity-receipt`
-   available on crates.io): JCS canonicalization (pinned subset), Ed25519 +
-   `did:key`, full verdict/error-code semantics, revocation/attestation/
-   anchor/merkle handling, CLI binaries, and a vector runner over
-   `vectors/manifest.json`. CI gains a **differential job**: Python verifier
-   vs Rust verifier across all vectors plus a generated fuzz corpus, with
-   results published. Purpose: the CG's ≥2-independent-implementations bar,
-   native embedding for WhiteMagic (Rust), single-binary deployment for
-   gate-hard images. Target: crates.io `continuity-receipt` 0.3.0; the
-   Python implementation remains the reference.
+1. **Rust second implementation** — **started 2026-09-18:** `rust/` crate
+   `continuity-receipt` 0.3.0-alpha.1 covers JCS canonicalization (pinned
+   subset), Ed25519 + `did:key`, full verdict/error-code semantics,
+   revocation/attestation/anchor/merkle handling, CLI, and the
+   `vectors/manifest.json` runner. CI runs `cargo test` (20/20) plus a
+   Python-vs-Rust differential over every vector. Remaining: a generated fuzz
+   corpus in CI, porting `disclose`, crates.io 0.3.0 publication. Purpose: the
+   CG's ≥2-independent-implementations bar, native embedding for WhiteMagic
+   (Rust), single-binary deployment for gate-hard images. The Python
+   implementation remains the reference.
 2. **Anchor proof verification** — OpenTimestamps proof checking (companion
    tool or crate feature) + renewal guidance (policy: `ANCHORING.md`).
 3. **Conformance packaging** — machine-readable verifier capability
