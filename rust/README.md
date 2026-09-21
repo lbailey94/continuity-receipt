@@ -11,6 +11,17 @@ verification (`didkey.rs`), and the full verification algorithm with the same
 error codes, verdict precedence, and JSON output shape as
 `continuity_receipt.verify` (`verify.rs`).
 
+## Install
+
+```sh
+cargo add continuity-receipt        # library
+cargo install continuity-receipt    # both CLIs (verify + disclose)
+```
+
+The crate tracks `continuity-receipt/0.1`-`0.2` bundles; the Python
+implementation in this repository remains the reference. Publication
+runbook: [`PUBLISH.md`](PUBLISH.md).
+
 ## Run
 
 ```sh

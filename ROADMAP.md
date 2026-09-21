@@ -50,7 +50,9 @@ distribution design, 3) remaining Rust completion + crates.io publication.
    2026-09-21 (`rust/tests/fuzz_corpus.rs`: deterministic structural
    mutations + malformed shapes + byte truncations; every case must produce
    a structured verdict and never panic; `CR_FUZZ_CORPUS_DIR` writes the
-   corpus for inspection). Remaining: crates.io 0.3.0 publication. Purpose: the
+   corpus for inspection). Publication prepared 2026-09-21
+   (`rust/PUBLISH.md`, `cargo publish --dry-run` passes, name free);
+   publishing is the operator step. Purpose: the
    CG's ≥2-independent-implementations bar, native embedding for WhiteMagic
    (Rust), single-binary deployment for gate-hard images. The Python
    implementation remains the reference.

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **crates.io publication prep (0.3.0-alpha.1).** Package metadata
+  (`homepage`, `keywords`, `categories`), the license text inside the crate
+  (`rust/LICENSE`), install instructions in `rust/README.md`, and
+  `rust/PUBLISH.md` (operator runbook: version sequence, publish, post-publish
+  verification, docs to update). `cargo publish --dry-run` passes (18 files,
+  compiles). The name `continuity-receipt` was free on 2026-09-21;
+  publication itself remains the operator step.
 - **Rust fuzz corpus (0.3.0-alpha.1).** `rust/tests/fuzz_corpus.rs` generates
   deterministic structural mutations of all 20 vectors plus synthetic
   malformed shapes and byte truncations (fixed seed, reproducible); every
