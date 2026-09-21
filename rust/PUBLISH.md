@@ -1,5 +1,9 @@
 # Publishing `continuity-receipt` to crates.io
 
+**Status:** `0.3.0-alpha.1` and `0.3.0` published 2026-09-21 (alpha first to
+validate the pipeline, then the release). This runbook remains the procedure
+for future versions.
+
 Operator runbook. The crate is publish-ready (`cargo publish --dry-run`
 passes); publication itself is a human action because it needs the crates.io
 token and is irreversible (a version can be yanked, never replaced).

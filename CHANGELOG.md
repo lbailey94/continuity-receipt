@@ -1,22 +1,24 @@
 # Changelog
 
-## Unreleased
+## Rust crate 0.3.0 — 2026-09-21
 
-- **crates.io publication prep (0.3.0-alpha.1).** Package metadata
-  (`homepage`, `keywords`, `categories`), the license text inside the crate
-  (`rust/LICENSE`), install instructions in `rust/README.md`, and
-  `rust/PUBLISH.md` (operator runbook: version sequence, publish, post-publish
-  verification, docs to update). `cargo publish --dry-run` passes (18 files,
-  compiles). The name `continuity-receipt` was free on 2026-09-21;
-  publication itself remains the operator step.
-- **Rust fuzz corpus (0.3.0-alpha.1).** `rust/tests/fuzz_corpus.rs` generates
-  deterministic structural mutations of all 20 vectors plus synthetic
-  malformed shapes and byte truncations (fixed seed, reproducible); every
-  case must produce one of the four verdicts with coded errors and must never
-  panic. `CR_FUZZ_CORPUS_DIR` writes the generated corpus to disk for
-  inspection or seeding a future `cargo fuzz` run. Runs in CI with the Rust
-  suite.
-- **Rust selective disclosure (0.3.0-alpha.1).** `rust/src/disclose.rs` +
+`continuity-receipt` 0.3.0 published to crates.io (2026-09-21) — the
+independent Rust verifier and selective-disclosure CLI. A tooling release on
+spec 0.2 with no wire changes; `cargo install continuity-receipt` installs both
+binaries. Runbook: `rust/PUBLISH.md`.
+
+- **crates.io publication.** Package metadata (`homepage`, `keywords`,
+  `categories`), license text inside the crate (`rust/LICENSE`), install
+  instructions in `rust/README.md`, and `rust/PUBLISH.md`. `cargo publish
+  --dry-run` passed (18 files, compiles); `0.3.0-alpha.1` published first to
+  validate the pipeline, then `0.3.0`.
+- **Rust fuzz corpus.** `rust/tests/fuzz_corpus.rs` generates deterministic
+  structural mutations of all 20 vectors plus synthetic malformed shapes and
+  byte truncations (fixed seed, reproducible); every case must produce one of
+  the four verdicts with coded errors and must never panic.
+  `CR_FUZZ_CORPUS_DIR` writes the generated corpus to disk for inspection or
+  seeding a future `cargo fuzz` run. Runs in CI with the Rust suite.
+- **Rust selective disclosure.** `rust/src/disclose.rs` +
   `continuity-receipt-disclose` port `continuity_receipt/disclose.py`:
   `redact` (salted commitments, tail re-signing), `attach`, `reveal`, and
   `check`, with the same path grammar, refusal behavior, and exit codes. New
@@ -27,6 +29,16 @@
   `rust/README.md` (`--salt <path>=<hex>` for reproducible redaction;
   `verify` has no `--revocations` until the Rust revocation-list loader
   lands).
+- **Rust second implementation.** Full verifier port (JCS canonicalization,
+  Ed25519 + `did:key`, chain/verdict semantics, revocation statements,
+  counterparty attestations, anchors, Merkle provenance) with a CLI matching
+  the Python interface. `cargo test` passes all 20 vectors; CI runs the Rust
+  job plus differential checks comparing Python and Rust outputs over every
+  vector (20/20) and over selective disclosure. Python remains the reference
+  implementation.
+
+## Unreleased
+
 - **Revocation distribution (0.3 candidate 4).** `continuity_receipt/revocations.py`
   + `--revocations <path|https-url>` on `continuity-receipt-verify` and
   `continuity-receipt-disclose verify`: static revocation lists carrying the
@@ -54,13 +66,6 @@
   (`unsupported_op`, never a silent skip). Usage notes in `ANCHORING.md`.
 - `continuity_receipt.__init__.SPEC_ID` corrected to `continuity-receipt/0.2`
   (was stale at 0.1; records already defaulted to 0.2).
-- **Rust second implementation (0.3.0-alpha.1)** in `rust/`: full verifier port
-  (JCS canonicalization, Ed25519 + `did:key`, chain/verdict semantics,
-  revocation statements, counterparty attestations, anchors, Merkle
-  provenance) with a CLI matching the Python interface. `cargo test` passes
-  all 20 vectors; CI gains a Rust job and a differential check comparing
-  Python and Rust outputs over every vector (20/20). Python remains the
-  reference implementation.
 - Packaging: `pyproject.toml` at 0.2.0 with console scripts
   (`continuity-receipt-verify`, `continuity-receipt-disclose`), a full sdist
   via `MANIFEST.in`, and a CI job that builds the wheel, installs it, and
