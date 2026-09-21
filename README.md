@@ -76,6 +76,20 @@ Every schema-valid vector is also checked against
 
 This project is developed with AI agents as drafting, implementation, and review collaborators, under the direction and accountability of the human maintainer. Every artifact published here — spec text, code, vectors — is reviewed and signed off by the human maintainer, who is responsible for its claims. We disclose this proactively because verifiability is the project's subject as well as its method.
 
+## The stack
+
+> Local memory → governed execution → verifiable continuity
+
+- [`whitemagic`](https://github.com/lbailey94/whitemagic) — local-first memory and session continuity for AI agents
+- [`continuity-receipt`](https://github.com/lbailey94/continuity-receipt) — portable, offline-verifiable evidence for governed tasks (Apache-2.0, this repo)
+- [`mandalaos-gate-lite`](https://github.com/lbailey94/mandalaos-gate-lite) — bounded agent execution that emits receipts (review snapshot)
+- [`whitemagic-plugins`](https://github.com/lbailey94/whitemagic-plugins) — client integrations and adapters
+
+Each repository stands on its own: WhiteMagic does not require MandalaOS, and
+Continuity Receipt does not require WhiteMagic. Three entrances — **use it** →
+`whitemagic`; **review a protocol** → `continuity-receipt`; **attack the
+security architecture** → `mandalaos-gate-lite`.
+
 ## Contributing
 
 Open an issue for spec questions, mapping suggestions, or implementation feedback. Interoperability discussion belongs in the open standards venues; this repository tracks concrete text and vectors.
