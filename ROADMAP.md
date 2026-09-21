@@ -43,8 +43,11 @@ distribution design, 3) remaining Rust completion + crates.io publication.
    subset), Ed25519 + `did:key`, full verdict/error-code semantics,
    revocation/attestation/anchor/merkle handling, CLI, and the
    `vectors/manifest.json` runner. CI runs `cargo test` (20/20) plus a
-   Python-vs-Rust differential over every vector. Remaining: a generated fuzz
-   corpus in CI, porting `disclose`, crates.io 0.3.0 publication. Purpose: the
+   Python-vs-Rust differential over every vector. `disclose` ported
+   2026-09-21 (`rust/src/disclose.rs` + `continuity-receipt-disclose` +
+   `tools/differential_disclose.py` in CI: identical maps, byte-identical
+   re-signed tails, cross-verified verdicts). Remaining: a generated fuzz
+   corpus in CI, crates.io 0.3.0 publication. Purpose: the
    CG's ≥2-independent-implementations bar, native embedding for WhiteMagic
    (Rust), single-binary deployment for gate-hard images. The Python
    implementation remains the reference.

@@ -610,7 +610,7 @@ fn iter_redactions<'a>(
 }
 
 /// `_required_field_for_path`: required body fields may not be redacted.
-fn required_field_for_path(path: &str, receipts: &[Value]) -> Option<String> {
+pub(crate) fn required_field_for_path(path: &str, receipts: &[Value]) -> Option<String> {
     let parts: Vec<&str> = path.split('.').collect();
     if parts.len() < 3 || !parts[0].starts_with("receipts[") || parts[1] != "body" {
         return None;
@@ -1044,13 +1044,13 @@ fn build_summary(receipts: &[Value], type_by_seq: &BTreeMap<usize, String>) -> M
     summary
 }
 
-fn unsigned_view(receipt: &Map<String, Value>) -> Map<String, Value> {
+pub(crate) fn unsigned_view(receipt: &Map<String, Value>) -> Map<String, Value> {
     let mut view = receipt.clone();
     view.remove("sig");
     view
 }
 
-fn receipt_digest(receipt: &Map<String, Value>) -> Result<String, CanonError> {
+pub(crate) fn receipt_digest(receipt: &Map<String, Value>) -> Result<String, CanonError> {
     canonical_bytes(&Value::Object(unsigned_view(receipt))).map(|bytes| sha256_prefixed(&bytes))
 }
 

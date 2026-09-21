@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Rust selective disclosure (0.3.0-alpha.1).** `rust/src/disclose.rs` +
+  `continuity-receipt-disclose` port `continuity_receipt/disclose.py`:
+  `redact` (salted commitments, tail re-signing), `attach`, `reveal`, and
+  `check`, with the same path grammar, refusal behavior, and exit codes. New
+  `rust/tests/disclose.rs` (10 tests) plus `tools/differential_disclose.py`
+  in CI: both implementations produce identical disclosure maps and
+  byte-identical re-signed tails, and each implementation's output verifies
+  `TRUSTED` under the other's verifier. Rust CLI extensions documented in
+  `rust/README.md` (`--salt <path>=<hex>` for reproducible redaction;
+  `verify` has no `--revocations` until the Rust revocation-list loader
+  lands).
 - **Revocation distribution (0.3 candidate 4).** `continuity_receipt/revocations.py`
   + `--revocations <path|https-url>` on `continuity-receipt-verify` and
   `continuity-receipt-disclose verify`: static revocation lists carrying the

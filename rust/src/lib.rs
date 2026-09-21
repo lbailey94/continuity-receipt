@@ -7,6 +7,7 @@
 
 pub mod canon;
 pub mod didkey;
+pub mod disclose;
 pub mod verify;
 
 pub use verify::{verify_bundle, VerifyResult};

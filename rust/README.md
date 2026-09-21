@@ -22,6 +22,33 @@ The binary prints the same JSON shape as the Python CLI (`verdict`, `errors`,
 `provisional_reasons`, `insufficient_reasons`, `summary`) and exits `0` iff the
 verdict is `TRUSTED`, else `1`.
 
+## Selective disclosure
+
+`continuity-receipt-disclose` mirrors `continuity_receipt/disclose.py`
+(`redact` / `verify` / `reveal` / `check`):
+
+```sh
+cargo run --bin continuity-receipt-disclose -- redact \
+  --bundle ../vectors/02_happy_full.json \
+  --path receipts[3].body.spec_ref \
+  --out /tmp/redacted.json --map /tmp/map.json --gate-key /tmp/gate.key
+
+cargo run --bin continuity-receipt-disclose -- verify \
+  --bundle /tmp/redacted.json --map /tmp/map.json
+
+cargo run --bin continuity-receipt-disclose -- reveal \
+  --bundle /tmp/redacted.json --map /tmp/map.json \
+  --path receipts[3].body.spec_ref --out /tmp/package.json
+
+cargo run --bin continuity-receipt-disclose -- check \
+  --salt <hex> --value '["quality-ok"]' --commit sha256:...
+```
+
+The gate-key file is the raw 32-byte Ed25519 seed. Redaction re-signs the
+modified receipt and every receipt after it, so the signer must be the
+chain's issuer; redacting a cross-checked field (for example `spend_cap`)
+fails closed to `UNTRUSTED` because a commitment cannot prove the claim.
+
 ## Tests
 
 ```sh
@@ -31,7 +58,16 @@ cargo test
 The vector runner reads `../vectors/manifest.json` and checks all 20 vectors
 against their expected verdict and error code. Malformed-bundle smoke cases
 (empty object, non-object, missing receipts) are included so the verifier
-returns structured errors instead of panicking.
+returns structured errors instead of panicking. `tests/disclose.rs` covers
+redaction, tail re-signing, refusal cases, and commitment recomputation
+against the frozen vectors.
+
+The Python↔Rust differentials run in CI after `cargo build`:
+
+```sh
+python3 tools/differential_vectors.py    # verdict + error-code parity
+python3 tools/differential_disclose.py   # maps, signatures, cross-verification
+```
 
 ## Intentional, documented differences from Python
 
@@ -42,3 +78,7 @@ returns structured errors instead of panicking.
 - Non-list `anchors`/`revocations` values and other deeply malformed shapes
   are failed closed with the corresponding structured error where Python would
   raise.
+- `disclose redact` additionally accepts repeatable `--salt <path>=<hex>` for
+  reproducible commitments; the Python CLI always randomizes salts.
+- `disclose verify` does not accept `--revocations` until the Rust
+  revocation-list loader lands; external lists remain Python-only.
