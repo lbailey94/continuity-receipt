@@ -60,6 +60,25 @@ modified receipt and every receipt after it, so the signer must be the
 chain's issuer; redacting a cross-checked field (for example `spend_cap`)
 fails closed to `UNTRUSTED` because a commitment cannot prove the claim.
 
+## OpenTimestamps anchors
+
+`continuity-receipt-anchor` mirrors `continuity_receipt/anchor.py`: replay a
+detached `.ots` proof from the file digest and verify a Bitcoin attestation
+against a supplied 80-byte block header by exact merkle-root equality.
+
+```sh
+cargo run --bin continuity-receipt-anchor -- verify proof.ots \
+  --digest sha256:<hex> [--header <80-byte hex> --height <n>] [--json]
+
+cargo run --bin continuity-receipt-anchor -- verify proof.ots \
+  --bundle ../vectors/08_redacted_disclosed.json --target <receipt_id> --json
+```
+
+Statuses `verified` / `unverified` / `mismatch` / `invalid` with the same
+machine codes as Python; exit `0` iff `verified`. Header chain validation is
+out of scope by design (`../ANCHORING.md`): the header is trusted input, not a
+substitute for proof-of-work or confirmation checks.
+
 ## Tests
 
 ```sh
@@ -76,11 +95,16 @@ against the frozen vectors. `tests/fuzz_corpus.rs` mutates every vector
 every case must yield a structured verdict with coded errors and never
 panic. Set `CR_FUZZ_CORPUS_DIR=<dir>` to write the generated corpus to disk.
 
+`tests/anchor.rs` covers synthetic proofs (LEB128 varuints, reverse/prepend,
+truncation, keccak refusal) and the five real `.ots` fixtures, including the
+published keccak negative case.
+
 The Python↔Rust differentials run in CI after `cargo build`:
 
 ```sh
 python3 tools/differential_vectors.py    # verdict + error-code parity
 python3 tools/differential_disclose.py   # maps, signatures, cross-verification
+python3 tools/differential_anchor.py     # status/code/confirmed parity
 ```
 
 ## Intentional, documented differences from Python
@@ -96,3 +120,5 @@ python3 tools/differential_disclose.py   # maps, signatures, cross-verification
   reproducible commitments; the Python CLI always randomizes salts.
 - `disclose verify` does not accept `--revocations` until the Rust
   revocation-list loader lands; external lists remain Python-only.
+- `anchor verify` human (non-`--json`) output prints attestations as compact
+  JSON rather than Python dict reprs; the `--json` shape is identical.

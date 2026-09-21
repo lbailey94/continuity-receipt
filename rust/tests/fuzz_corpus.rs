@@ -140,7 +140,7 @@ fn generated_mutations_never_panic_and_stay_structured() {
     for case in 0..ITERATIONS {
         let mut value = bundles[rng.below(bundles.len())].clone();
         mutate(&mut value, &mut rng, 0);
-        let require_anchor = rng.next() % 2 == 0;
+        let require_anchor = rng.next().is_multiple_of(2);
         check_case(&value, require_anchor, &format!("case {case}"));
 
         if let Some(dir) = &corpus_dir {
@@ -189,9 +189,12 @@ fn byte_truncations_of_valid_vectors_do_not_panic() {
             cut -= 1;
         }
         let truncated = &text[..cut];
-        match serde_json::from_str::<Value>(truncated) {
-            Ok(value) => check_case(&value, rng.next() % 2 == 0, &format!("truncated {case}")),
-            Err(_) => {}
+        if let Ok(value) = serde_json::from_str::<Value>(truncated) {
+            check_case(
+                &value,
+                rng.next().is_multiple_of(2),
+                &format!("truncated {case}"),
+            );
         }
     }
 }

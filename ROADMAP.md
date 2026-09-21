@@ -59,10 +59,12 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 2. **Anchor proof verification** — **companion tool landed 2026-09-21:**
    `continuity_receipt.anchor` + `continuity-receipt-anchor` verify
    OpenTimestamps detached proofs (wire-format parser with LEB128 varints,
-   tree replay, Bitcoin attestation checked against a supplied 80-byte header
+   tree replay, Bitcoin attestation    checked against a supplied 80-byte header
    by merkle-root equality; `verified` / `unverified` / `mismatch` /
-   `invalid`). Remaining: optional Rust parity, and a trusted-header helper —
-   header supply stays caller-owned by design (no PoW/chain validation).
+   `invalid`). **Rust parity landed 2026-09-21** (`rust/src/anchor.rs` +
+   `continuity-receipt-anchor` + `tools/differential_anchor.py` in CI, 7/7
+   over the real fixtures). Remaining: a trusted-header helper — header supply
+   stays caller-owned by design (no PoW/chain validation).
    **Real fixtures landed** under `vectors/anchor/` (5 example proofs from
    `opentimestamps-client`, MIT, plus headers from the Blockstream Esplora
    API; keccak256 path is a published `unsupported_op` negative case).

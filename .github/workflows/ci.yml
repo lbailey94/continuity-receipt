@@ -80,3 +80,5 @@ jobs:
           python3 tools/differential_vectors.py
       - name: Differential check (Python vs Rust selective disclosure)
         run: python3 tools/differential_disclose.py
+      - name: Differential check (Python vs Rust OpenTimestamps anchors)
+        run: python3 tools/differential_anchor.py

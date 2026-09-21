@@ -5,6 +5,7 @@
 //! follow the CTQ-aligned semantics of spec section 7:
 //! `TRUSTED` | `PROVISIONAL` | `INSUFFICIENT_EVIDENCE` | `UNTRUSTED`.
 
+pub mod anchor;
 pub mod canon;
 pub mod didkey;
 pub mod disclose;
