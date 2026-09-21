@@ -35,6 +35,9 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 
 ## 0.3 candidates (in suggested order)
 
+**Priority pin (2026-09-20):** 1) anchor proof verification, 2) revocation
+distribution design, 3) remaining Rust completion + crates.io publication.
+
 1. **Rust second implementation** — **started 2026-09-18:** `rust/` crate
    `continuity-receipt` 0.3.0-alpha.1 covers JCS canonicalization (pinned
    subset), Ed25519 + `did:key`, full verdict/error-code semantics,
