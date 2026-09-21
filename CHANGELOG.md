@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Revocation distribution (0.3 candidate 4).** `continuity_receipt/revocations.py`
+  + `--revocations <path|https-url>` on `continuity-receipt-verify` and
+  `continuity-receipt-disclose verify`: static revocation lists carrying the
+  same self-signed statements as bundles, merged and deduplicated with
+  bundle-level statements. Authenticity is per statement (a mirror can
+  withhold, never forge); HTTPS required (loopback http for local tests);
+  1 MiB cap; supplied-but-unusable lists fail closed as
+  `INSUFFICIENT_EVIDENCE`. Policy and monitoring guidance:
+  `REVOCATION_DISTRIBUTION.md`; THREAT_MODEL #7 and SPEC §7/§11 updated.
+  8 tests in `tests/test_revocations.py`.
 - **Anchor proof verification (companion tool, 0.3 candidate 2).**
   `continuity_receipt/anchor.py` + `continuity-receipt-anchor` CLI replay an
   OpenTimestamps detached proof from the file digest to every attestation and

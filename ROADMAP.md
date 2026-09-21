@@ -62,8 +62,13 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 3. **Conformance packaging** — machine-readable verifier capability
    disclosure + vector manifest prepared for the CG conformance surface;
    SAIHM field-mapping crosswalk and memorywire five-op interop profile.
-4. **Revocation distribution design** — static files, transparency log, or
-   monitoring; closes part of the pre-revocation-compromise gap.
+4. **Revocation distribution design** — **tooling landed 2026-09-21:**
+   static revocation lists (`continuity-receipt-revocations` document) +
+   `--revocations` on the verify/disclose CLIs, merged with bundle statements;
+   per-statement signatures make withholding the only channel attack;
+   fail-closed on unusable lists. Policy: `REVOCATION_DISTRIBUTION.md`.
+   Remaining: transparency-log omission evidence (demand-gated), global/root
+   lists (needs an issuer registry).
 5. **Succession hardening** — multi-party signatures on succession records
    (both authorities attest).
 6. **Commitment hardening** — HMAC commitments and domain separation; adopt

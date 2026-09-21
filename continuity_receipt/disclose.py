@@ -169,6 +169,13 @@ def main(argv=None) -> int:
     verify_cmd.add_argument("--bundle", required=True)
     verify_cmd.add_argument("--map", default=None, help="attach this disclosure map before verifying")
     verify_cmd.add_argument("--require-anchor", action="store_true")
+    verify_cmd.add_argument(
+        "--revocations",
+        action="append",
+        default=None,
+        metavar="PATH|URL",
+        help="external revocation list (repeatable; REVOCATION_DISTRIBUTION.md)",
+    )
 
     reveal_cmd = sub.add_parser("reveal")
     reveal_cmd.add_argument("--bundle", required=True)
@@ -193,10 +200,31 @@ def main(argv=None) -> int:
         _dump(disclosure, args.map)
         return 0
     if args.cmd == "verify":
+        from . import revocations
+
+        external = None
+        if args.revocations:
+            try:
+                external = revocations.merge_statements(
+                    *[revocations.load_statements(src) for src in args.revocations]
+                )
+            except revocations.RevocationError as exc:
+                _dump(
+                    {
+                        "verdict": "INSUFFICIENT_EVIDENCE",
+                        "errors": [{"code": exc.code, "detail": exc.detail}],
+                    },
+                    None,
+                )
+                return 1
         bundle = _load(args.bundle)
         if args.map:
             bundle = attach(bundle, _load(args.map))
-        result = verify_bundle(bundle, require_anchor=args.require_anchor)
+        result = verify_bundle(
+            bundle,
+            require_anchor=args.require_anchor,
+            external_revocations=external,
+        )
         _dump(result.as_dict(), None)
         return 0 if result.verdict == "TRUSTED" else 1
     if args.cmd == "reveal":

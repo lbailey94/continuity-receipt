@@ -10,6 +10,7 @@ from dataclasses import dataclass, field as dc_field
 from . import keys, records
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
+from .revocations import merge_statements
 
 ANCHOR_TYPES = ("opentimestamps", "public-chain", "custom")
 PROVENANCE_PREFIXES = ("sha256:", "merkle-sha256:")
@@ -52,7 +53,11 @@ def _iter_redactions(node, path, out):
             _iter_redactions(value, f"{path}[{index}]", out)
 
 
-def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
+def verify_bundle(
+    bundle: dict,
+    require_anchor: bool = False,
+    external_revocations: list | None = None,
+) -> VerifyResult:
     result = VerifyResult()
 
     if not isinstance(bundle, dict):
@@ -116,7 +121,7 @@ def verify_bundle(bundle: dict, require_anchor: bool = False) -> VerifyResult:
     _check_redactions(result, receipts, bundle.get("disclosure_map") or {})
     _check_attestations(result, receipts)
     _check_provenance(result, receipts)
-    _check_revocations(result, bundle, receipts)
+    _check_revocations(result, bundle, receipts, external_revocations)
     _check_anchors(result, bundle, receipts, require_anchor)
 
     summary = {
@@ -273,17 +278,26 @@ def _check_provenance(result: VerifyResult, receipts: list) -> None:
             )
 
 
-def _check_revocations(result: VerifyResult, bundle: dict, receipts: list) -> None:
-    """0.2: bundle-level revocation statements (self-signed by the revoked key).
+def _check_revocations(
+    result: VerifyResult,
+    bundle: dict,
+    receipts: list,
+    external_revocations: list | None = None,
+) -> None:
+    """0.2: revocation statements (self-signed by the revoked key).
 
-    A receipt is UNTRUSTED (`key_revoked`) when its issuer key was revoked at or
-    before the receipt's issued_at. Receipts issued before revocation remain
-    valid; invalid revocation statements are themselves an error (fail-closed).
+    Statements may arrive inside the bundle and/or from external revocation
+    lists (0.3 tooling, REVOCATION_DISTRIBUTION.md); the two are merged and
+    deduplicated. A receipt is UNTRUSTED (`key_revoked`) when its issuer key
+    was revoked at or before the receipt's issued_at. Receipts issued before
+    revocation remain valid; invalid statements are themselves an error
+    (fail-closed).
     """
-    revocations = bundle.get("revocations") or []
-    if not isinstance(revocations, list):
+    bundle_revocations = bundle.get("revocations") or []
+    if not isinstance(bundle_revocations, list):
         _fatal(result, "bad_revocation", "revocations must be a list")
         return
+    revocations = merge_statements(bundle_revocations, external_revocations)
     revoked: list[tuple[str, object]] = []
     checked = 0
     for statement in revocations:
@@ -320,6 +334,8 @@ def _check_revocations(result: VerifyResult, bundle: dict, receipts: list) -> No
                 )
     if revocations:
         result.summary["revocations_checked"] = checked
+    if external_revocations is not None:
+        result.summary["revocations_external"] = len(external_revocations)
 
 
 def _required_field_for_path(path: str, receipts: list) -> str | None:
@@ -378,14 +394,45 @@ def _finish(result: VerifyResult) -> VerifyResult:
 def main(argv=None) -> int:
     import argparse
 
+    from . import revocations
+
     parser = argparse.ArgumentParser(prog="continuity-receipt-verify")
     parser.add_argument("bundle", help="path to a bundle JSON file")
     parser.add_argument("--require-anchor", action="store_true")
+    parser.add_argument(
+        "--revocations",
+        action="append",
+        default=None,
+        metavar="PATH|URL",
+        help="external revocation list (repeatable; REVOCATION_DISTRIBUTION.md)",
+    )
     args = parser.parse_args(argv)
+
+    external = None
+    if args.revocations:
+        try:
+            external = revocations.merge_statements(
+                *[revocations.load_statements(source) for source in args.revocations]
+            )
+        except revocations.RevocationError as exc:
+            print(
+                json.dumps(
+                    {
+                        "verdict": "INSUFFICIENT_EVIDENCE",
+                        "errors": [{"code": exc.code, "detail": exc.detail}],
+                    },
+                    indent=2,
+                )
+            )
+            return 1
 
     with open(args.bundle, "r", encoding="utf-8") as handle:
         bundle = json.load(handle)
-    result = verify_bundle(bundle, require_anchor=args.require_anchor)
+    result = verify_bundle(
+        bundle,
+        require_anchor=args.require_anchor,
+        external_revocations=external,
+    )
     print(json.dumps(result.as_dict(), indent=2))
     return 0 if result.verdict == "TRUSTED" else 1
 

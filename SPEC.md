@@ -200,7 +200,9 @@ Ordered checks (first failure wins):
 5. Revocations (0.2, bundle-level): each statement is self-signed by the key it
    revokes; a receipt whose issuer key was revoked at or before its
    `issued_at` fails (`key_revoked`). Receipts issued before revocation remain
-   valid.
+   valid. Statements may also be distributed in external revocation lists
+   (0.3 tooling; identical statement shape, same per-statement signatures,
+   `--revocations` in the reference CLI — see `REVOCATION_DISTRIBUTION.md`).
 6. Anchors (optional): if present, the committed digest must match the
    receipt; anchor metadata, when present, must declare one of the known types
    (`opentimestamps`, `public-chain`, `custom`); if anchors are absent and the
@@ -286,13 +288,14 @@ manifest.
    random salts make substitution require a salt collision; the analysis is on
    record in `THREAT_MODEL.md` §9. Revisit with a concrete attack or an
    implementer request.
-3. **Revocation distribution** — statements travel in the bundle for now; no
-   CRL/monitoring layer exists. Key compromise before revocation is published
-   remains indistinguishable.
-4. **Anchor proof verification** — policy is decided (`ANCHORING.md`):
-   OpenTimestamps is the recommended default, public-chain is a supported
-   peer type, and the verifier checks shape and digest binding only until a
-   0.3 companion tool verifies proofs.
+3. **Revocation distribution** — **tooling landed 2026-09-21:** static-list
+   convention + `--revocations` merge with per-statement signatures
+   (`REVOCATION_DISTRIBUTION.md`); monitoring guidance recorded. Remaining:
+   transparency-log omission evidence, only with a consumer that needs it.
+4. **Anchor proof verification** — **landed 2026-09-21** as the companion
+   tool `continuity-receipt-anchor` (OpenTimestamps proofs checked against a
+   caller-supplied header; `ANCHORING.md`). The bundle verifier itself still
+   checks anchor shape and digest binding only, by design.
 5. **Succession hardening** — multi-party signatures on succession records.
 
 **Still open:** required-field minimalism vs insurance needs (review with one
