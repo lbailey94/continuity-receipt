@@ -1,0 +1,79 @@
+{
+  "kind": "continuity-receipt-verifier-capabilities",
+  "version": 1,
+  "implementation": "continuity-receipt (Python reference)",
+  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2"],
+  "verdicts": ["TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED"],
+  "checks": [
+    "envelope_schema",
+    "chain",
+    "signatures",
+    "counterparty_attestations",
+    "cross_record",
+    "revocations",
+    "anchors",
+    "redactions_erasure"
+  ],
+  "error_codes": [
+    "malformed",
+    "unknown_type",
+    "bad_signature",
+    "chain_break",
+    "task_mismatch",
+    "policy_mismatch",
+    "cap_exceeded",
+    "delivery_before_settlement",
+    "missing_termination",
+    "anchor_invalid",
+    "redacted_required",
+    "commit_mismatch",
+    "version_unsupported",
+    "bad_attestation",
+    "bad_revocation",
+    "key_revoked",
+    "provenance_invalid"
+  ],
+  "provisional_reasons": ["anchor_missing", "redacted_without_disclosure:<path>"],
+  "insufficient_reasons": ["erased_content:<path>"],
+  "revocation_lists": {
+    "supported": true,
+    "document_kind": "continuity-receipt-revocations",
+    "document_version": 1,
+    "channel_authenticity": "per-statement self-signature",
+    "deduplicated_with_bundle": true,
+    "https_required": true,
+    "loopback_http_allowed": true,
+    "max_document_bytes": 1048576,
+    "error_codes": [
+      "bad_revocations_document",
+      "revocations_unreachable",
+      "revocations_insecure_url",
+      "revocations_too_large"
+    ]
+  },
+  "anchors": {
+    "bundle_binding": "digest",
+    "types": ["opentimestamps", "public-chain", "custom"],
+    "proof_verification": "companion",
+    "companion_cli": "continuity-receipt-anchor",
+    "proof_formats": ["opentimestamps-detached"],
+    "header_chain_validation": false,
+    "litecoin_header_check": false,
+    "unsupported_ops": ["keccak256"]
+  },
+  "cli": {
+    "verify": "continuity-receipt-verify",
+    "disclose": "continuity-receipt-disclose",
+    "anchor": "continuity-receipt-anchor"
+  },
+  "out_of_scope": [
+    "issuer honesty",
+    "proof-of-work and header-chain validation",
+    "revocation-list freshness guarantees (withholding)",
+    "CBOR encoding profile",
+    "HMAC commitments and domain separation",
+    "succession multi-signatures",
+    "global revocation roots",
+    "selective disclosure beyond per-field salts"
+  ]
+}
