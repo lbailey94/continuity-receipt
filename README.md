@@ -25,6 +25,7 @@ SPEC.md                    the v0.2 specification (normative; 0.1 supported)
 schema/                    JSON Schema (2020-12) for 0.1 + 0.2 bundles
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
+OPEN_DATA_ANSWER_RECEIPT.md  worked example: an AI answer over an open-data portal
 CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
