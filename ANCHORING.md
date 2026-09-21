@@ -24,12 +24,18 @@ consumer needs an independent timestamp:
    that requires an anchor states that explicitly (`--require-anchor` →
    `PROVISIONAL` + `anchor_missing` when absent), so the requirement travels
    with the verdict instead of being assumed.
-5. **Verification scope is frozen for 0.x:** this repository's verifier checks
-   anchor *shape and digest binding only* — `anchor.hash == receipt_digest(target)`
-   and the declared type. Proof verification (calendar response, Merkle path,
-   Bitcoin header) is delegated to the provider's tooling until a 0.3
-   companion tool lands. Until then, `type: opentimestamps` is a **claim** to
-   a verifier that has not checked the proof, not evidence.
+5. **Verification scope:** this repository's verifier checks anchor *shape and
+   digest binding only* — `anchor.hash == receipt_digest(target)` and the
+   declared type. Proof verification lives in the companion tool
+   (`continuity_receipt.anchor` / `continuity-receipt-anchor`, landed
+   2026-09-21): it replays a detached `.ots` proof from the file digest and
+   checks a Bitcoin attestation against a caller-supplied 80-byte block
+   header by exact merkle-root equality, reporting `verified` / `unverified`
+   / `mismatch` / `invalid` with machine codes. `type: opentimestamps` remains
+   a **claim** until that tool reports `verified`, and even then the header is
+   not chain-validated (no proof-of-work, confirmation depth, or reorg
+   checks) — supply the header from a source you trust and interpret
+   `verified` as "this digest is the merkle root of that header".
 
 ## What an anchor proves — and what it does not
 
@@ -101,8 +107,12 @@ counterparty demands it, without the spec blessing a chain.
 
 ## Open items
 
-- **0.3 candidate:** OTS proof verification in the verifier or a companion
-  `continuity_receipt.anchor` tool, plus a documented renewal procedure.
+- **OTS proof verification** — **landed 2026-09-21** as the companion tool
+  `continuity_receipt.anchor` (`continuity-receipt-anchor verify`), with the
+  LEB128 wire-format parser and header check pinned by tests and 5 real
+  example proofs under `vectors/anchor/`. Remaining: optional Rust parity.
+  Header supply stays caller-owned; a header-source helper is possible but
+  would add a dependency or network call.
 - Bundle-root anchoring (one anchor for many chains) is not expressible in
   0.2; the schema binds anchors to receipts. Revisit if consumers need it.
 - No chain recommendation is deliberate; revisit only with deployment demand.

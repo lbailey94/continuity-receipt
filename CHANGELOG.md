@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **Anchor proof verification (companion tool, 0.3 candidate 2).**
+  `continuity_receipt/anchor.py` + `continuity-receipt-anchor` CLI replay an
+  OpenTimestamps detached proof from the file digest to every attestation and
+  check a Bitcoin attestation against an 80-byte block header by exact
+  merkle-root equality. Statuses `verified` / `unverified` / `mismatch` /
+  `invalid` with machine codes; digest sources are `--digest` or
+  `--bundle ... --target ...` (with an anchor-binding cross-check when the
+  bundle carries an `opentimestamps` anchor). Parses the wire format
+  directly (LEB128 varints — pinned by a test that fails under Bitcoin
+  CompactSize); no proof-of-work or chain validation by design, the header is
+  caller-supplied. 16 tests in `tests/test_anchor.py`, including 5 real example
+  proofs from `opentimestamps-client/examples` (MIT) with block headers
+  fetched from the Blockstream Esplora API (`vectors/anchor/README.md`);
+  the keccak256 example is kept as a published negative case
+  (`unsupported_op`, never a silent skip). Usage notes in `ANCHORING.md`.
+- `continuity_receipt.__init__.SPEC_ID` corrected to `continuity-receipt/0.2`
+  (was stale at 0.1; records already defaulted to 0.2).
 - **Rust second implementation (0.3.0-alpha.1)** in `rust/`: full verifier port
   (JCS canonicalization, Ed25519 + `did:key`, chain/verdict semantics,
   revocation statements, counterparty attestations, anchors, Merkle

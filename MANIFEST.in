@@ -8,6 +8,6 @@ include THREAT_MODEL.md
 include CONTRIBUTING.md
 include SIGNING.md
 recursive-include schema *.json
-recursive-include vectors *.json *.md
+recursive-include vectors *.json *.md *.ots *.txt
 recursive-include tools *.py
 recursive-include tests *.py

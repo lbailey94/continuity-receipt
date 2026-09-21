@@ -33,6 +33,7 @@ Specification = "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC.
 [project.scripts]
 continuity-receipt-verify = "continuity_receipt.verify:main"
 continuity-receipt-disclose = "continuity_receipt.disclose:main"
+continuity-receipt-anchor = "continuity_receipt.anchor:main"
 
 [build-system]
 requires = ["setuptools>=77"]
