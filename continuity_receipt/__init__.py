@@ -1,7 +1,6 @@
-"""Continuity Receipt v0 — reference implementation.
+"""Continuity Receipt reference implementation.
 
-Spec: WHITEMAGIC/planning/specs/CONTINUITY_RECEIPT_v0_SPEC.md
-Envelope spec id: continuity-receipt/0.1
+Spec: SPEC.md (continuity-receipt/0.2; 0.1 remains supported)
 """
 
 from .canon import canonical_bytes, commit_field, sha256_prefixed
@@ -14,7 +13,7 @@ from .records import (
 )
 from .verify import VerifyResult, verify_bundle
 
-SPEC_ID = "continuity-receipt/0.1"
+SPEC_ID = "continuity-receipt/0.2"
 
 __all__ = [
     "SPEC_ID",
