@@ -60,7 +60,10 @@ against their expected verdict and error code. Malformed-bundle smoke cases
 (empty object, non-object, missing receipts) are included so the verifier
 returns structured errors instead of panicking. `tests/disclose.rs` covers
 redaction, tail re-signing, refusal cases, and commitment recomputation
-against the frozen vectors.
+against the frozen vectors. `tests/fuzz_corpus.rs` mutates every vector
+(deterministic seed) plus synthetic malformed shapes and byte truncations:
+every case must yield a structured verdict with coded errors and never
+panic. Set `CR_FUZZ_CORPUS_DIR=<dir>` to write the generated corpus to disk.
 
 The Python↔Rust differentials run in CI after `cargo build`:
 

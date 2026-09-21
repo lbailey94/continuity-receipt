@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Rust fuzz corpus (0.3.0-alpha.1).** `rust/tests/fuzz_corpus.rs` generates
+  deterministic structural mutations of all 20 vectors plus synthetic
+  malformed shapes and byte truncations (fixed seed, reproducible); every
+  case must produce one of the four verdicts with coded errors and must never
+  panic. `CR_FUZZ_CORPUS_DIR` writes the generated corpus to disk for
+  inspection or seeding a future `cargo fuzz` run. Runs in CI with the Rust
+  suite.
 - **Rust selective disclosure (0.3.0-alpha.1).** `rust/src/disclose.rs` +
   `continuity-receipt-disclose` port `continuity_receipt/disclose.py`:
   `redact` (salted commitments, tail re-signing), `attach`, `reveal`, and

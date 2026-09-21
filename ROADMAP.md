@@ -46,8 +46,11 @@ distribution design, 3) remaining Rust completion + crates.io publication.
    Python-vs-Rust differential over every vector. `disclose` ported
    2026-09-21 (`rust/src/disclose.rs` + `continuity-receipt-disclose` +
    `tools/differential_disclose.py` in CI: identical maps, byte-identical
-   re-signed tails, cross-verified verdicts). Remaining: a generated fuzz
-   corpus in CI, crates.io 0.3.0 publication. Purpose: the
+   re-signed tails, cross-verified verdicts). Generated fuzz corpus landed
+   2026-09-21 (`rust/tests/fuzz_corpus.rs`: deterministic structural
+   mutations + malformed shapes + byte truncations; every case must produce
+   a structured verdict and never panic; `CR_FUZZ_CORPUS_DIR` writes the
+   corpus for inspection). Remaining: crates.io 0.3.0 publication. Purpose: the
    CG's ≥2-independent-implementations bar, native embedding for WhiteMagic
    (Rust), single-binary deployment for gate-hard images. The Python
    implementation remains the reference.
