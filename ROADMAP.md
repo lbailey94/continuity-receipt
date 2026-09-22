@@ -63,8 +63,9 @@ distribution design, 3) remaining Rust completion + crates.io publication.
    by merkle-root equality; `verified` / `unverified` / `mismatch` /
    `invalid`). **Rust parity landed 2026-09-21** (`rust/src/anchor.rs` +
    `continuity-receipt-anchor` + `tools/differential_anchor.py` in CI, 7/7
-   over the real fixtures). Remaining: a trusted-header helper — header supply
-   stays caller-owned by design (no PoW/chain validation).
+   over the real fixtures) and published as crate `0.3.1`. Remaining: a
+   trusted-header helper — header supply stays caller-owned by design (no
+   PoW/chain validation).
    **Real fixtures landed** under `vectors/anchor/` (5 example proofs from
    `opentimestamps-client`, MIT, plus headers from the Blockstream Esplora
    API; keccak256 path is a published `unsupported_op` negative case).

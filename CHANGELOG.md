@@ -37,16 +37,22 @@ binaries. Runbook: `rust/PUBLISH.md`.
   vector (20/20) and over selective disclosure. Python remains the reference
   implementation.
 
+## Rust crate 0.3.1 — 2026-09-21
+
+`continuity-receipt` 0.3.1 published to crates.io (2026-09-21): adds the
+OpenTimestamps anchor companion to the Rust crate (all three binaries now
+install via `cargo install continuity-receipt`).
+
+- **Rust anchor parity.** `rust/src/anchor.rs` + `continuity-receipt-anchor`
+  port the OpenTimestamps companion: detached-proof replay (LEB128 varints,
+  node/depth limits), Bitcoin attestation checked against a supplied 80-byte
+  header by merkle-root equality, and the same statuses/codes as Python.
+  16 tests (`rust/tests/anchor.rs`) over synthetic proofs and the five real
+  fixtures; `tools/differential_anchor.py` in CI compares both CLIs (7/7).
+  Header chain validation remains out of scope by design (`ANCHORING.md`).
+
 ## Unreleased
 
-- **Rust anchor parity (0.3.1).** `rust/src/anchor.rs` +
-  `continuity-receipt-anchor` port the OpenTimestamps companion: detached-proof
-  replay (LEB128 varints, node/depth limits), Bitcoin attestation checked
-  against a supplied 80-byte header by merkle-root equality, and the same
-  statuses/codes as Python. 16 tests (`rust/tests/anchor.rs`) over synthetic
-  proofs and the five real fixtures; `tools/differential_anchor.py` in CI
-  compares both CLIs (7/7). Header chain validation remains out of scope by
-  design (`ANCHORING.md`).
 - **Revocation distribution (0.3 candidate 4).** `continuity_receipt/revocations.py`
   + `--revocations <path|https-url>` on `continuity-receipt-verify` and
   `continuity-receipt-disclose verify`: static revocation lists carrying the
