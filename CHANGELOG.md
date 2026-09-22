@@ -51,7 +51,11 @@ install via `cargo install continuity-receipt`).
   fixtures; `tools/differential_anchor.py` in CI compares both CLIs (7/7).
   Header chain validation remains out of scope by design (`ANCHORING.md`).
 
-## Unreleased
+## 0.3.0 — 2026-09-22
+
+Python tooling release on **spec 0.2** (no wire changes), published to PyPI
+as `continuity-receipt` 0.3.0. The Rust crate versions independently
+(`rust/` is at 0.3.1); see the version matrix in `README.md`.
 
 - **Revocation distribution (0.3 candidate 4).** `continuity_receipt/revocations.py`
   + `--revocations <path|https-url>` on `continuity-receipt-verify` and
@@ -80,16 +84,16 @@ install via `cargo install continuity-receipt`).
   (`unsupported_op`, never a silent skip). Usage notes in `ANCHORING.md`.
 - `continuity_receipt.__init__.SPEC_ID` corrected to `continuity-receipt/0.2`
   (was stale at 0.1; records already defaulted to 0.2).
-- Packaging: `pyproject.toml` at 0.2.0 with console scripts
-  (`continuity-receipt-verify`, `continuity-receipt-disclose`), a full sdist
-  via `MANIFEST.in`, and a CI job that builds the wheel, installs it, and
-  exercises both console scripts. **0.2.0 published to PyPI 2026-09-18**
-  (`pip install continuity-receipt`).
+- Packaging: console scripts `continuity-receipt-verify`,
+  `continuity-receipt-disclose`, and (new in 0.3.0)
+  `continuity-receipt-anchor`; full sdist via `MANIFEST.in`; CI builds the
+  wheel, installs it, and exercises the console scripts. **0.2.0 published to
+  PyPI 2026-09-18; 0.3.0 published 2026-09-22** (`pip install continuity-receipt`).
 - `ANCHORING.md` — anchoring policy and decision record: OpenTimestamps as the
   recommended default issuance path, `public-chain` supported for
   counterparties that require it, `custom` as an opaque escape hatch;
-  verifier scope stays shape + digest binding only, proof verification
-  targeted for 0.3.
+  verifier scope stays shape + digest binding, with proof verification
+  shipped in 0.3 as the `continuity-receipt-anchor` companion.
 
 ## 0.2.0 — 2026-09-18
 

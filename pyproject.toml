@@ -1,6 +1,6 @@
 [project]
 name = "continuity-receipt"
-version = "0.2.0"
+version = "0.3.0"
 description = "Continuity Receipt — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -5,6 +5,19 @@
 **Spec version:** `continuity-receipt/0.2` — published 2026-09-18 (`0.1` remains supported; open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
+**Version matrix** — the spec and the two implementations version
+independently:
+
+| Artifact | Current | Installs with |
+|---|---|---|
+| Spec / wire format | `continuity-receipt/0.2` (frozen) | — |
+| Python reference + CLIs | **0.3.0** (PyPI) | `pip install continuity-receipt` |
+| Rust verifier + CLIs | **0.3.1** (crates.io) | `cargo install continuity-receipt` |
+
+Both 0.3 lines are tooling releases on spec 0.2 — no wire changes. Verify the
+version you have with `continuity-receipt-verify --help` (Python) or
+`continuity-receipt-verify --help` (Rust).
+
 A Continuity Receipt is a signed, hash-chained record of one governed task:
 **decision → authority → execution → delivery → termination → settlement**. It is designed to be verified offline by any third party — insurers, arbiters, procurement, courts, other agents — **without requiring trust in the issuer**.
 
