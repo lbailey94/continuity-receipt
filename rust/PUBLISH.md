@@ -1,8 +1,9 @@
 # Publishing `continuity-receipt` to crates.io
 
-**Status:** `0.3.0-alpha.1`, `0.3.0`, `0.3.1`, and `0.3.2` published
-(0.3.1 adds anchor parity; 0.3.2 adds spec 0.3 offer/accept parity). This
-runbook remains the procedure for future versions.
+**Status:** `0.3.0-alpha.1`, `0.3.0`, `0.3.1`, `0.3.2`, and `0.3.3`
+published (0.3.1 adds anchor parity; 0.3.2 adds spec 0.3 offer/accept parity;
+0.3.3 adds verification-receipt parity). This runbook remains the procedure
+for future versions.
 
 Operator runbook. The crate is publish-ready (`cargo publish --dry-run`
 passes); publication itself is a human action because it needs the crates.io

@@ -883,80 +883,9 @@ fn check_revocations(result: &mut VerifyResult, bundle: &Map<String, Value>, rec
         return;
     };
 
-    let mut revoked: Vec<(String, Timestamp)> = Vec::new();
-    let mut checked: usize = 0;
-    for statement in statements {
-        let Some(statement) = statement.as_object() else {
-            fatal(
-                result,
-                "bad_revocation",
-                "revocation statement is not an object",
-                None,
-            );
-            continue;
-        };
-        let key_id = statement.get("key").and_then(Value::as_str);
-        let revoked_at = statement.get("revoked_at");
-        if key_id.is_none() || !validate_timestamp(revoked_at) {
-            fatal(
-                result,
-                "bad_revocation",
-                format!(
-                    "malformed revocation statement for {}",
-                    py_repr(statement.get("key"))
-                ),
-                None,
-            );
-            continue;
-        }
-        let key_id = key_id.unwrap_or_default();
-        let revoked_at_text = revoked_at.and_then(Value::as_str).unwrap_or_default();
-
-        let sig = statement.get("sig").and_then(Value::as_object);
-        let signature_ok = sig.and_then(|item| item.get("alg")).and_then(Value::as_str)
-            == Some("ed25519")
-            && py_truthy(sig.and_then(|item| item.get("value")));
-        if !signature_ok {
-            fatal(
-                result,
-                "bad_revocation",
-                format!(
-                    "revocation statement unsigned for {}",
-                    py_repr(statement.get("key"))
-                ),
-                None,
-            );
-            continue;
-        }
-
-        let mut unsigned = statement.clone();
-        unsigned.remove("sig");
-        let verified = match canonical_bytes(&Value::Object(unsigned)) {
-            Ok(message) => sig
-                .and_then(|item| item.get("value"))
-                .and_then(Value::as_str)
-                .map(|value| didkey::verify(key_id, &message, value))
-                .unwrap_or(false),
-            Err(_) => false,
-        };
-        if !verified {
-            fatal(
-                result,
-                "bad_revocation",
-                format!(
-                    "revocation signature invalid for {}",
-                    py_repr(statement.get("key"))
-                ),
-                None,
-            );
-            continue;
-        }
-        let Some(revoked_timestamp) = parse_timestamp(revoked_at_text) else {
-            continue; // validated above; defensive
-        };
-        revoked.push((key_id.to_string(), revoked_timestamp));
-        checked += 1;
-    }
+    let (revoked, statement_errors) = verify_revocation_statements(statements);
+    result.errors.extend(statement_errors);
+    let checked = revoked.len();
 
     for receipt in receipts.iter().filter_map(Value::as_object) {
         let key_id = receipt
@@ -992,6 +921,87 @@ fn check_revocations(result: &mut VerifyResult, bundle: &Map<String, Value>, rec
     result
         .summary
         .insert("revocations_checked".to_string(), Value::from(checked));
+}
+
+/// Verify self-signed revocation statements (0.2 §7.5), shared by the bundle
+/// verifier and the verification-receipt verifier.
+///
+/// Returns the verified `(key, revoked_at)` pairs plus structured
+/// `bad_revocation` errors for statements that do not verify. Callers decide
+/// fatality (the bundle verifier fails closed) and how to apply the times.
+pub(crate) fn verify_revocation_statements(
+    statements: &[Value],
+) -> (Vec<(String, Timestamp)>, Vec<ErrorEntry>) {
+    let mut revoked: Vec<(String, Timestamp)> = Vec::new();
+    let mut errors: Vec<ErrorEntry> = Vec::new();
+    for statement in statements {
+        let Some(statement) = statement.as_object() else {
+            errors.push(ErrorEntry {
+                code: "bad_revocation".to_string(),
+                detail: "revocation statement is not an object".to_string(),
+                receipt_id: Value::Null,
+            });
+            continue;
+        };
+        let key_id = statement.get("key").and_then(Value::as_str);
+        let revoked_at = statement.get("revoked_at");
+        if key_id.is_none() || !validate_timestamp(revoked_at) {
+            errors.push(ErrorEntry {
+                code: "bad_revocation".to_string(),
+                detail: format!(
+                    "malformed revocation statement for {}",
+                    py_repr(statement.get("key"))
+                ),
+                receipt_id: Value::Null,
+            });
+            continue;
+        }
+        let key_id = key_id.unwrap_or_default();
+        let revoked_at_text = revoked_at.and_then(Value::as_str).unwrap_or_default();
+
+        let sig = statement.get("sig").and_then(Value::as_object);
+        let signature_ok = sig.and_then(|item| item.get("alg")).and_then(Value::as_str)
+            == Some("ed25519")
+            && py_truthy(sig.and_then(|item| item.get("value")));
+        if !signature_ok {
+            errors.push(ErrorEntry {
+                code: "bad_revocation".to_string(),
+                detail: format!(
+                    "revocation statement unsigned for {}",
+                    py_repr(statement.get("key"))
+                ),
+                receipt_id: Value::Null,
+            });
+            continue;
+        }
+
+        let mut unsigned = statement.clone();
+        unsigned.remove("sig");
+        let verified = match canonical_bytes(&Value::Object(unsigned)) {
+            Ok(message) => sig
+                .and_then(|item| item.get("value"))
+                .and_then(Value::as_str)
+                .map(|value| didkey::verify(key_id, &message, value))
+                .unwrap_or(false),
+            Err(_) => false,
+        };
+        if !verified {
+            errors.push(ErrorEntry {
+                code: "bad_revocation".to_string(),
+                detail: format!(
+                    "revocation signature invalid for {}",
+                    py_repr(statement.get("key"))
+                ),
+                receipt_id: Value::Null,
+            });
+            continue;
+        }
+        let Some(revoked_timestamp) = parse_timestamp(revoked_at_text) else {
+            continue; // validated above; defensive
+        };
+        revoked.push((key_id.to_string(), revoked_timestamp));
+    }
+    (revoked, errors)
 }
 
 /// Anchors: shape and digest binding only (`anchor.hash == receipt_digest`).
@@ -1263,7 +1273,7 @@ fn quote_py_string(text: &str) -> String {
 }
 
 /// RFC 3339 UTC with optional 1-3 fractional digits (`records._TIMESTAMP_RE`).
-fn validate_timestamp(value: Option<&Value>) -> bool {
+pub(crate) fn validate_timestamp(value: Option<&Value>) -> bool {
     value
         .and_then(Value::as_str)
         .map(is_rfc3339_utc)
@@ -1311,7 +1321,7 @@ fn is_rfc3339_utc(text: &str) -> bool {
 
 /// Chronologically comparable UTC timestamp (fraction normalized to millis).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Timestamp {
+pub(crate) struct Timestamp {
     year: u32,
     month: u32,
     day: u32,
@@ -1321,7 +1331,7 @@ struct Timestamp {
     millis: u32,
 }
 
-fn parse_timestamp(text: &str) -> Option<Timestamp> {
+pub(crate) fn parse_timestamp(text: &str) -> Option<Timestamp> {
     if !is_rfc3339_utc(text) {
         return None;
     }
@@ -1348,7 +1358,7 @@ fn parse_timestamp(text: &str) -> Option<Timestamp> {
 }
 
 /// Python `datetime.isoformat()` for a parsed UTC timestamp.
-fn isoformat(timestamp: &Timestamp) -> String {
+pub(crate) fn isoformat(timestamp: &Timestamp) -> String {
     let base = format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
         timestamp.year,

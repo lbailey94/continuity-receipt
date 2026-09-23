@@ -367,6 +367,11 @@ def main(argv=None) -> int:
     if args.bundle:
         with open(args.bundle, "rb") as handle:
             bundle = handle.read()
+        try:
+            json.loads(bundle)
+        except ValueError as exc:
+            print(f"error: --bundle is not valid JSON: {exc}", file=sys.stderr)
+            return 2
     result = verify_verification_receipt(receipt, bundle, revocations)
     print(json.dumps(result.as_dict(), indent=2))
     return 0 if result.valid else 1

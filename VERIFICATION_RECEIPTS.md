@@ -7,9 +7,10 @@ Verification receipts are **not** part of the `continuity-receipt/0.x` bundle
 format: they are standalone records of a verification run, never chain
 members.
 **Reference implementation:** `continuity_receipt.verification` (Python),
-CLI `continuity-receipt-verify-receipt`; schema
-`schema/verification-receipt-1.schema.json`; vectors `vectors/verification/`
-(20 cases).
+CLI `continuity-receipt-verify-receipt`; second implementation:
+`rust/src/verification.rs` + the same CLI in the Rust crate (differential
+20/20 over the vectors); schema `schema/verification-receipt-1.schema.json`;
+vectors `vectors/verification/` (20 cases).
 
 ## Why
 
@@ -218,8 +219,6 @@ check can fetch the issuer's published document (the hosted service serves
 
 ## Open items
 
-- **Rust parity** — the second implementation does not verify verification
-  receipts yet; tracked in `ROADMAP.md`.
 - **Countersignatures / multi-verifier receipts** — two verifiers, one
   statement set; no consumer yet.
 - **Freshness vs idempotency** — the hosted service can return the original

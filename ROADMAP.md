@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current release:** spec `continuity-receipt/0.3` (2026-09-23; Python tooling
-0.3.3 on PyPI, Rust crate 0.3.2 on crates.io). Spec `0.1` and `0.2` remain
+0.3.3 on PyPI, Rust crate 0.3.3 on crates.io). Spec `0.1` and `0.2` remain
 supported.
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
@@ -50,6 +50,8 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 - [x] Opt-in issuer-revocation check (`key_revoked`) reusing the bundle
   revocation statement shape.
 - [x] Integration kit page (`VERIFY_IN_5_MIN.md`).
+- [x] Rust parity — `rust/src/verification.rs` + CLI + 20-vector runner,
+  differential 20/20 (crate 0.3.3).
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.
@@ -119,9 +121,6 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 
 ## 0.4+ / open questions
 
-- **Verification receipts in Rust** — second-implementation parity for the
-  companion v1 format (schema + vectors are language-neutral; the Python
-  implementation is the reference until then).
 - Selective disclosure beyond per-field salts (evaluate; do not adopt by default — simplicity is a feature).
 - Formal specification of canonicalization + verification (small enough to verify mechanically).
 - Interop profiles with SAIHM and memorywire once their normative text stabilizes; adapter implementations.

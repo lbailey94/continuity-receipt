@@ -12,7 +12,7 @@ independently:
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.3` (additive) | — |
 | Python reference + CLIs | **0.3.3** (PyPI) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.3.2** (crates.io) | `cargo install continuity-receipt` |
+| Rust verifier + CLIs | **0.3.3** (crates.io) | `cargo install continuity-receipt` |
 
 Both implementations support spec 0.3 (offer/accept binding) with identical
 verdicts and codes over the full vector set. Verify the version you have with
@@ -96,8 +96,8 @@ unknown member. Schema: `schema/verification-receipt-1.schema.json`.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 26 bundle vectors and CI diffs it against the Python reference
-  (26/26). The 0.3 record types are ported (crate 0.3.2). Verification
-  receipts are Python-reference only for now (`ROADMAP.md`).
+  (26/26) and the verification-receipt vectors (20/20, crate 0.3.3), with
+  digest parity pinned by `tools/differential_verification_receipts.py`.
 - **Origin implementation:** [WhiteMagic](https://github.com/lbailey94/whitemagic) — an MIT, local-first memory substrate for agents (this spec repo is Apache-2.0; the two are separate works).
 - **Standards context:** the format is intended as a contribution to the emerging neutral layer (W3C AI Agent Memory Interoperability CG; IETF agentproto work). It is not endorsed by those bodies, and no claim of adoption is made.
 

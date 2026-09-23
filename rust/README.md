@@ -1,21 +1,22 @@
 # continuity-receipt (Rust)
 
 Second, independent implementation of the Continuity Receipt verifier for
-`continuity-receipt/0.1`-`0.3` bundles. The Python implementation in
-`../continuity_receipt/` remains the reference; this crate exists for the
-two-independent-implementations bar, native embedding, and single-binary
-deployment.
+`continuity-receipt/0.1`-`0.3` bundles and verification receipts (companion
+v1). The Python implementation in `../continuity_receipt/` remains the
+reference; this crate exists for the two-independent-implementations bar,
+native embedding, and single-binary deployment.
 
 It re-implements the pinned JCS subset (`canon.rs`), `did:key` Ed25519
 verification (`didkey.rs`), and the full verification algorithm with the same
 error codes, verdict precedence, and JSON output shape as
-`continuity_receipt.verify` (`verify.rs`).
+`continuity_receipt.verify` (`verify.rs`) and
+`continuity_receipt.verification` (`verification.rs`).
 
 ## Install
 
 ```sh
 cargo add continuity-receipt        # library
-cargo install continuity-receipt    # both CLIs (verify + disclose)
+cargo install continuity-receipt    # CLIs: verify, disclose, anchor, verify-receipt
 ```
 
 The crate tracks `continuity-receipt/0.1`-`0.3` bundles; the Python
@@ -60,6 +61,28 @@ modified receipt and every receipt after it, so the signer must be the
 chain's issuer; redacting a cross-checked field (for example `spend_cap`)
 fails closed to `UNTRUSTED` because a commitment cannot prove the claim.
 
+## Verification receipts
+
+`continuity-receipt-verify-receipt` mirrors
+`continuity_receipt/verification.py`: shape and consistency checks
+(`error_codes` equals the codes in `errors`; the verdict equals the class
+implied by the errors/reasons), the Ed25519 signature over the canonical view
+minus `sig`, optional bundle-digest and issuer-revocation checks.
+
+```sh
+cargo run --bin continuity-receipt-verify-receipt -- \
+  ../vectors/verification/01_valid.json --bundle ../vectors/verification/bundle.json
+cargo run --bin continuity-receipt-verify-receipt -- \
+  ../vectors/verification/12_revoked_issuer.json \
+  --bundle ../vectors/verification/bundle.json \
+  --revocations ../vectors/verification/12_revoked_issuer.revocations.json
+cargo run --bin continuity-receipt-verify-receipt -- \
+  ../vectors/verification/01_valid.json --canonical /tmp/receipt.canonical   # prints the anchor digest
+```
+
+Exit `0` iff the receipt is valid. `--revocations` reads a local revocation
+document (the Python CLI also accepts URLs).
+
 ## OpenTimestamps anchors
 
 `continuity-receipt-anchor` mirrors `continuity_receipt/anchor.py`: replay a
@@ -85,8 +108,11 @@ substitute for proof-of-work or confirmation checks.
 cargo test
 ```
 
-The vector runner reads `../vectors/manifest.json` and checks all 20 vectors
-against their expected verdict and error code. Malformed-bundle smoke cases
+The vector runner reads `../vectors/manifest.json` and checks all 26 bundle
+vectors against their expected verdict and error code; `tests/verification.rs`
+does the same for the 20 verification-receipt vectors
+(`../vectors/verification/manifest.json`), including consistency violations
+and receipt digests. Malformed-bundle smoke cases
 (empty object, non-object, missing receipts) are included so the verifier
 returns structured errors instead of panicking. `tests/disclose.rs` covers
 redaction, tail re-signing, refusal cases, and commitment recomputation
@@ -102,9 +128,10 @@ published keccak negative case.
 The Python↔Rust differentials run in CI after `cargo build`:
 
 ```sh
-python3 tools/differential_vectors.py    # verdict + error-code parity
-python3 tools/differential_disclose.py   # maps, signatures, cross-verification
-python3 tools/differential_anchor.py     # status/code/confirmed parity
+python3 tools/differential_vectors.py               # verdict + error-code parity
+python3 tools/differential_disclose.py              # maps, signatures, cross-verification
+python3 tools/differential_anchor.py                # status/code/confirmed parity
+python3 tools/differential_verification_receipts.py # validity/codes/digest parity
 ```
 
 ## Intentional, documented differences from Python
@@ -119,6 +146,7 @@ python3 tools/differential_anchor.py     # status/code/confirmed parity
 - `disclose redact` additionally accepts repeatable `--salt <path>=<hex>` for
   reproducible commitments; the Python CLI always randomizes salts.
 - `disclose verify` does not accept `--revocations` until the Rust
-  revocation-list loader lands; external lists remain Python-only.
+  revocation-list loader lands; external lists remain Python-only. The
+  verification-receipt CLI accepts local revocation documents (no URLs).
 - `anchor verify` human (non-`--json`) output prints attestations as compact
   JSON rather than Python dict reprs; the `--json` shape is identical.

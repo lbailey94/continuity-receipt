@@ -194,6 +194,17 @@ class TestVerificationReceipts(unittest.TestCase):
         self.assertEqual(digest.returncode, 0)
         self.assertTrue(digest.stdout.strip().startswith("sha256:"))
 
+        import tempfile
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+            handle.write("not json")
+            bad_path = handle.name
+        try:
+            bad_bundle = run(str(VECTORS / "01_valid.json"), "--bundle", bad_path)
+            self.assertEqual(bad_bundle.returncode, 2)
+        finally:
+            Path(bad_path).unlink()
+
     def test_cli_canonical_view_matches_digest(self):
         import hashlib
         import tempfile

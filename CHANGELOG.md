@@ -1,5 +1,30 @@
 # Changelog
 
+## Rust crate 0.3.3 — 2026-09-23
+
+`continuity-receipt` 0.3.3: Rust parity for **verification receipts**
+(companion v1), completing the two-independent-implementations bar for the
+full surface. The crate now verifies both bundle formats (0.1–0.3) and
+verification receipts with identical validity, error codes, and digests to
+the Python reference over the 20 receipt vectors (differential 20/20).
+
+- **`verification.rs`** — port of `continuity_receipt/verification.py`:
+  shape checks, the two offline consistency rules (`error_codes_mismatch`,
+  `verdict_mismatch`), signature verification over the canonical view minus
+  `sig`, optional bundle-digest match, and opt-in issuer-revocation checking
+  via the shared `verify_revocation_statements` helper (extracted from the
+  bundle verifier; behavior unchanged, differential 26/26).
+- **CLI** `continuity-receipt-verify-receipt`: receipt path, `--bundle`,
+  `--revocations <document.json>`, `--digest`, `--canonical <path>`
+  (writes the canonical view for anchoring). Local files only — no HTTP
+  client in the crate.
+- **Tests** `tests/verification.rs`: the 20-vector manifest runner, receipt
+  digest pinning, malformed fail-closed cases, unsigned-revocation refusal.
+- **Differential** `tools/differential_verification_receipts.py` (validity,
+  error sets, exit codes, and digests) added to CI.
+- One pinned divergence: a non-enum verdict is `bad_verdict` only (Python
+  skips the consistency check for it); the Rust port mirrors that rule.
+
 ## 0.3.3 — 2026-09-23
 
 Python tooling release: verification receipts now record the **full

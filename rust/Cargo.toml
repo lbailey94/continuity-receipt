@@ -1,6 +1,6 @@
 [package]
 name = "continuity-receipt"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 license = "Apache-2.0"
 description = "Independent Rust verifier for continuity-receipt/0.1-0.3 bundles (the Python implementation remains the reference)"
@@ -19,6 +19,10 @@ path = "src/bin/continuity-receipt-verify.rs"
 [[bin]]
 name = "continuity-receipt-disclose"
 path = "src/bin/continuity-receipt-disclose.rs"
+
+[[bin]]
+name = "continuity-receipt-verify-receipt"
+path = "src/bin/continuity-receipt-verify-receipt.rs"
 
 [dependencies]
 serde_json = { version = "1", features = ["arbitrary_precision"] }

@@ -91,11 +91,12 @@ with codes including `anchor_verified`, `anchor_unverified`,
 
 ```bash
 python3 -m unittest discover -s tests -v          # unit + real-fixture tests
-python3 tools/differential_vectors.py             # Python vs Rust over all vectors
+python3 tools/differential_vectors.py             # Python vs Rust over all bundle vectors
+python3 tools/differential_verification_receipts.py  # Python vs Rust over all receipt vectors
 cargo test --manifest-path rust/Cargo.toml        # Rust second implementation
 ```
 
-CI runs all three; `vectors/manifest.json` pins the conformance verdicts,
+CI runs all four; `vectors/manifest.json` pins the conformance verdicts,
 `vectors/verification/manifest.json` pins the verification-receipt cases, and
 `vectors/anchor/` pins the anchor tool against real OpenTimestamps proofs.
 
