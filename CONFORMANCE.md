@@ -53,6 +53,22 @@ statements in the bundle shape). CLI: `continuity-receipt-verify-receipt`
 (`--digest` prints the receipt digest for anchoring); vectors:
 `vectors/verification/` (20 cases).
 
+## Conformance referee (hosted service)
+
+`POST /conformance` on the hosted API grades a verifier's outputs over the
+pinned corpus and returns a signed **conformance report**
+(`kind: continuity-receipt-conformance`, version 1). Submissions carry
+implementation metadata plus per-vector outputs — bundles
+(`{verdict, codes}`) and verification receipts (`{valid, errors}`) — and are
+built with `tools/conformance_submit.py`; the referee never executes
+submitted code. The report binds the submission and the corpus manifests by
+digest, records per-corpus matches/mismatches, and carries a verdict
+(`CONFORMANT` / `PARTIAL` / `NONCONFORMANT`) signed by the service's
+`did:key` (canonical view minus `sig`, the same rule as verification
+receipts). Verify a report with
+`python3 tools/conformance_submit.py --verify-report report.json`; endpoint
+contract in the service docs (`api.whitemagic.dev/docs`).
+
 ## Verdicts
 
 | Verdict | Meaning |

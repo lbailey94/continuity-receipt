@@ -50,6 +50,11 @@ jobs:
           print(f"CLI verified {len(vmanifest['vectors'])} verification receipts")
           PY
 
+      - name: Conformance submission tool (self-check)
+        run: |
+          python3 tools/conformance_submit.py --python --version ci --out /tmp/submission.json
+          python3 -c "import json; s = json.load(open('/tmp/submission.json')); assert len(s['results']['bundles']) == 26 and len(s['results']['verification_receipts']) == 20, s"
+
   package:
     runs-on: ubuntu-latest
     steps:
