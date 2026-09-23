@@ -15,8 +15,12 @@ use serde_json::{Map, Value};
 use crate::canon::{canonical_bytes, commit_field, sha256_prefixed, CanonError};
 use crate::didkey;
 
-pub const SUPPORTED_SPECS: [&str; 2] = ["continuity-receipt/0.1", "continuity-receipt/0.2"];
-pub const RECORD_TYPES: [&str; 7] = [
+pub const SUPPORTED_SPECS: [&str; 3] = [
+    "continuity-receipt/0.1",
+    "continuity-receipt/0.2",
+    "continuity-receipt/0.3",
+];
+pub const RECORD_TYPES: [&str; 9] = [
     "session.pass.created",
     "task.decision",
     "task.execution",
@@ -24,6 +28,8 @@ pub const RECORD_TYPES: [&str; 7] = [
     "task.termination",
     "settlement",
     "authority.succession",
+    "agreement.offer",
+    "agreement.accept",
 ];
 
 const ANCHOR_TYPES: [&str; 3] = ["opentimestamps", "public-chain", "custom"];
@@ -57,6 +63,8 @@ const SETTLEMENT_FIELDS: [&str; 5] = [
     "settled_at",
 ];
 const SUCCESSION_FIELDS: [&str; 4] = ["from_authority", "to_authority", "effective_at", "reason"];
+const OFFER_FIELDS: [&str; 5] = ["offer_id", "offeree", "terms_hash", "valid_until", "nonce"];
+const ACCEPT_FIELDS: [&str; 3] = ["offer_ref", "offer_id", "terms_hash"];
 
 fn required_fields(record_type: &str) -> Option<&'static [&'static str]> {
     match record_type {
@@ -67,6 +75,8 @@ fn required_fields(record_type: &str) -> Option<&'static [&'static str]> {
         "task.termination" => Some(&TERMINATION_FIELDS),
         "settlement" => Some(&SETTLEMENT_FIELDS),
         "authority.succession" => Some(&SUCCESSION_FIELDS),
+        "agreement.offer" => Some(&OFFER_FIELDS),
+        "agreement.accept" => Some(&ACCEPT_FIELDS),
         _ => None,
     }
 }
@@ -384,6 +394,7 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
     }
 
     check_cross_record(&mut result, receipts, &type_by_seq);
+    check_agreements(&mut result, receipts);
     check_redactions(
         &mut result,
         receipts,
@@ -521,6 +532,93 @@ fn check_cross_record(
             "task has no termination receipt",
             None,
         );
+    }
+}
+
+/// 0.3: `agreement.accept` binds to a preceding `agreement.offer` (spec §4.9).
+///
+/// `offer_ref` is the digest of the offer receipt; an accept whose offer is
+/// absent from the bundle is unverifiable, not false (INSUFFICIENT_EVIDENCE,
+/// `missing_offer`). A present offer with a different `offer_id`/`terms_hash`
+/// is `offer_mismatch`; an accept issued after `valid_until` is
+/// `offer_expired`.
+fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
+    let mut offers: BTreeMap<String, &Map<String, Value>> = BTreeMap::new();
+    for receipt in receipts.iter().filter_map(Value::as_object) {
+        if receipt.get("type").and_then(Value::as_str) != Some("agreement.offer") {
+            continue;
+        }
+        if let Ok(digest) = receipt_digest(receipt) {
+            offers.insert(digest, receipt);
+        }
+    }
+
+    for receipt in receipts.iter().filter_map(Value::as_object) {
+        if receipt.get("type").and_then(Value::as_str) != Some("agreement.accept") {
+            continue;
+        }
+        let body = receipt.get("body").and_then(Value::as_object);
+        let offer = body
+            .and_then(|body| body.get("offer_ref"))
+            .and_then(Value::as_str)
+            .and_then(|reference| offers.get(reference));
+        let Some(offer) = offer else {
+            result.insufficient_reasons.push(format!(
+                "missing_offer:{}",
+                receipt
+                    .get("receipt_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+            ));
+            continue;
+        };
+        let offer_body = offer.get("body").and_then(Value::as_object);
+        let valid_until = offer_body.and_then(|body| body.get("valid_until"));
+        if !validate_timestamp(valid_until) {
+            fatal(
+                result,
+                "malformed",
+                format!(
+                    "offer valid_until not RFC 3339 UTC: {}",
+                    py_repr(valid_until)
+                ),
+                offer.get("receipt_id"),
+            );
+            continue;
+        }
+        let same_offer_id = body.and_then(|body| body.get("offer_id"))
+            == offer_body.and_then(|body| body.get("offer_id"));
+        let same_terms = body.and_then(|body| body.get("terms_hash"))
+            == offer_body.and_then(|body| body.get("terms_hash"));
+        if !same_offer_id || !same_terms {
+            fatal(
+                result,
+                "offer_mismatch",
+                "accept does not match the referenced offer",
+                receipt.get("receipt_id"),
+            );
+            continue;
+        }
+        let issued_at = receipt
+            .get("issued_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let valid_until = valid_until
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        if let (Some(issued_at), Some(valid_until)) = (issued_at, valid_until) {
+            if issued_at > valid_until {
+                fatal(
+                    result,
+                    "offer_expired",
+                    format!(
+                        "accept issued after offer valid_until {}",
+                        py_repr(offer_body.and_then(|body| body.get("valid_until")))
+                    ),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
     }
 }
 

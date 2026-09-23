@@ -12,11 +12,10 @@ independently:
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.3` (additive) | — |
 | Python reference + CLIs | **0.3.1** (PyPI) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.3.1** (crates.io) — 0.3 record types pending | `cargo install continuity-receipt` |
+| Rust verifier + CLIs | **0.3.2** (crates.io) | `cargo install continuity-receipt` |
 
-The Python 0.3.1 line supports spec 0.3 (offer/accept binding); the Rust crate
-is at 0.3.1 and **fails closed** on 0.3 envelopes (`version_unsupported`)
-until the port lands. Verify the version you have with
+Both implementations support spec 0.3 (offer/accept binding) with identical
+verdicts and codes over the full vector set. Verify the version you have with
 `continuity-receipt-verify --help` (Python or Rust).
 
 A Continuity Receipt is a signed, hash-chained record of one governed task:

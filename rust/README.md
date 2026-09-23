@@ -1,7 +1,7 @@
 # continuity-receipt (Rust)
 
 Second, independent implementation of the Continuity Receipt verifier for
-`continuity-receipt/0.1`-`0.2` bundles. The Python implementation in
+`continuity-receipt/0.1`-`0.3` bundles. The Python implementation in
 `../continuity_receipt/` remains the reference; this crate exists for the
 two-independent-implementations bar, native embedding, and single-binary
 deployment.
@@ -18,7 +18,7 @@ cargo add continuity-receipt        # library
 cargo install continuity-receipt    # both CLIs (verify + disclose)
 ```
 
-The crate tracks `continuity-receipt/0.1`-`0.2` bundles; the Python
+The crate tracks `continuity-receipt/0.1`-`0.3` bundles; the Python
 implementation in this repository remains the reference. Publication
 runbook: [`PUBLISH.md`](PUBLISH.md).
 

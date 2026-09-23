@@ -1,5 +1,13 @@
 # Changelog
 
+## Rust crate 0.3.2 — 2026-09-23
+
+`continuity-receipt` 0.3.2: Rust parity for the spec 0.3 record types
+(`agreement.offer` / `agreement.accept`), completing the
+two-independent-implementations bar for 0.3. The crate now verifies specs
+0.1–0.3 with identical verdicts and codes to the Python reference over the
+full 24-vector set (differential 24/24).
+
 ## 0.3.1 — 2026-09-23
 
 Python tooling release supporting **spec 0.3** (additive): the offer → accept

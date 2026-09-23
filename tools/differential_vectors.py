@@ -39,33 +39,14 @@ def main() -> int:
 
     entries = json.loads(MANIFEST.read_text(encoding="utf-8"))["vectors"]
     mismatches = 0
-    pending_03 = 0
     for entry in entries:
         bundle = ROOT / "vectors" / entry["file"]
         python_result = signature(run(PY_CMD, bundle, entry["require_anchor"]))
         rust_result = signature(run([str(RUST_BIN)], bundle, entry["require_anchor"]))
-        spec = json.loads(bundle.read_text(encoding="utf-8")).get("spec")
-        if spec == "continuity-receipt/0.3":
-            # The 0.3 record types are not ported to Rust yet. The expected
-            # divergence is fail-closed: Rust must answer version_unsupported.
-            (rust_verdict, rust_codes), _rc = rust_result
-            if rust_verdict == "UNTRUSTED" and "version_unsupported" in rust_codes:
-                pending_03 += 1
-                continue
-            mismatches += 1
-            print(
-                f"MISMATCH {entry['file']} (0.3 expected fail-closed): "
-                f"python={python_result} rust={rust_result}"
-            )
-            continue
         if python_result != rust_result:
             mismatches += 1
             print(f"MISMATCH {entry['file']}: python={python_result} rust={rust_result}")
-    matched = len(entries) - mismatches - pending_03
-    print(
-        f"differential: {matched}/{len(entries)} match "
-        f"({pending_03} pending Rust 0.3 port, fail-closed verified)"
-    )
+    print(f"differential: {len(entries) - mismatches}/{len(entries)} match")
     return 1 if mismatches else 0
 
 

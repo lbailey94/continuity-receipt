@@ -42,25 +42,6 @@ fn all_vectors_match_manifest() {
             .expect("require_anchor flag");
 
         let bundle = read_json(&vectors.join(file));
-
-        // Rust parity for the 0.3 record types is pending. Until it lands the
-        // Rust verifier must fail closed on 0.3 envelopes (`version_unsupported`)
-        // rather than mis-verify them; this test pins that behavior.
-        if bundle["spec"].as_str() == Some("continuity-receipt/0.3") {
-            let result = verify_bundle(&bundle, require_anchor);
-            assert_eq!(
-                result.verdict(),
-                "UNTRUSTED",
-                "{file}: 0.3 must fail closed until the Rust port lands"
-            );
-            assert!(
-                result.codes().contains(&"version_unsupported"),
-                "{file}: expected version_unsupported, got {:?}",
-                result.codes()
-            );
-            continue;
-        }
-
         let result = verify_bundle(&bundle, require_anchor);
 
         assert_eq!(
