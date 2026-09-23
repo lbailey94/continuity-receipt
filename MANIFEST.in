@@ -3,6 +3,7 @@ include README.md
 include SPEC.md
 include VERIFICATION_RECEIPTS.md
 include VERIFY_IN_5_MIN.md
+include REVIEW_BRIEF.md
 include ANCHORING.md
 include REVOCATION_DISTRIBUTION.md
 include CONFORMANCE.md

@@ -37,6 +37,7 @@ Verification verdicts (IETF CTQ-aligned):
 SPEC.md                    the v0.3 specification (normative; 0.1 + 0.2 supported)
 VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
+REVIEW_BRIEF.md            independent review scope (open invitation)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
