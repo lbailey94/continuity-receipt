@@ -1,10 +1,10 @@
 {
   "kind": "continuity-receipt-verification",
   "version": 1,
-  "bundle_digest": "sha256:not-hex",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
   "verdict": "TRUSTED",
   "error_codes": [],
-  "errors": [],
+  "errors": "none",
   "provisional_reasons": [],
   "insufficient_reasons": [],
   "summary": {
@@ -30,6 +30,6 @@
   "sig": {
     "alg": "ed25519",
     "key": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
-    "value": "QNf-2CwGo2XqCHUiHeeEgDjelxNW8o_1vIiKvsw0Q1qKqtTE-1G41G_Xw-Dp-tSJnA82f2g_4CeqT9Mv24XPAA"
+    "value": "6Iqh8vQu6E1jFlqQu0ycsLC1xStVUE_5cxPKexnMlFiLnFKbwN1FaybLpOjpzrKNYo0-yaK89Est4oQqe0vsBg"
   }
 }

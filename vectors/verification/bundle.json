@@ -4,9 +4,9 @@
   "receipts": [
     {
       "spec": "continuity-receipt/0.3",
-      "receipt_id": "urn:uuid:01a0d010-573f-77c1-a8d1-6c483782806d",
+      "receipt_id": "urn:uuid:01a0d088-fb4d-7144-a8ef-48a5de0ddf5a",
       "task_id": "urn:uuid:01997c4e-0000-7000-8000-000000000001",
-      "issued_at": "2026-09-23T20:58:46Z",
+      "issued_at": "2026-09-23T23:10:33Z",
       "issuer": {
         "kind": "gate",
         "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
@@ -31,21 +31,21 @@
       "sig": {
         "alg": "ed25519",
         "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
-        "value": "u4cVbzRInWNCD8vgEPOm3royeukY2MEbhNcHTaQgEV7Zx0gGGgCJVUtThqi3uU0Qx1nY_HVi8bxG0J4dXTznBw"
+        "value": "wQZ2b_8rjVlvERryfZAVNlel3uokRkhpXIZh-FYNUU45fwHMDucDjTaMYIMefBmmSsi8Xsrb5chyUUNh3NJeBA"
       }
     },
     {
       "spec": "continuity-receipt/0.3",
-      "receipt_id": "urn:uuid:01a0d010-5740-722a-b35e-52c3bb619f20",
+      "receipt_id": "urn:uuid:01a0d088-fb4e-7810-b6fb-a436ca00cb0b",
       "task_id": "urn:uuid:01997c4e-0000-7000-8000-000000000001",
-      "issued_at": "2026-09-23T20:58:46Z",
+      "issued_at": "2026-09-23T23:10:33Z",
       "issuer": {
         "kind": "gate",
         "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
       },
       "type": "task.decision",
       "seq": 1,
-      "prev": "sha256:b8e013f4132cb931bb3d20eb1356623245385bbe56dcc9c193bf6b6eec3b6f73",
+      "prev": "sha256:94bf07ece2ecffdee80770c37e4802ea93f46ad80f0fd168428535134470c79f",
       "body": {
         "action": "memory.search",
         "action_args_hash": "sha256:fb916f19b7c02f8f792ca53936138717130a49f9d78d10771f3b9fdec1527e1c",
@@ -66,21 +66,21 @@
       "sig": {
         "alg": "ed25519",
         "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
-        "value": "bWss8Bbf3lXcopaencRGR2yiXr6ipe6r7dSgHEWpggTzwQ-t6S_5vW9F7g-5cKOMYYkRGP03GaG5LDf3RSHcDg"
+        "value": "p7s1Kc7qRIE2VPx3CTVLJTRRwGeVYcZznr_GDzUNWI_SGaFSgkHxf87196bFMvnr96VwemmgXr1zq3r8kOmMBg"
       }
     },
     {
       "spec": "continuity-receipt/0.3",
-      "receipt_id": "urn:uuid:01a0d010-5740-7914-b3cc-eb453a37ada5",
+      "receipt_id": "urn:uuid:01a0d088-fb4e-73e4-a94b-050be87ff616",
       "task_id": "urn:uuid:01997c4e-0000-7000-8000-000000000001",
-      "issued_at": "2026-09-23T20:58:46Z",
+      "issued_at": "2026-09-23T23:10:33Z",
       "issuer": {
         "kind": "gate",
         "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
       },
       "type": "task.execution",
       "seq": 2,
-      "prev": "sha256:e6af60ae5c6e36c7c7b1c8ab6be40f4a8628f21e4e5ee9caeb6fc519c57e568a",
+      "prev": "sha256:3c354494b2db61b1f8085cde43a09a65cd1214fe06dd3beee87315fd9f4acf68",
       "body": {
         "tool_calls": [
           {
@@ -106,21 +106,21 @@
       "sig": {
         "alg": "ed25519",
         "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
-        "value": "LHM1qT00Q2vNxO6pZ9vxCJHwTLHWVHRGlW3jDcQ2aMZ8LATmlJlVgMTZL999rBx9-RpXgSx_JQzYU_Hh1Dy5BA"
+        "value": "RlJuzIjpQb9IWuQRmumzhPeDkd6W27Tw7XmuTDG_gnU43C3qZKCbFwIfLwTRBoG2Yun1naWKs-0g4GxmQ0LvDw"
       }
     },
     {
       "spec": "continuity-receipt/0.3",
-      "receipt_id": "urn:uuid:01a0d010-5741-756e-985a-fa24a4ec42d4",
+      "receipt_id": "urn:uuid:01a0d088-fb4e-79b5-8e12-d7424856f986",
       "task_id": "urn:uuid:01997c4e-0000-7000-8000-000000000001",
-      "issued_at": "2026-09-23T20:58:46Z",
+      "issued_at": "2026-09-23T23:10:33Z",
       "issuer": {
         "kind": "gate",
         "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
       },
       "type": "task.termination",
       "seq": 3,
-      "prev": "sha256:65ddfee034703f2af4ee1b66047b8a150408e80e2e67eba72f99f54e9c9d62a9",
+      "prev": "sha256:5f831cc3dfa6157c0d083e94f080d836436da4401c9197f6a7a38f75fe9a879b",
       "body": {
         "reason": "completed",
         "limits_at_stop": {
@@ -139,7 +139,7 @@
       "sig": {
         "alg": "ed25519",
         "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
-        "value": "nnuGJQB95p6XxiQRju9QJ_15Wjiy5M0GVtn7coJHLso4m22SiuErqANll3d_oUFql--FLtLOrLsZ0AwLPde4BA"
+        "value": "5inbsaduWMFzyUjdcrxljHMUhaN3P4zY0MtYc0ibS4btKfrfKOp-XAWNV_a3BWI-Tdh_PuSZFLo0ZAvAMuL-Bw"
       }
     }
   ]

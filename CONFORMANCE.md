@@ -38,15 +38,20 @@ a spec: `SPEC.md` is normative.
 
 ## Verification receipts (companion, version 1)
 
-`continuity_receipt.verification` verifies the signed statements the hosted
+`continuity_receipt.verification` verifies the signed records the hosted
 service (and any other verifier) issues about a verification run — see
-`VERIFICATION_RECEIPTS.md` for the wire format and semantics. Checks:
-document shape, `kind`/`version`, verdict enum, RFC 3339 `verified_at`,
-`sha256:` digest shape, `error_codes` shape, `sig.key == issuer` + Ed25519
-signature over the canonical view minus `sig`; optional bundle digest match
+`VERIFICATION_RECEIPTS.md` for the wire format and semantics. A receipt
+records the **full result** (verdict, errors, provisional/insufficient
+reasons, summary), not just the verdict. Checks: document shape,
+`kind`/`version`, verdict enum, RFC 3339 `verified_at`, `sha256:` digest
+shape, `error_codes`/`errors`/reason-list/summary shapes, `error_codes`
+consistency with `errors`, verdict consistency with the reason lists
+(`verdict_mismatch`), `sig.key == issuer` + Ed25519 signature over the
+canonical view minus `sig`; optional bundle digest match
 (`bundle_digest_mismatch`); optional issuer-revocation check (`key_revoked`,
-statements in the bundle shape). CLI: `continuity-receipt-verify-receipt`;
-vectors: `vectors/verification/` (14 cases).
+statements in the bundle shape). CLI: `continuity-receipt-verify-receipt`
+(`--digest` prints the receipt digest for anchoring); vectors:
+`vectors/verification/` (20 cases).
 
 ## Verdicts
 
@@ -77,6 +82,8 @@ with codes including `anchor_verified`, `anchor_unverified`,
 
 **Verification receipts:** `not_an_object`, `bad_kind`, `bad_version`,
 `bad_verdict`, `bad_verified_at`, `bad_bundle_digest`, `bad_error_codes`,
+`bad_errors`, `bad_provisional_reasons`, `bad_insufficient_reasons`,
+`bad_summary`, `error_codes_mismatch`, `verdict_mismatch`,
 `bad_signature_shape`, `bad_signature`, `bundle_digest_mismatch`,
 `key_revoked`.
 

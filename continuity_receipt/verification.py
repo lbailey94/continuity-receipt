@@ -1,10 +1,11 @@
-"""Verification receipts — signed statements that a verification ran.
+"""Verification receipts — signed records of a verification run.
 
 Companion to the core spec; wire format and semantics: `VERIFICATION_RECEIPTS.md`.
 A verification receipt is issued by a verifier after running the bundle
-verification algorithm over a bundle; it binds the bundle digest to the
-verdict, the verifier implementation, and the time of the run. It is a
-standalone document — never part of a bundle chain.
+verification algorithm over a bundle. It records the **full result** — the
+verdict, every error, the provisional/insufficient reasons, and the summary —
+so a holder can audit not just *what* was decided but *how and why* it was
+calculated, and can check the result's internal consistency offline.
 
 Wire format (``kind`` ``continuity-receipt-verification``, version 1)::
 
@@ -12,10 +13,16 @@ Wire format (``kind`` ``continuity-receipt-verification``, version 1)::
       "kind": "continuity-receipt-verification",
       "version": 1,
       "bundle_digest": "sha256:<64 hex>",
-      "verdict": "TRUSTED",
-      "error_codes": [],
+      "verdict": "UNTRUSTED",
+      "error_codes": ["bad_signature"],
+      "errors": [{"code": "bad_signature", "detail": "signature does not verify",
+                  "receipt_id": "urn:uuid:..."}],
+      "provisional_reasons": [],
+      "insufficient_reasons": [],
+      "summary": {"receipts": 6, "types": [...], "issuers": [...],
+                  "terminated": true, "settled": true},
       "verified_at": "2026-09-23T21:00:00Z",
-      "verifier": {"implementation": "python-reference", "version": "0.3.2"},
+      "verifier": {"implementation": "python-reference", "version": "0.3.3"},
       "issuer": "did:key:z6Mk...",
       "sig": {"alg": "ed25519", "key": "did:key:z6Mk...", "value": "base64url"}
     }
@@ -28,9 +35,17 @@ object minus ``sig`` — the same canonical view rule as bundle receipts.
 Additional members are allowed and are inside the signed bytes; verifiers
 ignore members they do not know.
 
+Consistency is checkable without the bundle: ``error_codes`` must equal the
+codes in ``errors`` (in order), and the verdict must be the class implied by
+the lists — errors non-empty → ``UNTRUSTED``; else insufficient reasons →
+``INSUFFICIENT_EVIDENCE``; else provisional reasons → ``PROVISIONAL``; else
+``TRUSTED``.
+
 Error codes (``verify_verification_receipt``): ``not_an_object``, ``bad_kind``,
 ``bad_version``, ``bad_verdict``, ``bad_verified_at``, ``bad_bundle_digest``,
-``bad_error_codes``, ``bad_signature_shape``, ``bad_signature``,
+``bad_error_codes``, ``bad_errors``, ``bad_provisional_reasons``,
+``bad_insufficient_reasons``, ``bad_summary``, ``error_codes_mismatch``,
+``verdict_mismatch``, ``bad_signature_shape``, ``bad_signature``,
 ``bundle_digest_mismatch``, ``key_revoked``.
 """
 from __future__ import annotations
@@ -49,6 +64,7 @@ KIND = "continuity-receipt-verification"
 VERSION = 1
 VERDICTS = ("TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+RESULT_FIELDS = ("verdict", "errors", "provisional_reasons", "insufficient_reasons", "summary")
 
 
 @dataclass
@@ -82,10 +98,55 @@ def _bundle_object(bundle) -> dict:
     raise ValueError("bundle must be an object or JSON bytes")
 
 
+def _result_dict(result) -> dict:
+    """Normalize a VerifyResult or a result dict to the recorded result fields."""
+    if hasattr(result, "as_dict"):
+        result = result.as_dict()
+    if not isinstance(result, dict):
+        raise ValueError("result must be a VerifyResult or a result dict")
+    return {
+        "verdict": result.get("verdict"),
+        "errors": list(result.get("errors") or []),
+        "provisional_reasons": list(result.get("provisional_reasons") or []),
+        "insufficient_reasons": list(result.get("insufficient_reasons") or []),
+        "summary": dict(result.get("summary") or {}),
+    }
+
+
+def _errors_well_formed(errors) -> bool:
+    return isinstance(errors, list) and all(
+        isinstance(entry, dict) and isinstance(entry.get("code"), str) for entry in errors
+    )
+
+
+def _string_list(value) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def _verdict_class(errors: list, provisional: list, insufficient: list) -> str:
+    """The verdict implied by a result's errors/reasons (verify.py `_finish`)."""
+    if errors:
+        return "UNTRUSTED"
+    if insufficient:
+        return "INSUFFICIENT_EVIDENCE"
+    if provisional:
+        return "PROVISIONAL"
+    return "TRUSTED"
+
+
+def receipt_digest(receipt: dict) -> str:
+    """SHA-256 of the canonical bytes of a verification receipt minus its ``sig``.
+
+    This is the digest to anchor (e.g. with OpenTimestamps) when a receipt's
+    ``verified_at`` needs an externally bounded time — see
+    `VERIFICATION_RECEIPTS.md` §Anchoring.
+    """
+    return sha256_prefixed(canonical_bytes({k: v for k, v in receipt.items() if k != "sig"}))
+
+
 def issue_verification_receipt(
     bundle,
-    verdict: str,
-    error_codes: list | None = None,
+    result,
     *,
     issuer: str,
     private_key,
@@ -95,22 +156,37 @@ def issue_verification_receipt(
 ) -> dict:
     """Sign a verification receipt for ``bundle`` (object or JSON bytes).
 
-    ``verified_at`` defaults to now; pass it explicitly for reproducible
-    receipts (issuing the same statement twice yields the same bytes). Raises
-    ``ValueError`` for a non-enum verdict, malformed error codes, or a bundle
-    that is not JSON / not canonically encodable (floats are rejected).
+    ``result`` is the verification result to record: a `VerifyResult` or its
+    ``as_dict()`` form. Raises ``ValueError`` for a non-enum verdict, a result
+    whose verdict does not match its errors/reasons, malformed error entries,
+    or a bundle that is not JSON / not canonically encodable (floats are
+    rejected). ``verified_at`` defaults to now; pass it explicitly for
+    reproducible receipts (issuing the same statement twice yields the same
+    bytes).
     """
-    if verdict not in VERDICTS:
-        raise ValueError(f"verdict must be one of {VERDICTS}, got {verdict!r}")
-    codes = list(error_codes or [])
-    if not all(isinstance(code, str) for code in codes):
-        raise ValueError("error_codes must be a list of strings")
+    result = _result_dict(result)
+    if result["verdict"] not in VERDICTS:
+        raise ValueError(f"verdict must be one of {VERDICTS}, got {result['verdict']!r}")
+    if not _errors_well_formed(result["errors"]):
+        raise ValueError("errors entries must be objects with a string code")
+    if not _string_list(result["provisional_reasons"]) or not _string_list(
+        result["insufficient_reasons"]
+    ):
+        raise ValueError("provisional_reasons and insufficient_reasons must be string lists")
+    if result["verdict"] != _verdict_class(
+        result["errors"], result["provisional_reasons"], result["insufficient_reasons"]
+    ):
+        raise ValueError("result is inconsistent: verdict does not match its errors/reasons")
     statement = {
         "kind": KIND,
         "version": VERSION,
         "bundle_digest": sha256_prefixed(canonical_bytes(_bundle_object(bundle))),
-        "verdict": verdict,
-        "error_codes": codes,
+        "verdict": result["verdict"],
+        "error_codes": [entry["code"] for entry in result["errors"]],
+        "errors": result["errors"],
+        "provisional_reasons": result["provisional_reasons"],
+        "insufficient_reasons": result["insufficient_reasons"],
+        "summary": result["summary"],
         "verified_at": verified_at or records.utc_now_rfc3339(),
         "verifier": {"implementation": implementation, "version": version or __version__},
         "issuer": issuer,
@@ -128,7 +204,7 @@ def verify_verification_receipt(
     bundle=None,
     revocations: list | None = None,
 ) -> VerificationReceiptResult:
-    """Verify a verification receipt's shape and signature.
+    """Verify a verification receipt's shape, consistency, and signature.
 
     ``bundle`` (object or JSON bytes), when supplied, additionally checks
     ``bundle_digest`` against the bundle's canonical bytes and reports
@@ -154,11 +230,33 @@ def verify_verification_receipt(
         receipt["bundle_digest"]
     ):
         errors.append("bad_bundle_digest")
+
+    result_errors = receipt.get("errors")
+    errors_ok = _errors_well_formed(result_errors)
+    if not errors_ok:
+        errors.append("bad_errors")
+    provisional = receipt.get("provisional_reasons")
+    if not _string_list(provisional):
+        errors.append("bad_provisional_reasons")
+    insufficient = receipt.get("insufficient_reasons")
+    if not _string_list(insufficient):
+        errors.append("bad_insufficient_reasons")
+    if not isinstance(receipt.get("summary"), dict):
+        errors.append("bad_summary")
+
     error_codes = receipt.get("error_codes")
-    if not isinstance(error_codes, list) or not all(
-        isinstance(code, str) for code in error_codes
-    ):
+    if not _string_list(error_codes):
         errors.append("bad_error_codes")
+    elif errors_ok and error_codes != [entry["code"] for entry in result_errors]:
+        errors.append("error_codes_mismatch")
+    if (
+        verdict in VERDICTS
+        and errors_ok
+        and _string_list(provisional)
+        and _string_list(insufficient)
+        and verdict != _verdict_class(result_errors, provisional, insufficient)
+    ):
+        errors.append("verdict_mismatch")
 
     issuer = receipt.get("issuer")
     sig = receipt.get("sig")
@@ -229,7 +327,31 @@ def main(argv=None) -> int:
         metavar="PATH|URL",
         help="revocation list (repeatable; REVOCATION_DISTRIBUTION.md)",
     )
+    parser.add_argument(
+        "--digest",
+        action="store_true",
+        help="print the receipt digest (for anchoring) instead of verifying",
+    )
+    parser.add_argument(
+        "--canonical",
+        metavar="PATH",
+        help="write the canonical view (object minus sig) to PATH and print the digest",
+    )
     args = parser.parse_args(argv)
+
+    with open(args.receipt, "r", encoding="utf-8") as handle:
+        receipt = json.load(handle)
+
+    if args.canonical:
+        canonical = canonical_bytes({k: v for k, v in receipt.items() if k != "sig"})
+        with open(args.canonical, "wb") as handle:
+            handle.write(canonical)
+        print(receipt_digest(receipt))
+        return 0
+
+    if args.digest:
+        print(receipt_digest(receipt))
+        return 0
 
     revocations = None
     if args.revocations:
@@ -245,8 +367,6 @@ def main(argv=None) -> int:
     if args.bundle:
         with open(args.bundle, "rb") as handle:
             bundle = handle.read()
-    with open(args.receipt, "r", encoding="utf-8") as handle:
-        receipt = json.load(handle)
     result = verify_verification_receipt(receipt, bundle, revocations)
     print(json.dumps(result.as_dict(), indent=2))
     return 0 if result.valid else 1

@@ -331,7 +331,7 @@ manifest.
 **Resolved for 0.3** (2026-09-23): `agreement.offer` / `agreement.accept`
 with digest binding (`offer_ref`), terms/id equality checks, expiry semantics,
 and the missing-offer-is-insufficient rule; vectors 16–16d; schema 0.3.
-Rust parity landed 2026-09-23 (crate 0.3.2; differential 24/24).
+Rust parity landed 2026-09-23 (crate 0.3.2; differential 26/26).
 
 **Deferred to 0.3, with reasons:**
 1. **CBOR equivalence** — no implementer need demonstrated yet, and the signed

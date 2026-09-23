@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from continuity_receipt import keys  # noqa: E402
+from continuity_receipt import keys, verify_bundle  # noqa: E402
 from continuity_receipt import verification  # noqa: E402
 from continuity_receipt._version import __version__  # noqa: E402
 from continuity_receipt.canon import canonical_bytes, sha256_prefixed  # noqa: E402
@@ -22,6 +22,16 @@ except ImportError:  # pragma: no cover - CI installs jsonschema
 VECTORS = ROOT / "vectors" / "verification"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
 SCHEMA_PATH = ROOT / "schema" / "verification-receipt-1.schema.json"
+
+
+def trusted_result() -> dict:
+    return {
+        "verdict": "TRUSTED",
+        "errors": [],
+        "provisional_reasons": [],
+        "insufficient_reasons": [],
+        "summary": {"receipts": 4, "terminated": True},
+    }
 
 
 class TestVerificationVectors(unittest.TestCase):
@@ -55,6 +65,19 @@ class TestVerificationVectors(unittest.TestCase):
             errors = sorted(validator.iter_errors(receipt), key=lambda e: list(e.path))
             self.assertEqual(errors, [], f"{entry['file']}: {[e.message for e in errors][:3]}")
 
+    def test_receipts_record_the_full_result(self):
+        receipt = json.loads((VECTORS / "01_valid.json").read_text(encoding="utf-8"))
+        for field in ("errors", "provisional_reasons", "insufficient_reasons", "summary"):
+            self.assertIn(field, receipt, field)
+        provisional = json.loads(
+            (VECTORS / "15_provisional_anchor_missing.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(provisional["verdict"], "PROVISIONAL")
+        self.assertIn("anchor_missing", provisional["provisional_reasons"])
+        erased = json.loads((VECTORS / "16_insufficient_erased.json").read_text(encoding="utf-8"))
+        self.assertEqual(erased["verdict"], "INSUFFICIENT_EVIDENCE")
+        self.assertTrue(erased["insufficient_reasons"])
+
 
 class TestVerificationReceipts(unittest.TestCase):
     def setUp(self):
@@ -62,22 +85,39 @@ class TestVerificationReceipts(unittest.TestCase):
         self.bundle = json.loads((VECTORS / "bundle.json").read_text(encoding="utf-8"))
 
     def test_round_trip(self):
+        result = dict(trusted_result(), verdict="PROVISIONAL", provisional_reasons=["anchor_missing"])
         receipt = verification.issue_verification_receipt(
             self.bundle,
-            "PROVISIONAL",
-            ["anchor_missing"],
+            result,
             issuer=self.did,
             private_key=self.key,
             verified_at="2026-09-23T21:00:00Z",
         )
-        result = verification.verify_verification_receipt(receipt, self.bundle)
-        self.assertTrue(result.valid, result.errors)
-        self.assertTrue(result.digest_match)
-        self.assertEqual(result.verdict, "PROVISIONAL")
+        checked = verification.verify_verification_receipt(receipt, self.bundle)
+        self.assertTrue(checked.valid, checked.errors)
+        self.assertTrue(checked.digest_match)
+        self.assertEqual(checked.verdict, "PROVISIONAL")
+        self.assertEqual(receipt["error_codes"], [])
+        self.assertEqual(receipt["provisional_reasons"], ["anchor_missing"])
+
+    def test_issue_refuses_inconsistent_result(self):
+        result = dict(trusted_result(), provisional_reasons=["anchor_missing"])
+        with self.assertRaises(ValueError):
+            verification.issue_verification_receipt(
+                self.bundle, result, issuer=self.did, private_key=self.key
+            )
+
+    def test_issue_accepts_verify_result_objects(self):
+        result = verify_bundle(self.bundle)
+        receipt = verification.issue_verification_receipt(
+            self.bundle, result, issuer=self.did, private_key=self.key
+        )
+        self.assertEqual(receipt["verdict"], "TRUSTED")
+        self.assertEqual(receipt["summary"]["terminated"], True)
 
     def test_digest_is_over_canonical_bytes(self):
         receipt = verification.issue_verification_receipt(
-            self.bundle, "TRUSTED", issuer=self.did, private_key=self.key,
+            self.bundle, trusted_result(), issuer=self.did, private_key=self.key,
             verified_at="2026-09-23T21:00:00Z",
         )
         compact = json.dumps(self.bundle, separators=(",", ":")).encode()
@@ -87,21 +127,32 @@ class TestVerificationReceipts(unittest.TestCase):
         self.assertTrue(verification.verify_verification_receipt(receipt, compact).digest_match)
         self.assertTrue(verification.verify_verification_receipt(receipt, pretty).digest_match)
 
+    def test_receipt_digest_matches_signed_view(self):
+        receipt = verification.issue_verification_receipt(
+            self.bundle, trusted_result(), issuer=self.did, private_key=self.key,
+            verified_at="2026-09-23T21:00:00Z",
+        )
+        expected = sha256_prefixed(
+            canonical_bytes({k: v for k, v in receipt.items() if k != "sig"})
+        )
+        self.assertEqual(verification.receipt_digest(receipt), expected)
+
     def test_non_canonicalizable_bundle_refused(self):
         with self.assertRaises(ValueError):
             verification.issue_verification_receipt(
-                {"x": 1.5}, "TRUSTED", issuer=self.did, private_key=self.key
+                {"x": 1.5}, trusted_result(), issuer=self.did, private_key=self.key
             )
 
     def test_non_enum_verdict_refused(self):
         with self.assertRaises(ValueError):
             verification.issue_verification_receipt(
-                self.bundle, "MAYBE", issuer=self.did, private_key=self.key
+                self.bundle, dict(trusted_result(), verdict="MAYBE"),
+                issuer=self.did, private_key=self.key,
             )
 
     def test_revocation_check_is_opt_in(self):
         receipt = verification.issue_verification_receipt(
-            self.bundle, "TRUSTED", issuer=self.did, private_key=self.key,
+            self.bundle, trusted_result(), issuer=self.did, private_key=self.key,
             verified_at="2026-09-23T21:00:00Z",
         )
         statement = {"key": self.did, "revoked_at": "2026-09-23T20:00:00Z"}
@@ -139,6 +190,25 @@ class TestVerificationReceipts(unittest.TestCase):
         )
         self.assertEqual(revoked.returncode, 1)
         self.assertIn("key_revoked", json.loads(revoked.stdout)["errors"])
+        digest = run(str(VECTORS / "01_valid.json"), "--digest")
+        self.assertEqual(digest.returncode, 0)
+        self.assertTrue(digest.stdout.strip().startswith("sha256:"))
+
+    def test_cli_canonical_view_matches_digest(self):
+        import hashlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            canonical_path = Path(tmp) / "receipt.canonical"
+            proc = subprocess.run(
+                [sys.executable, "-m", "continuity_receipt.verification",
+                 str(VECTORS / "01_valid.json"), "--canonical", str(canonical_path)],
+                capture_output=True, text=True, cwd=ROOT,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            digest = proc.stdout.strip()
+            file_hash = "sha256:" + hashlib.sha256(canonical_path.read_bytes()).hexdigest()
+            self.assertEqual(digest, file_hash)
 
 
 class TestVersionPin(unittest.TestCase):

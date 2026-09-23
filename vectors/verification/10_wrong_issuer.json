@@ -1,18 +1,35 @@
 {
   "kind": "continuity-receipt-verification",
   "version": 1,
-  "bundle_digest": "sha256:25ba092ebace0856e605cba0972fd669d1ce70d3423939abe9dba1b8edba03ed",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
   "verdict": "TRUSTED",
   "error_codes": [],
+  "errors": [],
+  "provisional_reasons": [],
+  "insufficient_reasons": [],
+  "summary": {
+    "receipts": 4,
+    "types": [
+      "session.pass.created",
+      "task.decision",
+      "task.execution",
+      "task.termination"
+    ],
+    "issuers": [
+      "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+    ],
+    "terminated": true,
+    "settled": false
+  },
   "verified_at": "2026-09-23T21:00:00Z",
   "verifier": {
     "implementation": "python-reference",
-    "version": "0.3.2"
+    "version": "0.3.3"
   },
   "issuer": "did:key:z6Mkn4trn4a3koGqeirK9w5jYF5R2m9nJrnDFrTCsmjdY5Aq",
   "sig": {
     "alg": "ed25519",
     "key": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
-    "value": "eS-kf1DBWcVJeM_CZJl_pNKB0UEirBo_jldBOEiJLvnRonmrqYMYbRXL7vAmPMvdLYUJ7CFxWibZoBwDUKudAw"
+    "value": "6uso2yXDSz8KP1sfF21dkr_kdjSDWp9EkZvzvANbyjPUjkZP_zlmBRre8g97y7gY4nI0R0cBaK2s0W3BPUdVCQ"
   }
 }

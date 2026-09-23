@@ -7,7 +7,7 @@
       "file": "01_valid.json",
       "expected_valid": true,
       "expected_errors": [],
-      "note": "valid receipt; digest matches bundle.json",
+      "note": "valid TRUSTED receipt; digest matches bundle.json",
       "bundle_file": "bundle.json"
     },
     {
@@ -22,9 +22,10 @@
       "file": "03_tampered_verdict.json",
       "expected_valid": false,
       "expected_errors": [
-        "bad_signature"
+        "bad_signature",
+        "verdict_mismatch"
       ],
-      "note": "verdict changed after signing"
+      "note": "verdict changed after signing (also inconsistent with its empty lists)"
     },
     {
       "file": "04_wrong_bundle.json",
@@ -117,6 +118,52 @@
         "bad_error_codes"
       ],
       "note": "error_codes is not an array of strings (signed as issued)"
+    },
+    {
+      "file": "15_provisional_anchor_missing.json",
+      "expected_valid": true,
+      "expected_errors": [],
+      "note": "PROVISIONAL receipt recording anchor_missing (require_anchor run)",
+      "bundle_file": "bundle.json"
+    },
+    {
+      "file": "16_insufficient_erased.json",
+      "expected_valid": true,
+      "expected_errors": [],
+      "note": "INSUFFICIENT_EVIDENCE receipt recording erased content",
+      "bundle_file": "erased_bundle.json"
+    },
+    {
+      "file": "17_verdict_mismatch.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "verdict_mismatch"
+      ],
+      "note": "TRUSTED verdict with a non-empty provisional list (signed as issued)"
+    },
+    {
+      "file": "18_error_codes_mismatch.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "error_codes_mismatch"
+      ],
+      "note": "errors present but error_codes empty (signed as issued)"
+    },
+    {
+      "file": "19_bad_errors.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_errors"
+      ],
+      "note": "errors is not a list of {code} objects (signed as issued)"
+    },
+    {
+      "file": "20_bad_summary.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_summary"
+      ],
+      "note": "summary is not an object (signed as issued)"
     }
   ]
 }

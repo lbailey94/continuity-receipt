@@ -11,7 +11,7 @@ independently:
 | Artifact | Current | Installs with |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.3` (additive) | — |
-| Python reference + CLIs | **0.3.2** (PyPI) | `pip install continuity-receipt` |
+| Python reference + CLIs | **0.3.3** (PyPI) | `pip install continuity-receipt` |
 | Rust verifier + CLIs | **0.3.2** (crates.io) | `cargo install continuity-receipt` |
 
 Both implementations support spec 0.3 (offer/accept binding) with identical
@@ -45,7 +45,7 @@ CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
-vectors/                   26 bundle vectors + 14 verification-receipt vectors
+vectors/                   26 bundle vectors + 20 verification-receipt vectors
 tools/make_vectors.py      regenerates the vectors deterministically
 tests/                     conformance suite (vectors, schema, primitives)
 ```
@@ -53,7 +53,7 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.3.2) — clone the repo for the vectors
+# from PyPI (0.3.3) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
 pip install continuity-receipt
 continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
@@ -82,16 +82,17 @@ redacted offer terms (`16e`/`16f`).
 Every schema-valid vector is also checked against
 `schema/continuity-receipt-0.3.schema.json` in CI.
 
-14 verification-receipt vectors in `vectors/verification/` (manifest +
-`INDEX.md`): valid receipt, signature/verdict tampering, wrong bundle, bad
-kind/version/verdict/timestamp/digest/error codes, missing signature, issuer
-swap, revoked issuer, unknown member. Schema:
-`schema/verification-receipt-1.schema.json`.
+20 verification-receipt vectors in `vectors/verification/` (manifest +
+`INDEX.md`): valid TRUSTED/PROVISIONAL/INSUFFICIENT_EVIDENCE records (the full
+result — errors, reasons, summary), signature/verdict tampering, wrong bundle,
+bad kind/version/verdict/timestamp/digest/error-codes/errors/reasons/summary,
+consistency violations, missing signature, issuer swap, revoked issuer,
+unknown member. Schema: `schema/verification-receipt-1.schema.json`.
 
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.2` (2026-09-23) — verification receipts (companion v1: schema, 14 vectors, reference verifier + CLI), agreement emitters, integration kit.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 26 bundle vectors and CI diffs it against the Python reference

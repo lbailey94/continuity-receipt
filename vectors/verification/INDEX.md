@@ -9,9 +9,9 @@ semantics: `VERIFICATION_RECEIPTS.md`; schema:
 
 | Vector | Expected | Errors | Inputs | Notes |
 |---|---|---|---|---|
-| 01_valid.json | valid | — | bundle.json | valid receipt; digest matches bundle.json |
+| 01_valid.json | valid | — | bundle.json | valid TRUSTED receipt; digest matches bundle.json |
 | 02_tampered_signature.json | invalid | bad_signature | — | signature byte flipped after signing |
-| 03_tampered_verdict.json | invalid | bad_signature | — | verdict changed after signing |
+| 03_tampered_verdict.json | invalid | bad_signature, verdict_mismatch | — | verdict changed after signing (also inconsistent with its empty lists) |
 | 04_wrong_bundle.json | invalid | bundle_digest_mismatch | other_bundle.json | valid receipt checked against a different bundle |
 | 05_bad_kind.json | invalid | bad_kind, bad_signature | — | kind changed after signing |
 | 06_bad_version.json | invalid | bad_version, bad_signature | — | version changed after signing |
@@ -23,3 +23,9 @@ semantics: `VERIFICATION_RECEIPTS.md`; schema:
 | 12_revoked_issuer.json | invalid | key_revoked | bundle.json, 12_revoked_issuer.revocations.json | issuer key revoked before verified_at |
 | 13_unknown_member.json | valid | — | bundle.json | additional member is signed and ignored by the verifier |
 | 14_bad_error_codes.json | invalid | bad_error_codes | — | error_codes is not an array of strings (signed as issued) |
+| 15_provisional_anchor_missing.json | valid | — | bundle.json | PROVISIONAL receipt recording anchor_missing (require_anchor run) |
+| 16_insufficient_erased.json | valid | — | erased_bundle.json | INSUFFICIENT_EVIDENCE receipt recording erased content |
+| 17_verdict_mismatch.json | invalid | verdict_mismatch | — | TRUSTED verdict with a non-empty provisional list (signed as issued) |
+| 18_error_codes_mismatch.json | invalid | error_codes_mismatch | — | errors present but error_codes empty (signed as issued) |
+| 19_bad_errors.json | invalid | bad_errors | — | errors is not a list of {code} objects (signed as issued) |
+| 20_bad_summary.json | invalid | bad_summary | — | summary is not an object (signed as issued) |

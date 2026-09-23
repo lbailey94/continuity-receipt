@@ -78,6 +78,18 @@
     "schema": "schema/verification-receipt-1.schema.json",
     "vectors": "vectors/verification/manifest.json",
     "digest_rule": "sha256 of the JCS-canonical bytes of the verified bundle object",
+    "records": [
+      "verdict",
+      "error_codes",
+      "errors",
+      "provisional_reasons",
+      "insufficient_reasons",
+      "summary"
+    ],
+    "consistency_checks": [
+      "error_codes equals the codes in errors (in order)",
+      "verdict equals the class implied by errors/provisional_reasons/insufficient_reasons"
+    ],
     "revocation_check": "opt-in input (statements); without it the check is not performed",
     "error_codes": [
       "not_an_object",
@@ -87,6 +99,12 @@
       "bad_verified_at",
       "bad_bundle_digest",
       "bad_error_codes",
+      "bad_errors",
+      "bad_provisional_reasons",
+      "bad_insufficient_reasons",
+      "bad_summary",
+      "error_codes_mismatch",
+      "verdict_mismatch",
       "bad_signature_shape",
       "bad_signature",
       "bundle_digest_mismatch",

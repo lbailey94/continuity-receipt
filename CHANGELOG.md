@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.3 — 2026-09-23
+
+Python tooling release: verification receipts now record the **full
+verification result** — not just the verdict. Published to PyPI as
+`continuity-receipt` 0.3.3 (revised within hours of 0.3.2, before any external
+issuance; 0.3.2 receipts are superseded).
+
+- **Full-result receipts.** `errors` (code/detail/receipt_id),
+  `provisional_reasons`, `insufficient_reasons`, and `summary` are now signed
+  into the receipt alongside `verdict`/`error_codes`, so a holder can audit
+  how and why the result was reached — and check its internal consistency
+  offline, without the bundle. `issue_verification_receipt` now takes the
+  `VerifyResult` (or its `as_dict()`) and refuses to sign an inconsistent
+  result; `verify_verification_receipt` adds shape checks (`bad_errors`,
+  `bad_provisional_reasons`, `bad_insufficient_reasons`, `bad_summary`) and
+  two consistency rules: `error_codes` must equal the codes in `errors`
+  (`error_codes_mismatch`), and the verdict must be the class implied by the
+  lists (`verdict_mismatch`).
+- **Anchoring recipe.** `verification.receipt_digest` and
+  `continuity-receipt-verify-receipt --canonical PATH` produce the canonical
+  bytes and digest to timestamp with OpenTimestamps
+  (`VERIFICATION_RECEIPTS.md` §Anchoring), bounding `verified_at` externally.
+- **Vectors 14 → 20**: real PROVISIONAL (`anchor_missing`) and
+  INSUFFICIENT_EVIDENCE (erased content) records, plus
+  `verdict_mismatch`/`error_codes_mismatch`/`bad_errors`/`bad_summary` cases.
+  Schema and capability disclosure updated; suite is 64 tests.
+
 ## 0.3.2 — 2026-09-23
 
 Python tooling release: **verification receipts** (companion, version 1)

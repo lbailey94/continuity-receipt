@@ -53,8 +53,9 @@ and self-describing. See `api.whitemagic.dev/docs`.
 
 ## 3. Get a signed verification receipt, verify it offline (2 minutes)
 
-Add `?receipt=1` to the same call and the service returns a signed statement
-of *what it checked*:
+Add `?receipt=1` to the same call and the service returns a signed record of
+the **whole result** — verdict, errors, provisional/insufficient reasons, and
+the summary — so you can audit *how and why* it was reached:
 
 ```bash
 curl -s "https://api.whitemagic.dev/verify?receipt=1" \
@@ -79,8 +80,9 @@ print(result.valid, result.verdict, result.digest_match)
 ```
 
 What just happened: the receipt binds the SHA-256 of the bundle's canonical
-bytes to the verdict, the verifier implementation and version, and the time —
-signed by the service's `did:key` (published at `api.whitemagic.dev/info`).
+bytes to the full result — verdict, error codes, errors, reasons, summary —
+plus the verifier implementation and version, and the time — signed by the
+service's `did:key` (published at `api.whitemagic.dev/info`).
 `digest_match: true` proves the receipt is about *your* bundle; the signature
 proves who said it. The service never stores your bundle.
 
