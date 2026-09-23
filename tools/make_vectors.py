@@ -15,6 +15,7 @@ VECTORS = ROOT / "vectors"
 POLICY = "2026-09-17.1"
 SPEC_01 = "continuity-receipt/0.1"
 SPEC_02 = "continuity-receipt/0.2"
+SPEC_03 = "continuity-receipt/0.3"
 
 GATE_DID, GATE_KEY = keys.generate(keys.deterministic_seed("gate-1"))
 AGENT_DID, AGENT_KEY = keys.generate(keys.deterministic_seed("agent-1"))
@@ -121,6 +122,24 @@ def succession_body() -> dict:
         "to_authority": SUCCESSOR_DID,
         "effective_at": "2026-09-18T00:00:00Z",
         "reason": "handoff",
+    }
+
+
+def offer_body(terms_hash: str | None = None, valid_until: str = "2030-01-01T00:00:00Z") -> dict:
+    return {
+        "offer_id": "offer-1",
+        "offeree": COUNTERPARTY_DID,
+        "terms_hash": terms_hash or digest("terms:recall-pilot-1"),
+        "valid_until": valid_until,
+        "nonce": "nonce-offer-1",
+    }
+
+
+def accept_body(offer_ref: str, terms_hash: str | None = None) -> dict:
+    return {
+        "offer_ref": offer_ref,
+        "offer_id": "offer-1",
+        "terms_hash": terms_hash or digest("terms:recall-pilot-1"),
     }
 
 
@@ -358,9 +377,53 @@ def main() -> int:
         schema_valid=False,
     )
 
+    # --- 0.3 additions ------------------------------------------------------
+    agreement = chain(SPEC_03)
+    add(agreement, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(agreement, "agreement.offer", offer_body())
+    add(agreement, "agreement.accept", accept_body(receipt_digest(offer_receipt)))
+    add(agreement, "task.decision", decision_body())
+    add(agreement, "task.execution", execution_body())
+    add(agreement, "task.termination", termination_body())
+    write("16_offer_accept.json", agreement.bundle())
+    record("16_offer_accept.json", "TRUSTED", note="0.3 offer/accept binding")
+
+    mismatch = chain(SPEC_03)
+    add(mismatch, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(mismatch, "agreement.offer", offer_body())
+    add(mismatch, "agreement.accept", accept_body(receipt_digest(offer_receipt), terms_hash=digest("terms:other")))
+    add(mismatch, "task.decision", decision_body())
+    add(mismatch, "task.execution", execution_body())
+    add(mismatch, "task.termination", termination_body())
+    write("16b_offer_terms_mismatch.json", mismatch.bundle())
+    record("16b_offer_terms_mismatch.json", "UNTRUSTED", "offer_mismatch", note="0.3 accept terms mismatch")
+
+    expired = chain(SPEC_03)
+    add(expired, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(expired, "agreement.offer", offer_body(valid_until="2020-01-01T00:00:00Z"))
+    add(expired, "agreement.accept", accept_body(receipt_digest(offer_receipt)))
+    add(expired, "task.decision", decision_body())
+    add(expired, "task.execution", execution_body())
+    add(expired, "task.termination", termination_body())
+    write("16c_offer_expired.json", expired.bundle())
+    record("16c_offer_expired.json", "UNTRUSTED", "offer_expired", note="0.3 accept after valid_until")
+
+    absent = chain(SPEC_03)
+    add(absent, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(absent, "agreement.accept", accept_body(digest("offer:absent")))
+    add(absent, "task.decision", decision_body())
+    add(absent, "task.execution", execution_body())
+    add(absent, "task.termination", termination_body())
+    write("16d_accept_without_offer.json", absent.bundle())
+    record(
+        "16d_accept_without_offer.json",
+        "INSUFFICIENT_EVIDENCE",
+        note="0.3 accept references an offer absent from the bundle",
+    )
+
     # --- indexes ------------------------------------------------------------
     (VECTORS / "manifest.json").write_text(
-        json.dumps({"spec": SPEC_02, "vectors": rows}, indent=2) + "\n", encoding="utf-8"
+        json.dumps({"spec": SPEC_03, "vectors": rows}, indent=2) + "\n", encoding="utf-8"
     )
 
     index_lines = [

@@ -2,7 +2,7 @@
 
 **An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
 
-**Spec version:** `continuity-receipt/0.2` — published 2026-09-18 (`0.1` remains supported; open items listed in `SPEC.md` §11).
+**Spec version:** `continuity-receipt/0.3` — published 2026-09-23 (`0.1` and `0.2` remain supported; open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
 **Version matrix** — the spec and the two implementations version
@@ -10,13 +10,14 @@ independently:
 
 | Artifact | Current | Installs with |
 |---|---|---|
-| Spec / wire format | `continuity-receipt/0.2` (frozen) | — |
-| Python reference + CLIs | **0.3.0** (PyPI) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.3.1** (crates.io) | `cargo install continuity-receipt` |
+| Spec / wire format | `continuity-receipt/0.3` (additive) | — |
+| Python reference + CLIs | **0.3.1** (PyPI) | `pip install continuity-receipt` |
+| Rust verifier + CLIs | **0.3.1** (crates.io) — 0.3 record types pending | `cargo install continuity-receipt` |
 
-Both 0.3 lines are tooling releases on spec 0.2 — no wire changes. Verify the
-version you have with `continuity-receipt-verify --help` (Python) or
-`continuity-receipt-verify --help` (Rust).
+The Python 0.3.1 line supports spec 0.3 (offer/accept binding); the Rust crate
+is at 0.3.1 and **fails closed** on 0.3 envelopes (`version_unsupported`)
+until the port lands. Verify the version you have with
+`continuity-receipt-verify --help` (Python or Rust).
 
 A Continuity Receipt is a signed, hash-chained record of one governed task:
 **decision → authority → execution → delivery → termination → settlement**. It is designed to be verified offline by any third party — insurers, arbiters, procurement, courts, other agents — **without requiring trust in the issuer**.
@@ -34,8 +35,8 @@ Verification verdicts (IETF CTQ-aligned):
 ## Layout
 
 ```
-SPEC.md                    the v0.2 specification (normative; 0.1 supported)
-schema/                    JSON Schema (2020-12) for 0.1 + 0.2 bundles
+SPEC.md                    the v0.3 specification (normative; 0.1 + 0.2 supported)
+schema/                    JSON Schema (2020-12) for 0.1 + 0.2 + 0.3 bundles
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
 OPEN_DATA_ANSWER_RECEIPT.md  worked example: an AI answer over an open-data portal
@@ -43,7 +44,7 @@ CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
-vectors/                   20 test vectors + INDEX.md + manifest.json
+vectors/                   24 test vectors + INDEX.md + manifest.json
 tools/make_vectors.py      regenerates the vectors deterministically
 tests/                     conformance suite (vectors, schema, primitives)
 ```
@@ -51,7 +52,7 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.2.0) — clone the repo for the vectors
+# from PyPI (0.3.1) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
 pip install continuity-receipt
 continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
@@ -62,26 +63,30 @@ continuity-receipt-disclose --help
 pip install 'cryptography>=42'
 python3 -m continuity_receipt.verify vectors/02_happy_full.json
 
-# run the conformance suite (10 tests over 20 vectors + schema + primitives)
+# run the conformance suite (vectors + schema + primitives)
 python3 -m unittest discover -s tests -v
 ```
 
 ## Test vectors
 
-20 vectors with machine-readable expectations in `vectors/manifest.json`
-(human index: `vectors/INDEX.md`): 0.1 conformance (`01`–`10c`) plus 0.2
+24 vectors with machine-readable expectations in `vectors/manifest.json`
+(human index: `vectors/INDEX.md`): 0.1 conformance (`01`–`10c`), 0.2
 additions — succession records, millisecond timestamps, counterparty
-attestations, revocation semantics, Merkle provenance, and anchor typing.
+attestations, revocation semantics, Merkle provenance, anchor typing — and
+0.3 additions: offer → accept binding (`16`–`16d`), including the
+missing-offer, terms-mismatch, and expiry cases.
 Every schema-valid vector is also checked against
-`schema/continuity-receipt-0.2.schema.json` in CI.
+`schema/continuity-receipt-0.3.schema.json` in CI.
 
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest.
-- **Second implementation (0.3 alpha):** `rust/` — an independent Rust verifier
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16d; schema 0.3.
+- **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
-  checks all 20 vectors and CI diffs it against the Python reference (20/20).
+  checks all 24 vectors and CI diffs it against the Python reference. The 0.3
+  record types are not ported yet; the Rust verifier fails closed on 0.3
+  envelopes and that behavior is pinned by a test until parity lands.
 - **Origin implementation:** [WhiteMagic](https://github.com/lbailey94/whitemagic) — an MIT, local-first memory substrate for agents (this spec repo is Apache-2.0; the two are separate works).
 - **Standards context:** the format is intended as a contribution to the emerging neutral layer (W3C AI Agent Memory Interoperability CG; IETF agentproto work). It is not endorsed by those bodies, and no claim of adoption is made.
 

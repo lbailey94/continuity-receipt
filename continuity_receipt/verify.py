@@ -118,6 +118,7 @@ def verify_bundle(
                 _fatal(result, "bad_signature", "signature does not verify", rid)
 
     _check_cross_record(result, receipts, type_by_seq)
+    _check_agreements(result, receipts)
     _check_redactions(result, receipts, bundle.get("disclosure_map") or {})
     _check_attestations(result, receipts)
     _check_provenance(result, receipts)
@@ -185,6 +186,58 @@ def _check_cross_record(result: VerifyResult, receipts: list, type_by_seq: dict)
 
     if "task.termination" not in type_by_seq.values():
         _fatal(result, "missing_termination", "task has no termination receipt")
+
+
+def _check_agreements(result: VerifyResult, receipts: list) -> None:
+    """0.3: `agreement.accept` binds to a preceding `agreement.offer`.
+
+    Binding rules (spec §4.9):
+    - `offer_ref` is the digest of the offer receipt (the same canonical view
+      used by `prev` links). An accept whose offer is absent from the bundle is
+      unverifiable, not false: INSUFFICIENT_EVIDENCE (`missing_offer`).
+    - A present offer with a different `offer_id` or `terms_hash` is a failed
+      checked claim: UNTRUSTED (`offer_mismatch`).
+    - An accept issued after the offer's `valid_until` is UNTRUSTED
+      (`offer_expired`). Ordering is by timestamps here because the two
+      receipts may be on different chains; skew tolerance is the caller's.
+    """
+    offers = {receipt_digest(r): r for r in receipts if r.get("type") == "agreement.offer"}
+    for receipt in receipts:
+        if receipt.get("type") != "agreement.accept":
+            continue
+        body = receipt.get("body", {})
+        offer = offers.get(body.get("offer_ref"))
+        if offer is None:
+            result.insufficient_reasons.append(f"missing_offer:{receipt.get('receipt_id')}")
+            continue
+        offer_body = offer.get("body", {})
+        valid_until = offer_body.get("valid_until")
+        if not records.validate_timestamp(valid_until):
+            _fatal(
+                result,
+                "malformed",
+                f"offer valid_until not RFC 3339 UTC: {valid_until!r}",
+                offer.get("receipt_id"),
+            )
+            continue
+        if (
+            body.get("offer_id") != offer_body.get("offer_id")
+            or body.get("terms_hash") != offer_body.get("terms_hash")
+        ):
+            _fatal(
+                result,
+                "offer_mismatch",
+                "accept does not match the referenced offer",
+                receipt.get("receipt_id"),
+            )
+            continue
+        if records.parse_timestamp(receipt["issued_at"]) > records.parse_timestamp(valid_until):
+            _fatal(
+                result,
+                "offer_expired",
+                f"accept issued after offer valid_until {valid_until}",
+                receipt.get("receipt_id"),
+            )
 
 
 def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict) -> None:

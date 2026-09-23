@@ -1,6 +1,8 @@
 # Roadmap
 
-**Current release:** `continuity-receipt/0.2.0` (2026-09-18); `0.1` remains supported.
+**Current release:** spec `continuity-receipt/0.3` (2026-09-23; Python tooling
+0.3.1 on PyPI, Rust crate 0.3.1 on crates.io — the Rust 0.3-types port is
+pending). Spec `0.1` and `0.2` remain supported.
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
 
@@ -23,6 +25,15 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
   runs vectors through the installed CLI.
 - [x] PyPI upload — `continuity-receipt` 0.2.0 published 2026-09-18
   (pypi.org/project/continuity-receipt), verified from a clean venv.
+
+### Spec 0.3 (2026-09-23) — offer → accept binding
+- [x] `agreement.offer` / `agreement.accept` record types with digest binding
+  (`offer_ref`), terms/id equality, and `valid_until` expiry (§4.8–4.9, §7).
+- [x] Verdict semantics: missing offer → `INSUFFICIENT_EVIDENCE`
+  (`missing_offer`); mismatch → `UNTRUSTED` (`offer_mismatch`); expired →
+  `UNTRUSTED` (`offer_expired`).
+- [x] Vectors 16/16b/16c/16d; schema 0.3; capabilities disclosure.
+- [ ] Rust parity for the 0.3 types (next; fail-closed until then).
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.

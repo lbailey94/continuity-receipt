@@ -1,4 +1,4 @@
-"""Receipt envelopes and body validation (0.1 + 0.2)."""
+"""Receipt envelopes and body validation (0.1 + 0.2 + 0.3)."""
 import os
 import re
 import time
@@ -7,8 +7,12 @@ from datetime import datetime, timezone
 
 from . import keys
 
-SPEC_ID = "continuity-receipt/0.2"
-SUPPORTED_SPECS = ("continuity-receipt/0.1", "continuity-receipt/0.2")
+SPEC_ID = "continuity-receipt/0.3"
+SUPPORTED_SPECS = (
+    "continuity-receipt/0.1",
+    "continuity-receipt/0.2",
+    "continuity-receipt/0.3",
+)
 
 RECORD_TYPES = (
     "session.pass.created",
@@ -18,6 +22,8 @@ RECORD_TYPES = (
     "task.termination",
     "settlement",
     "authority.succession",
+    "agreement.offer",
+    "agreement.accept",
 )
 
 REQUIRED_FIELDS = {
@@ -43,6 +49,8 @@ REQUIRED_FIELDS = {
     "task.termination": ("reason", "limits_at_stop", "remaining"),
     "settlement": ("rail", "rail_ref", "amount", "gated_on_delivery", "settled_at"),
     "authority.succession": ("from_authority", "to_authority", "effective_at", "reason"),
+    "agreement.offer": ("offer_id", "offeree", "terms_hash", "valid_until", "nonce"),
+    "agreement.accept": ("offer_ref", "offer_id", "terms_hash"),
 }
 
 # RFC 3339 UTC; fractional seconds optional (0.2 allows millisecond precision).

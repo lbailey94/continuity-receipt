@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.1 — 2026-09-23
+
+Python tooling release supporting **spec 0.3** (additive): the offer → accept
+binding. Published to PyPI as `continuity-receipt` 0.3.1.
+
+- **Spec 0.3 — `agreement.offer` / `agreement.accept`** (SPEC §4.8–4.9, §7).
+  `agreement.accept.offer_ref` is the digest of the referenced offer receipt;
+  the verifier resolves it against offers present in the bundle and checks
+  `offer_id`/`terms_hash` equality and `valid_until` expiry. Missing offer →
+  `INSUFFICIENT_EVIDENCE` (`missing_offer`); mismatch → `UNTRUSTED`
+  (`offer_mismatch`); expired → `UNTRUSTED` (`offer_expired`). Terms stay
+  off-receipt (only their hash is signed).
+- **Vectors 16/16b/16c/16d** (24 total). `schema/continuity-receipt-0.3.schema.json`
+  validates every schema-valid vector; the capabilities disclosure lists the
+  0.3 spec, the `agreement_binding` check, and the new codes.
+- **Rust parity for the 0.3 types is pending** — the Rust crate remains at
+  0.3.1 and rejects `continuity-receipt/0.3` envelopes until ported
+  (fail-closed by design; tracked in the roadmap).
+
 ## Rust crate 0.3.0 — 2026-09-21
 
 `continuity-receipt` 0.3.0 published to crates.io (2026-09-21) — the

@@ -1,5 +1,5 @@
 {
-  "spec": "continuity-receipt/0.2",
+  "spec": "continuity-receipt/0.3",
   "vectors": [
     {
       "file": "01_happy_minimal.json",
@@ -160,6 +160,38 @@
       "require_anchor": false,
       "note": "0.2 anchor type enum",
       "schema_valid": false
+    },
+    {
+      "file": "16_offer_accept.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.3 offer/accept binding",
+      "schema_valid": true
+    },
+    {
+      "file": "16b_offer_terms_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "offer_mismatch",
+      "require_anchor": false,
+      "note": "0.3 accept terms mismatch",
+      "schema_valid": true
+    },
+    {
+      "file": "16c_offer_expired.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "offer_expired",
+      "require_anchor": false,
+      "note": "0.3 accept after valid_until",
+      "schema_valid": true
+    },
+    {
+      "file": "16d_accept_without_offer.json",
+      "expected_verdict": "INSUFFICIENT_EVIDENCE",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.3 accept references an offer absent from the bundle",
+      "schema_valid": true
     }
   ]
 }

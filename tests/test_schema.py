@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover - CI installs jsonschema
     jsonschema = None
 
 VECTORS = ROOT / "vectors"
-SCHEMA_PATH = ROOT / "schema" / "continuity-receipt-0.2.schema.json"
+SCHEMA_PATH = ROOT / "schema" / "continuity-receipt-0.3.schema.json"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
 
 

@@ -2,7 +2,7 @@
   "kind": "continuity-receipt-verifier-capabilities",
   "version": 1,
   "implementation": "continuity-receipt (Python reference)",
-  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2"],
+  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2", "continuity-receipt/0.3"],
   "verdicts": ["TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED"],
   "checks": [
     "envelope_schema",
@@ -10,6 +10,7 @@
     "signatures",
     "counterparty_attestations",
     "cross_record",
+    "agreement_binding",
     "revocations",
     "anchors",
     "redactions_erasure"
@@ -31,10 +32,12 @@
     "bad_attestation",
     "bad_revocation",
     "key_revoked",
-    "provenance_invalid"
+    "provenance_invalid",
+    "offer_mismatch",
+    "offer_expired"
   ],
   "provisional_reasons": ["anchor_missing", "redacted_without_disclosure:<path>"],
-  "insufficient_reasons": ["erased_content:<path>"],
+  "insufficient_reasons": ["erased_content:<path>", "missing_offer:<receipt_id>"],
   "revocation_lists": {
     "supported": true,
     "document_kind": "continuity-receipt-revocations",

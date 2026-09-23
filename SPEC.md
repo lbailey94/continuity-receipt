@@ -1,10 +1,20 @@
-# Continuity Receipt — v0.2 Specification
+# Continuity Receipt — v0.3 Specification
 
-**Status:** `continuity-receipt/0.2` — published 2026-09-18; `0.1` remains
-supported by the verifier. Open items in §11.
-**Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18.
+**Status:** `continuity-receipt/0.3` — published 2026-09-23; `0.1` and `0.2`
+remain supported by the verifier. Open items in §11.
+**Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23.
 **Home:** this repository — versioned independently of any product release
 train.
+
+## 0.3 changes at a glance
+
+- New record types `agreement.offer` and `agreement.accept` — the
+  offer → accept binding that precedes a receipt (§4.8, §4.9).
+- Verification: `agreement.accept.offer_ref` must resolve to a present offer
+  receipt; absent offer → `INSUFFICIENT_EVIDENCE` (`missing_offer`); terms/id
+  mismatch → `UNTRUSTED` (`offer_mismatch`); accept after `valid_until` →
+  `UNTRUSTED` (`offer_expired`) (§7).
+- JSON Schema `continuity-receipt-0.3.schema.json`; vectors 16/16b/16c/16d.
 
 ## 0.2 changes at a glance
 
@@ -145,6 +155,23 @@ successor's subsequent receipts carry the new issuer key. Outside of
 succession, key rotation is a new `issuer.key` plus re-signing (0.2 adds
 bundle-level revocation statements, §7).
 
+### 4.8 `agreement.offer` (0.3)
+`offer_id` (issuer-local), `offeree` (identifier), `terms_hash` (grounded —
+hash of the off-receipt terms), `valid_until` (RFC 3339 UTC), `nonce`;
+optional `terms_ref` (URI or redaction). The offeror is the receipt issuer.
+Terms stay off-receipt by construction: only their hash is signed, so the
+terms can be disclosed selectively or kept private without invalidating the
+binding. `nonce` makes otherwise-identical offers distinct.
+
+### 4.9 `agreement.accept` (0.3)
+`offer_ref` (grounded — the SHA-256 digest of the referenced offer receipt,
+the same canonical view used by `prev` links), `offer_id`, `terms_hash`.
+An accept binds the offeree's subsequent receipts (decision → execution →
+delivery → settlement) to a specific offer: verifiers resolve `offer_ref`
+against the offers present in the bundle and check the id and terms match
+(§7, step 4). An accept whose offer is not in the bundle is
+`INSUFFICIENT_EVIDENCE`, never silently trusted.
+
 ## 5. Canonicalization and signing
 
 - JSON canonicalization: **RFC 8785 (JCS)**. `continuity-receipt/0.1` is
@@ -197,6 +224,13 @@ Ordered checks (first failure wins):
    version equals authority policy version; settlement amount ≤ run cap;
    `delivery` precedes `settlement` when `gated_on_delivery`; **termination
    present**; provenance hash form is `sha256:` or `merkle-sha256:`.
+   **Agreement binding (0.3):** each `agreement.accept.offer_ref` must resolve
+   to an `agreement.offer` receipt present in the bundle (by receipt digest);
+   the accept's `offer_id` and `terms_hash` must equal the offer's; and the
+   accept's `issued_at` must be ≤ the offer's `valid_until`. A missing offer is
+   `INSUFFICIENT_EVIDENCE` (`missing_offer`) — unverifiable, not false; a
+   mismatch is `UNTRUSTED` (`offer_mismatch`); an expired accept is
+   `UNTRUSTED` (`offer_expired`).
 5. Revocations (0.2, bundle-level): each statement is self-signed by the key it
    revokes; a receipt whose issuer key was revoked at or before its
    `issued_at` fails (`key_revoked`). Receipts issued before revocation remain
@@ -221,7 +255,8 @@ Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 `delivery_before_settlement`, `missing_termination`, `anchor_invalid`,
 `redacted_required`, `commit_mismatch`, `version_unsupported`;
 0.2 adds `bad_attestation`, `bad_revocation`, `key_revoked`,
-`provenance_invalid`.
+`provenance_invalid`; 0.3 adds `offer_mismatch`, `offer_expired`
+(`missing_offer` is an insufficient-evidence reason, not an error).
 
 ## 8. Interop mapping (informative)
 
@@ -239,7 +274,7 @@ The full set ships with the verifier:
 **machine-readable expectations** in `vectors/manifest.json` (file → expected
 verdict → expected error code → anchor requirement), and a human index in
 `vectors/INDEX.md`. The JSON Schema is
-`schema/continuity-receipt-0.2.schema.json`; every schema-valid vector is
+`schema/continuity-receipt-0.3.schema.json`; every schema-valid vector is
 validated against it in CI.
 
 0.1 conformance set (frozen): `01`–`10c` — happy paths, tampering, missing
@@ -259,9 +294,18 @@ termination, cap/delivery ordering, redaction/erasure, anchors.
 | `15b_provenance_invalid.json` | UNTRUSTED (`provenance_invalid`) | unsupported hash form |
 | `10c_anchor_unknown_type.json` | UNTRUSTED (`anchor_invalid`) | anchor type enum |
 
+0.3 additions:
+
+| Vector | Expected | Exercises |
+|---|---|---|
+| `16_offer_accept.json` | TRUSTED | offer → accept binding resolves |
+| `16b_offer_terms_mismatch.json` | UNTRUSTED (`offer_mismatch`) | accept terms differ from the offer |
+| `16c_offer_expired.json` | UNTRUSTED (`offer_expired`) | accept issued after `valid_until` |
+| `16d_accept_without_offer.json` | INSUFFICIENT_EVIDENCE (`missing_offer`) | referenced offer absent from the bundle |
+
 ## 10. Versioning
 
-`spec: continuity-receipt/0.2` in new envelopes; `0.1` remains supported
+`spec: continuity-receipt/0.3` in new envelopes; `0.1` and `0.2` remain supported
 (bundle-level and per-receipt). Additive fields within 0.x; breaking changes
 require a new minor version plus a new vector set. The verifier refuses
 unknown spec versions (`version_unsupported`); unknown *additional* members
@@ -279,6 +323,11 @@ attestation rule; bundle-level revocation statements (receipts before
 revocation remain valid); `authority.succession`; `merkle-sha256:` provenance
 roots; anchor metadata type enum; JSON Schema + CI; machine-readable vector
 manifest.
+
+**Resolved for 0.3** (2026-09-23): `agreement.offer` / `agreement.accept`
+with digest binding (`offer_ref`), terms/id equality checks, expiry semantics,
+and the missing-offer-is-insufficient rule; vectors 16–16d; schema 0.3.
+Rust parity for the 0.3 types is pending (tracked in the roadmap).
 
 **Deferred to 0.3, with reasons:**
 1. **CBOR equivalence** — no implementer need demonstrated yet, and the signed

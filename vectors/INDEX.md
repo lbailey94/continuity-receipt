@@ -26,3 +26,7 @@ Verify with:
 | 15_merkle_provenance.json | TRUSTED | — | 0.2 merkle provenance root |
 | 15b_provenance_invalid.json | UNTRUSTED | provenance_invalid | unsupported hash form |
 | 10c_anchor_unknown_type.json | UNTRUSTED | anchor_invalid | 0.2 anchor type enum |
+| 16_offer_accept.json | TRUSTED | — | 0.3 offer/accept binding |
+| 16b_offer_terms_mismatch.json | UNTRUSTED | offer_mismatch | 0.3 accept terms mismatch |
+| 16c_offer_expired.json | UNTRUSTED | offer_expired | 0.3 accept after valid_until |
+| 16d_accept_without_offer.json | INSUFFICIENT_EVIDENCE | — | 0.3 accept references an offer absent from the bundle |

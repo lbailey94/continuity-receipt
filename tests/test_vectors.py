@@ -92,7 +92,8 @@ class TestPrimitives(unittest.TestCase):
     def test_supported_specs(self):
         self.assertIn("continuity-receipt/0.1", records.SUPPORTED_SPECS)
         self.assertIn("continuity-receipt/0.2", records.SUPPORTED_SPECS)
-        self.assertEqual(records.SPEC_ID, "continuity-receipt/0.2")
+        self.assertIn("continuity-receipt/0.3", records.SUPPORTED_SPECS)
+        self.assertEqual(records.SPEC_ID, "continuity-receipt/0.3")
 
 
 if __name__ == "__main__":
