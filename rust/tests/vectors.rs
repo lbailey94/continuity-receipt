@@ -29,7 +29,7 @@ fn all_vectors_match_manifest() {
     let entries = manifest["vectors"]
         .as_array()
         .expect("manifest has a vectors array");
-    assert_eq!(entries.len(), 24, "manifest vector count");
+    assert_eq!(entries.len(), 26, "manifest vector count");
 
     for entry in entries {
         let file = entry["file"].as_str().expect("vector file name");

@@ -43,7 +43,7 @@ CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.3 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
-vectors/                   24 test vectors + INDEX.md + manifest.json
+vectors/                   26 test vectors + INDEX.md + manifest.json
 tools/make_vectors.py      regenerates the vectors deterministically
 tests/                     conformance suite (vectors, schema, primitives)
 ```
@@ -68,22 +68,23 @@ python3 -m unittest discover -s tests -v
 
 ## Test vectors
 
-24 vectors with machine-readable expectations in `vectors/manifest.json`
+26 vectors with machine-readable expectations in `vectors/manifest.json`
 (human index: `vectors/INDEX.md`): 0.1 conformance (`01`–`10c`), 0.2
 additions — succession records, millisecond timestamps, counterparty
 attestations, revocation semantics, Merkle provenance, anchor typing — and
-0.3 additions: offer → accept binding (`16`–`16d`), including the
-missing-offer, terms-mismatch, and expiry cases.
+0.3 additions: offer → accept binding (`16`–`16d`, including the
+missing-offer, terms-mismatch, and expiry cases) and selective disclosure of
+redacted offer terms (`16e`/`16f`).
 Every schema-valid vector is also checked against
 `schema/continuity-receipt-0.3.schema.json` in CI.
 
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16d; schema 0.3.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
-  checks all 24 vectors and CI diffs it against the Python reference. The 0.3
+  checks all 26 vectors and CI diffs it against the Python reference. The 0.3
   record types are not ported yet; the Rust verifier fails closed on 0.3
   envelopes and that behavior is pinned by a test until parity lands.
 - **Origin implementation:** [WhiteMagic](https://github.com/lbailey94/whitemagic) — an MIT, local-first memory substrate for agents (this spec repo is Apache-2.0; the two are separate works).

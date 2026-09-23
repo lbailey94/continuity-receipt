@@ -192,6 +192,22 @@
       "require_anchor": false,
       "note": "0.3 accept references an offer absent from the bundle",
       "schema_valid": true
+    },
+    {
+      "file": "16e_offer_terms_redacted.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.3 redacted terms_ref without disclosure",
+      "schema_valid": true
+    },
+    {
+      "file": "16f_offer_terms_disclosed.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.3 redacted terms_ref disclosed selectively",
+      "schema_valid": true
     }
   ]
 }

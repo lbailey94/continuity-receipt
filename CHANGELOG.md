@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — 2026-09-23
+
+- **Reference emitters for agreements** (`continuity_receipt.agreements`):
+  `offer_body` (hashes off-receipt terms, validates `valid_until`),
+  `accept_body` (binds `offer_ref` to a signed offer receipt exactly the way
+  the verifier resolves it), and `terms_hash`. Tests cover the round trip,
+  terms staying off-receipt, mismatch, and expiry.
+- **Vectors 16e/16f** (26 total): selective disclosure of redacted offer terms
+  — `16e` redacted without disclosure (PROVISIONAL), `16f` disclosed
+  (TRUSTED). Rust parity holds; differential 26/26.
+- README/ROADMAP counts updated. Not yet published (next tooling release).
+
 ## Rust crate 0.3.2 — 2026-09-23
 
 `continuity-receipt` 0.3.2: Rust parity for the spec 0.3 record types

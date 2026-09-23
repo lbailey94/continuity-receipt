@@ -30,3 +30,5 @@ Verify with:
 | 16b_offer_terms_mismatch.json | UNTRUSTED | offer_mismatch | 0.3 accept terms mismatch |
 | 16c_offer_expired.json | UNTRUSTED | offer_expired | 0.3 accept after valid_until |
 | 16d_accept_without_offer.json | INSUFFICIENT_EVIDENCE | — | 0.3 accept references an offer absent from the bundle |
+| 16e_offer_terms_redacted.json | PROVISIONAL | — | 0.3 redacted terms_ref without disclosure |
+| 16f_offer_terms_disclosed.json | TRUSTED | — | 0.3 redacted terms_ref disclosed selectively |

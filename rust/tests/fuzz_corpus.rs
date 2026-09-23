@@ -130,7 +130,7 @@ fn check_case(value: &Value, require_anchor: bool, label: &str) {
 #[test]
 fn generated_mutations_never_panic_and_stay_structured() {
     let bundles = vector_bundles();
-    assert_eq!(bundles.len(), 24, "all manifest vectors load");
+    assert_eq!(bundles.len(), 26, "all manifest vectors load");
     let corpus_dir = std::env::var("CR_FUZZ_CORPUS_DIR").ok();
     if let Some(dir) = &corpus_dir {
         fs::create_dir_all(dir).expect("create corpus dir");

@@ -33,7 +33,9 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
   (`missing_offer`); mismatch → `UNTRUSTED` (`offer_mismatch`); expired →
   `UNTRUSTED` (`offer_expired`).
 - [x] Vectors 16/16b/16c/16d; schema 0.3; capabilities disclosure.
-- [x] Rust parity for the 0.3 types — crate 0.3.2, differential 24/24.
+- [x] Rust parity for the 0.3 types — crate 0.3.2, differential 26/26.
+- [x] Reference emitters (`continuity_receipt.agreements`) + vectors 16e/16f
+  (redacted/disclosed offer terms).
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.

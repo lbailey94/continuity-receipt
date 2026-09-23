@@ -125,14 +125,18 @@ def succession_body() -> dict:
     }
 
 
-def offer_body(terms_hash: str | None = None, valid_until: str = "2030-01-01T00:00:00Z") -> dict:
-    return {
+def offer_body(terms_hash: str | None = None, valid_until: str = "2030-01-01T00:00:00Z",
+               terms_ref=None) -> dict:
+    body = {
         "offer_id": "offer-1",
         "offeree": COUNTERPARTY_DID,
         "terms_hash": terms_hash or digest("terms:recall-pilot-1"),
         "valid_until": valid_until,
         "nonce": "nonce-offer-1",
     }
+    if terms_ref is not None:
+        body["terms_ref"] = terms_ref
+    return body
 
 
 def accept_body(offer_ref: str, terms_hash: str | None = None) -> dict:
@@ -419,6 +423,35 @@ def main() -> int:
         "16d_accept_without_offer.json",
         "INSUFFICIENT_EVIDENCE",
         note="0.3 accept references an offer absent from the bundle",
+    )
+
+    terms_salt = keys.random_salt_hex()
+    terms_value = "https://example.com/terms/recall-pilot-1"
+    terms_ref_redacted = {"redacted": True, "commit": commit_field(terms_salt, terms_value)}
+
+    redacted_terms = chain(SPEC_03)
+    add(redacted_terms, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(redacted_terms, "agreement.offer", offer_body(terms_ref=terms_ref_redacted))
+    add(redacted_terms, "agreement.accept", accept_body(receipt_digest(offer_receipt)))
+    add(redacted_terms, "task.decision", decision_body())
+    add(redacted_terms, "task.execution", execution_body())
+    add(redacted_terms, "task.termination", termination_body())
+    write("16e_offer_terms_redacted.json", redacted_terms.bundle())
+    record(
+        "16e_offer_terms_redacted.json",
+        "PROVISIONAL",
+        note="0.3 redacted terms_ref without disclosure",
+    )
+
+    disclosed_terms = redacted_terms.bundle()
+    disclosed_terms["disclosure_map"] = {
+        "receipts[1].body.terms_ref": {"salt": terms_salt, "value": terms_value}
+    }
+    write("16f_offer_terms_disclosed.json", disclosed_terms)
+    record(
+        "16f_offer_terms_disclosed.json",
+        "TRUSTED",
+        note="0.3 redacted terms_ref disclosed selectively",
     )
 
     # --- indexes ------------------------------------------------------------
