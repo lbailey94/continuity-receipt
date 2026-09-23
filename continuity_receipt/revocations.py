@@ -28,6 +28,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from . import keys, records
 from .canon import canonical_bytes
 
 MAX_DOCUMENT_BYTES = 1 << 20  # 1 MiB
@@ -130,3 +131,34 @@ def merge_statements(*groups: list[dict] | None) -> list[dict]:
             seen.add(fingerprint)
             merged.append(statement)
     return merged
+
+
+def verify_statements(statements: list) -> tuple[list[tuple[str, object]], list[tuple[str, str]]]:
+    """Verify self-signed revocation statements (bundle shape, 0.2 §7.5).
+
+    Returns ``(revoked, errors)``: ``revoked`` pairs each verified key with its
+    ``revoked_at`` (a datetime), and ``errors`` is ``[(code, detail)]`` for
+    statements that do not verify. Callers decide fatality — the bundle
+    verifier fails closed with ``bad_revocation`` — and how to apply the times.
+    """
+    revoked: list[tuple[str, object]] = []
+    errors: list[tuple[str, str]] = []
+    for statement in statements:
+        if not isinstance(statement, dict):
+            errors.append(("bad_revocation", "revocation statement is not an object"))
+            continue
+        key_id = statement.get("key")
+        revoked_at = statement.get("revoked_at")
+        sig = statement.get("sig")
+        if not isinstance(key_id, str) or not records.validate_timestamp(revoked_at):
+            errors.append(("bad_revocation", f"malformed revocation statement for {key_id!r}"))
+            continue
+        if not isinstance(sig, dict) or sig.get("alg") != "ed25519" or not sig.get("value"):
+            errors.append(("bad_revocation", f"revocation statement unsigned for {key_id!r}"))
+            continue
+        message = canonical_bytes({k: v for k, v in statement.items() if k != "sig"})
+        if not keys.verify(key_id, message, sig["value"]):
+            errors.append(("bad_revocation", f"revocation signature invalid for {key_id!r}"))
+            continue
+        revoked.append((key_id, records.parse_timestamp(revoked_at)))
+    return revoked, errors

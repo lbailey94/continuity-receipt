@@ -10,7 +10,7 @@ from dataclasses import dataclass, field as dc_field
 from . import keys, records
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
-from .revocations import merge_statements
+from .revocations import merge_statements, verify_statements
 
 ANCHOR_TYPES = ("opentimestamps", "public-chain", "custom")
 PROVENANCE_PREFIXES = ("sha256:", "merkle-sha256:")
@@ -351,25 +351,10 @@ def _check_revocations(
         _fatal(result, "bad_revocation", "revocations must be a list")
         return
     revocations = merge_statements(bundle_revocations, external_revocations)
-    revoked: list[tuple[str, object]] = []
-    checked = 0
-    for statement in revocations:
-        if not isinstance(statement, dict):
-            _fatal(result, "bad_revocation", "revocation statement is not an object")
-            continue
-        key_id, revoked_at, sig = statement.get("key"), statement.get("revoked_at"), statement.get("sig")
-        if not isinstance(key_id, str) or not records.validate_timestamp(revoked_at):
-            _fatal(result, "bad_revocation", f"malformed revocation statement for {key_id!r}")
-            continue
-        if not isinstance(sig, dict) or sig.get("alg") != "ed25519" or not sig.get("value"):
-            _fatal(result, "bad_revocation", f"revocation statement unsigned for {key_id!r}")
-            continue
-        message = canonical_bytes({k: v for k, v in statement.items() if k != "sig"})
-        if not keys.verify(key_id, message, sig["value"]):
-            _fatal(result, "bad_revocation", f"revocation signature invalid for {key_id!r}")
-            continue
-        revoked.append((key_id, records.parse_timestamp(revoked_at)))
-        checked += 1
+    revoked, statement_errors = verify_statements(revocations)
+    for code, detail in statement_errors:
+        _fatal(result, code, detail)
+    checked = len(revoked)
 
     for receipt in receipts:
         key_id = receipt.get("issuer", {}).get("id")

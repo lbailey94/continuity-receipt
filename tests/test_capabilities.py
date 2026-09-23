@@ -12,6 +12,7 @@ from pathlib import Path
 
 from continuity_receipt import records
 from continuity_receipt import revocations as revocations_mod
+from continuity_receipt import verification as verification_mod
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -23,6 +24,9 @@ class TestCapabilityDisclosure(unittest.TestCase):
         cls.verify_src = (ROOT / "continuity_receipt" / "verify.py").read_text("utf-8")
         cls.revocations_src = (ROOT / "continuity_receipt" / "revocations.py").read_text("utf-8")
         cls.anchor_src = (ROOT / "continuity_receipt" / "anchor.py").read_text("utf-8")
+        cls.verification_src = (ROOT / "continuity_receipt" / "verification.py").read_text(
+            "utf-8"
+        )
         cls.scripts = tomllib.loads((ROOT / "pyproject.toml").read_text("utf-8"))[
             "project"
         ]["scripts"]
@@ -68,6 +72,15 @@ class TestCapabilityDisclosure(unittest.TestCase):
         for code in ("anchor_verified", "header_mismatch", "unsupported_op"):
             self.assertIn(f'"{code}"', self.anchor_src, code)
         self.assertTrue((ROOT / "vectors" / "anchor").is_dir())
+
+    def test_verification_receipts_declared_and_present(self):
+        receipts = self.caps["verification_receipts"]
+        self.assertEqual(receipts["kind"], verification_mod.KIND)
+        self.assertEqual(receipts["version"], verification_mod.VERSION)
+        self.assertIn(self.caps["cli"]["verify_receipt"], self.scripts)
+        for code in receipts["error_codes"]:
+            self.assertIn(f'"{code}"', self.verification_src, code)
+        self.assertTrue((ROOT / "vectors" / "verification" / "manifest.json").is_file())
 
     def test_conformance_doc_links_the_json(self):
         doc = (ROOT / "CONFORMANCE.md").read_text("utf-8")

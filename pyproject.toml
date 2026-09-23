@@ -1,6 +1,6 @@
 [project]
 name = "continuity-receipt"
-version = "0.3.1"
+version = "0.3.2"
 description = "Continuity Receipt — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,6 +34,7 @@ Specification = "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC.
 continuity-receipt-verify = "continuity_receipt.verify:main"
 continuity-receipt-disclose = "continuity_receipt.disclose:main"
 continuity-receipt-anchor = "continuity_receipt.anchor:main"
+continuity-receipt-verify-receipt = "continuity_receipt.verification:main"
 
 [build-system]
 requires = ["setuptools>=77"]

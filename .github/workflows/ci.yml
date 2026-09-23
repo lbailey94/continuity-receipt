@@ -35,6 +35,19 @@ jobs:
               if proc.returncode != expected_rc:
                   raise SystemExit(f"{entry['file']}: rc {proc.returncode} != {expected_rc}")
           print(f"CLI verified {len(manifest['vectors'])} vectors")
+          vmanifest = json.loads(Path("vectors/verification/manifest.json").read_text())
+          for entry in vmanifest["vectors"]:
+              cmd = [sys.executable, "-m", "continuity_receipt.verification",
+                     f"vectors/verification/{entry['file']}"]
+              if entry.get("bundle_file"):
+                  cmd += ["--bundle", f"vectors/verification/{entry['bundle_file']}"]
+              if entry.get("revocations_file"):
+                  cmd += ["--revocations", f"vectors/verification/{entry['revocations_file']}"]
+              proc = subprocess.run(cmd, capture_output=True, text=True)
+              expected_rc = 0 if entry["expected_valid"] else 1
+              if proc.returncode != expected_rc:
+                  raise SystemExit(f"{entry['file']}: rc {proc.returncode} != {expected_rc}")
+          print(f"CLI verified {len(vmanifest['vectors'])} verification receipts")
           PY
 
   package:
@@ -61,6 +74,9 @@ jobs:
           fi
           continuity-receipt-disclose --help > /dev/null
           continuity-receipt-verify --help > /dev/null
+          continuity-receipt-verify-receipt vectors/verification/01_valid.json \
+            --bundle vectors/verification/bundle.json > /tmp/vreceipt.json
+          python3 -c "import json; assert json.load(open('/tmp/vreceipt.json'))['valid'] is True"
 
   rust:
     runs-on: ubuntu-latest

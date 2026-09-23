@@ -8,8 +8,9 @@ a spec: `SPEC.md` is normative.
 
 ## Supported spec versions
 
-`continuity-receipt/0.1` and `continuity-receipt/0.2`. Unknown versions are
-refused (`version_unsupported`) rather than guessed at.
+`continuity-receipt/0.1`, `continuity-receipt/0.2`, and
+`continuity-receipt/0.3`. Unknown versions are refused
+(`version_unsupported`) rather than guessed at.
 
 ## Checks, in order (first failure wins)
 
@@ -34,6 +35,18 @@ refused (`version_unsupported`) rather than guessed at.
 7. **Redactions and erasure** — required fields may not be redacted; redacted
    values without disclosure are provisional; erased payloads are
    insufficient evidence, not failures.
+
+## Verification receipts (companion, version 1)
+
+`continuity_receipt.verification` verifies the signed statements the hosted
+service (and any other verifier) issues about a verification run — see
+`VERIFICATION_RECEIPTS.md` for the wire format and semantics. Checks:
+document shape, `kind`/`version`, verdict enum, RFC 3339 `verified_at`,
+`sha256:` digest shape, `error_codes` shape, `sig.key == issuer` + Ed25519
+signature over the canonical view minus `sig`; optional bundle digest match
+(`bundle_digest_mismatch`); optional issuer-revocation check (`key_revoked`,
+statements in the bundle shape). CLI: `continuity-receipt-verify-receipt`;
+vectors: `vectors/verification/` (14 cases).
 
 ## Verdicts
 
@@ -62,6 +75,11 @@ with codes including `anchor_verified`, `anchor_unverified`,
 `anchor_binding_mismatch`, `unsupported_op`; the full list is in the
 `continuity_receipt/anchor.py` docstring.
 
+**Verification receipts:** `not_an_object`, `bad_kind`, `bad_version`,
+`bad_verdict`, `bad_verified_at`, `bad_bundle_digest`, `bad_error_codes`,
+`bad_signature_shape`, `bad_signature`, `bundle_digest_mismatch`,
+`key_revoked`.
+
 ## Reproduce
 
 ```bash
@@ -70,7 +88,8 @@ python3 tools/differential_vectors.py             # Python vs Rust over all vect
 cargo test --manifest-path rust/Cargo.toml        # Rust second implementation
 ```
 
-CI runs all three; `vectors/manifest.json` pins the conformance verdicts, and
+CI runs all three; `vectors/manifest.json` pins the conformance verdicts,
+`vectors/verification/manifest.json` pins the verification-receipt cases, and
 `vectors/anchor/` pins the anchor tool against real OpenTimestamps proofs.
 
 ## Out of scope — do not infer

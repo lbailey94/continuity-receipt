@@ -277,6 +277,10 @@ verdict → expected error code → anchor requirement), and a human index in
 `schema/continuity-receipt-0.3.schema.json`; every schema-valid vector is
 validated against it in CI.
 
+Companion (not bundle) vectors: `vectors/verification/` pins the
+verification-receipt format (`VERIFICATION_RECEIPTS.md`,
+`schema/verification-receipt-1.schema.json`).
+
 0.1 conformance set (frozen): `01`–`10c` — happy paths, tampering, missing
 termination, cap/delivery ordering, redaction/erasure, anchors.
 

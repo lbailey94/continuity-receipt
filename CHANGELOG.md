@@ -1,7 +1,28 @@
 # Changelog
 
-## Unreleased — 2026-09-23
+## 0.3.2 — 2026-09-23
 
+Python tooling release: **verification receipts** (companion, version 1)
+formalized, plus the agreement emitters and vectors previously staged as
+unreleased. Published to PyPI as `continuity-receipt` 0.3.2.
+
+- **Verification receipts — formalized** (`continuity_receipt/verification.py`,
+  `VERIFICATION_RECEIPTS.md`): a signed statement that a verifier ran the
+  bundle verification algorithm over a bundle and recorded a verdict. The
+  wire format (kind `continuity-receipt-verification`, version 1) binds the
+  **JCS-canonical bundle digest** to the verdict, error codes, implementation
+  and version, and time; the signature follows the bundle canonical-view rule
+  (object minus `sig`). `issue_verification_receipt` /
+  `verify_verification_receipt`; CLI `continuity-receipt-verify-receipt`;
+  schema `schema/verification-receipt-1.schema.json`; 14 vectors under
+  `vectors/verification/` (manifest + INDEX) covering signature/verdict
+  tampering, wrong bundle, shape violations, issuer swap, revocation, and
+  unknown members. Issuer-revocation checking is opt-in input (`key_revoked`),
+  sharing the bundle statement shape via the new
+  `revocations.verify_statements` helper (bundle behavior unchanged;
+  differential 26/26).
+- **Integration kit** — `VERIFY_IN_5_MIN.md`: install → verify offline →
+  hosted verdict → signed receipt → offline receipt check, copy-paste only.
 - **Reference emitters for agreements** (`continuity_receipt.agreements`):
   `offer_body` (hashes off-receipt terms, validates `valid_until`),
   `accept_body` (binds `offer_ref` to a signed offer receipt exactly the way
@@ -10,7 +31,9 @@
 - **Vectors 16e/16f** (26 total): selective disclosure of redacted offer terms
   — `16e` redacted without disclosure (PROVISIONAL), `16f` disclosed
   (TRUSTED). Rust parity holds; differential 26/26.
-- README/ROADMAP counts updated. Not yet published (next tooling release).
+- Capability disclosure (`verifier-capabilities.json`) gains the
+  `verification_receipts` section; CONFORMANCE/README/ROADMAP updated; CI
+  verifies the verification-receipt vectors through the CLI surface.
 
 ## Rust crate 0.3.2 — 2026-09-23
 

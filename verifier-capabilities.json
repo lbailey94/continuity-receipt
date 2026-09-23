@@ -67,7 +67,31 @@
   "cli": {
     "verify": "continuity-receipt-verify",
     "disclose": "continuity-receipt-disclose",
-    "anchor": "continuity-receipt-anchor"
+    "anchor": "continuity-receipt-anchor",
+    "verify_receipt": "continuity-receipt-verify-receipt"
+  },
+  "verification_receipts": {
+    "supported": true,
+    "kind": "continuity-receipt-verification",
+    "version": 1,
+    "document": "VERIFICATION_RECEIPTS.md",
+    "schema": "schema/verification-receipt-1.schema.json",
+    "vectors": "vectors/verification/manifest.json",
+    "digest_rule": "sha256 of the JCS-canonical bytes of the verified bundle object",
+    "revocation_check": "opt-in input (statements); without it the check is not performed",
+    "error_codes": [
+      "not_an_object",
+      "bad_kind",
+      "bad_version",
+      "bad_verdict",
+      "bad_verified_at",
+      "bad_bundle_digest",
+      "bad_error_codes",
+      "bad_signature_shape",
+      "bad_signature",
+      "bundle_digest_mismatch",
+      "key_revoked"
+    ]
   },
   "out_of_scope": [
     "issuer honesty",

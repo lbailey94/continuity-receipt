@@ -1,8 +1,8 @@
 # Roadmap
 
 **Current release:** spec `continuity-receipt/0.3` (2026-09-23; Python tooling
-0.3.1 on PyPI, Rust crate 0.3.1 on crates.io — the Rust 0.3-types port is
-pending). Spec `0.1` and `0.2` remain supported.
+0.3.2 on PyPI, Rust crate 0.3.2 on crates.io). Spec `0.1` and `0.2` remain
+supported.
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
 
@@ -36,6 +36,17 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 - [x] Rust parity for the 0.3 types — crate 0.3.2, differential 26/26.
 - [x] Reference emitters (`continuity_receipt.agreements`) + vectors 16e/16f
   (redacted/disclosed offer terms).
+
+### Companion: verification receipts (2026-09-23) — tooling 0.3.2
+- [x] Wire format + semantics frozen (`VERIFICATION_RECEIPTS.md`): signed
+  statement binding the JCS-canonical bundle digest to verdict, error codes,
+  implementation/version, and time; `did:key` attribution.
+- [x] Schema (`schema/verification-receipt-1.schema.json`), 14 vectors
+  (`vectors/verification/`, manifest + INDEX), reference verifier
+  (`continuity_receipt.verification`) + CLI `continuity-receipt-verify-receipt`.
+- [x] Opt-in issuer-revocation check (`key_revoked`) reusing the bundle
+  revocation statement shape.
+- [x] Integration kit page (`VERIFY_IN_5_MIN.md`).
 
 ### 0.2.0 (2026-09-18)
 - [x] `authority.succession` record type.
@@ -105,6 +116,9 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 
 ## 0.4+ / open questions
 
+- **Verification receipts in Rust** — second-implementation parity for the
+  companion v1 format (schema + vectors are language-neutral; the Python
+  implementation is the reference until then).
 - Selective disclosure beyond per-field salts (evaluate; do not adopt by default — simplicity is a feature).
 - Formal specification of canonicalization + verification (small enough to verify mechanically).
 - Interop profiles with SAIHM and memorywire once their normative text stabilizes; adapter implementations.

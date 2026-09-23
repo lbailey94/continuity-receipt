@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lbailey94/continuity-receipt/schema/verification-receipt-1.schema.json",
+  "title": "Continuity Receipt verification receipt (continuity-receipt-verification, version 1)",
+  "description": "A signed statement that a verifier ran the bundle verification algorithm over a bundle and recorded a verdict. Companion document: VERIFICATION_RECEIPTS.md.",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "bundle_digest",
+    "verdict",
+    "error_codes",
+    "verified_at",
+    "verifier",
+    "issuer",
+    "sig"
+  ],
+  "properties": {
+    "kind": { "const": "continuity-receipt-verification" },
+    "version": { "const": 1 },
+    "bundle_digest": { "$ref": "#/$defs/hash" },
+    "verdict": {
+      "enum": ["TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED"]
+    },
+    "error_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verified_at": { "$ref": "#/$defs/timestamp" },
+    "verifier": {
+      "type": "object",
+      "required": ["implementation", "version"],
+      "properties": {
+        "implementation": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "issuer": { "type": "string", "minLength": 1 },
+    "sig": { "$ref": "#/$defs/signature" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$"
+    },
+    "signature": {
+      "type": "object",
+      "required": ["alg", "key", "value"],
+      "properties": {
+        "alg": { "const": "ed25519" },
+        "key": { "type": "string" },
+        "value": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

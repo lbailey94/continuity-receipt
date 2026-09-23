@@ -1,0 +1,122 @@
+{
+  "kind": "continuity-receipt-verification-vectors",
+  "version": 1,
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "vectors": [
+    {
+      "file": "01_valid.json",
+      "expected_valid": true,
+      "expected_errors": [],
+      "note": "valid receipt; digest matches bundle.json",
+      "bundle_file": "bundle.json"
+    },
+    {
+      "file": "02_tampered_signature.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_signature"
+      ],
+      "note": "signature byte flipped after signing"
+    },
+    {
+      "file": "03_tampered_verdict.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_signature"
+      ],
+      "note": "verdict changed after signing"
+    },
+    {
+      "file": "04_wrong_bundle.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bundle_digest_mismatch"
+      ],
+      "note": "valid receipt checked against a different bundle",
+      "bundle_file": "other_bundle.json"
+    },
+    {
+      "file": "05_bad_kind.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_kind",
+        "bad_signature"
+      ],
+      "note": "kind changed after signing"
+    },
+    {
+      "file": "06_bad_version.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_version",
+        "bad_signature"
+      ],
+      "note": "version changed after signing"
+    },
+    {
+      "file": "07_bad_verdict.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_verdict"
+      ],
+      "note": "verdict outside the enum (signed as issued)"
+    },
+    {
+      "file": "08_bad_verified_at.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_verified_at"
+      ],
+      "note": "verified_at not RFC 3339 UTC (signed as issued)"
+    },
+    {
+      "file": "09_missing_sig.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_signature_shape"
+      ],
+      "note": "sig member absent"
+    },
+    {
+      "file": "10_wrong_issuer.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_signature"
+      ],
+      "note": "issuer swapped after signing (sig.key no longer matches)"
+    },
+    {
+      "file": "11_bad_digest_shape.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_bundle_digest"
+      ],
+      "note": "bundle_digest is not sha256:<64 hex> (signed as issued)"
+    },
+    {
+      "file": "12_revoked_issuer.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "key_revoked"
+      ],
+      "note": "issuer key revoked before verified_at",
+      "bundle_file": "bundle.json",
+      "revocations_file": "12_revoked_issuer.revocations.json"
+    },
+    {
+      "file": "13_unknown_member.json",
+      "expected_valid": true,
+      "expected_errors": [],
+      "note": "additional member is signed and ignored by the verifier",
+      "bundle_file": "bundle.json"
+    },
+    {
+      "file": "14_bad_error_codes.json",
+      "expected_valid": false,
+      "expected_errors": [
+        "bad_error_codes"
+      ],
+      "note": "error_codes is not an array of strings (signed as issued)"
+    }
+  ]
+}
