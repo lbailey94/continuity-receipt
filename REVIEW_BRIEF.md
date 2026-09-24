@@ -2,11 +2,11 @@
 
 **Status:** open invitation, 2026-09-23. One page of scope, questions, and
 logistics.
-**Materials frozen at:** the 0.4.0 release-candidate commit (tag `v0.4.0`
-to be created at freeze; publication pending at review time) — spec
-`continuity-receipt/0.4` (release candidate); Python tooling **0.4.0**
-(release candidate); Rust crate **0.4.0** (release candidate); hosted
-service verifier 0.4.0 pending deployment.
+**Materials frozen at:** tag `v0.4.0` (created 2026-09-24 at commit
+`59b401a`; package publication and hosted deployment pending at review
+time) — spec `continuity-receipt/0.4` (release candidate); Python tooling
+**0.4.0** (release candidate); Rust crate **0.4.0** (release candidate);
+hosted service verifier 0.4.0 pending deployment.
 **Repository:** <https://github.com/lbailey94/continuity-receipt> ·
 **Contact:** lbailey94@protonmail.com (subject: "verification review").
 
