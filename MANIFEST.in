@@ -7,6 +7,9 @@ include REVIEW_BRIEF.md
 include ANCHORING.md
 include REVOCATION_DISTRIBUTION.md
 include CONFORMANCE.md
+include CONFORMANCE_TABLE.md
+include OPEN_DATA_ANSWER_RECEIPT.md
+include SECURITY.md
 include verifier-capabilities.json
 include CHANGELOG.md
 include ROADMAP.md
