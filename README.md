@@ -2,9 +2,8 @@
 
 **An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
 
-**Spec version:** `continuity-receipt/0.4` — release candidate (2026-09-24);
-publication pending. `0.1`–`0.3` remain supported (open items listed in
-`SPEC.md` §11).
+**Spec version:** `continuity-receipt/0.4` — published 2026-09-24. `0.1`–`0.3`
+remain supported (open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
 **Version matrix** — the spec and the two implementations version
@@ -12,13 +11,11 @@ independently:
 
 | Artifact | Current | Published install |
 |---|---|---|
-| Spec / wire format | `continuity-receipt/0.4` (release candidate) | — |
-| Python reference + CLIs | **0.4.0** (release candidate) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.4.0** (release candidate) | `cargo install continuity-receipt` |
+| Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
+| Python reference + CLIs | **0.4.0** (PyPI, 2026-09-24) | `pip install continuity-receipt` |
+| Rust verifier + CLIs | **0.4.0** (crates.io, 2026-09-24) | `cargo install continuity-receipt` |
 
-The install commands resolve to the latest **published** release — until
-0.4.0 is published that is 0.3.3; run against this checkout for the
-release candidate.
+The install commands resolve to the latest published release (0.4.0).
 
 Both implementations support spec 0.4 (the offer/accept binding carried
 through the chain) with identical verdicts and codes over the full vector set.
@@ -63,7 +60,7 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.4.0 once published; 0.3.3 until then) — clone the repo for the vectors
+# from PyPI (0.4.0) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
 pip install continuity-receipt
 continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED

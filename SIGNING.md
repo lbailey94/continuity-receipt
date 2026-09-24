@@ -19,7 +19,7 @@ commit. That documents the releases that missed signing — it does not alter
 | `v0.3.1` | `008735f` | yes (retro 2026-09-24) | Python 0.3.1 / Rust 0.3.1 |
 | `v0.3.2` | `b2489a7` | yes (retro 2026-09-24) | Python 0.3.2 / Rust 0.3.2 |
 | `v0.3.3` | `354d9b8` | yes (retro 2026-09-24) | Python 0.3.3 / Rust 0.3.2 at that commit |
-| `v0.4.0` | `59b401a` | yes | spec 0.4 release candidate |
+| `v0.4.0` | `59b401a` | yes | spec 0.4 (published 2026-09-24) |
 
 ## Signing key
 

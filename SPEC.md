@@ -1,10 +1,9 @@
 # Continuity Receipt — v0.4 Specification
 
-**Status:** `continuity-receipt/0.4` — **release candidate** (2026-09-24);
-publication pending. `0.1`–`0.3` remain supported by the verifier. Open items
-in §11.
+**Status:** `continuity-receipt/0.4` — published 2026-09-24. `0.1`–`0.3`
+remain supported by the verifier. Open items in §11.
 **Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
-0.4 release candidate 2026-09-24.
+0.4 released 2026-09-24.
 **Home:** this repository — versioned independently of any product release
 train.
 

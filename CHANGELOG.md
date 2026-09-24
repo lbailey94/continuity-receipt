@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased — 0.4.0 release candidate (2026-09-24)
+## 0.4.0 — 2026-09-24
 
 Spec 0.4 and tooling 0.4.0: the offer → accept binding is carried through the
 chain, plus verifier robustness hardening, the conformance table, and the
-documentation pass. **Release candidate — publication pending.**
+documentation pass. Published to PyPI and crates.io on 2026-09-24 (built from tag `v0.4.0`).
 
 - **Spec 0.4 — binding carried.** `agreement.accept` requires `offeree` and
   must be signed by it; accepts must follow their offer; bound stages
@@ -45,7 +45,7 @@ documentation pass. **Release candidate — publication pending.**
   issuer — including the specific questions we want answered and the
   weaknesses we already know about.
 
-## Rust crate 0.4.0 — release candidate (2026-09-24)
+## Rust crate 0.4.0 — 2026-09-24
 
 `continuity-receipt` 0.4.0: parity for spec 0.4 (the binding carried through
 the chain), the whole-shape validation pass, input boundaries, and the

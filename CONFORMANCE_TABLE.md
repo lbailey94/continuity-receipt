@@ -1,7 +1,7 @@
 # Conformance table — normative rule → implementation → vectors
 
-**Status:** release candidate for `continuity-receipt/0.4` (2026-09-24);
-publication pending. This table is the audit surface: every normative rule maps
+**Status:** `continuity-receipt/0.4` (published 2026-09-24). This table is
+the audit surface: every normative rule maps
 to a check in both implementations and to vectors that exercise it. Where a
 rule is deliberately not enforced, the row says so and why.
 **Companion documents:** `SPEC.md` (normative), `CONFORMANCE.md`

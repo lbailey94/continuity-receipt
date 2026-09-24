@@ -1,9 +1,8 @@
 # Publishing `continuity-receipt` to crates.io
 
-**Status:** published through `0.3.3` (0.3.1 anchor parity; 0.3.2 spec 0.3
-offer/accept parity; 0.3.3 verification-receipt parity). The crate is at
-`0.4.0` — release candidate, publication pending. This runbook is the
-procedure for the 0.4.0 publication and future versions.
+**Status:** published through `0.4.0` (0.3.1 anchor parity; 0.3.2 spec 0.3
+offer/accept parity; 0.3.3 verification-receipt parity; 0.4.0 spec 0.4 binding
++ robustness). This runbook remains the procedure for future versions.
 
 Operator runbook. The crate is publish-ready (`cargo publish --dry-run`
 passes); publication itself is a human action because it needs the crates.io
@@ -20,9 +19,9 @@ token and is irreversible (a version can be yanked, never replaced).
 
 ## Version
 
-The crate is at `0.4.0` (release candidate; `Cargo.toml`). The 0.3.0 alpha
-sequence already validated the pipeline — publish `0.4.0` directly once the
-release candidate is frozen (tagged, checked, changelog promoted).
+`0.4.0` was published 2026-09-24 (tag `v0.4.0`; `cargo publish` from the tag
+worktree). For future versions: publish directly once the candidate is frozen
+(tagged, checked, changelog promoted).
 
 Do not publish with `alpha` or `rc` in the version: crates.io sorts
 pre-releases below the release, and `cargo install continuity-receipt` would
