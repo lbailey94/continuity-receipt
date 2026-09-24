@@ -2,24 +2,27 @@
 """Build or verify a conformance submission for the referee.
 
 The referee (`POST /conformance` on the hosted API) grades a verifier's
-outputs over the pinned corpus — `vectors/manifest.json` (40 bundles) and
-`vectors/verification/manifest.json` (21 verification receipts) — against the
-manifests and issues a signed conformance report.
+outputs over the pinned corpus — `vectors/manifest.json` (40 bundles),
+`vectors/verification/manifest.json` (21 verification receipts), and the
+hostile corpus pinned by `tools/hostile_input_probe.py --manifest-out` (208
+cases) — against the manifests and issues a signed conformance report.
 
-This tool runs a verifier CLI over both corpora and writes the submission
-JSON the referee accepts:
+This tool runs a verifier CLI over all three corpora and writes the
+submission JSON the referee accepts:
 
-    python3 tools/conformance_submit.py --python --version 0.3.3 > submission.json
+    python3 tools/conformance_submit.py --python --version 0.4.0 > submission.json
     python3 tools/conformance_submit.py --rust-bin rust/target/release/continuity-receipt-verify \
-        --name continuity-receipt --version 0.3.3 --language rust > submission.json
+        --name continuity-receipt --version 0.4.0 --language rust > submission.json
 
     # verify a returned report offline (signature + shape)
     python3 tools/conformance_submit.py --verify-report report.json
 """
 import argparse
+import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +80,31 @@ def receipt_results(prefix: list[str]) -> dict:
             "valid": output.get("valid"),
             "errors": sorted(output.get("errors", [])),
         }
+    return results
+
+
+def hostile_results(prefix: list[str]) -> dict:
+    spec = importlib.util.spec_from_file_location(
+        "hostile_input_probe", ROOT / "tools" / "hostile_input_probe.py"
+    )
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    cases = probe.documented_cases() + probe.mutation_cases(False, 200)
+    results = {}
+    with tempfile.TemporaryDirectory(prefix="cr-conformance-") as tmp:
+        for index, (name, payload) in enumerate(cases):
+            case_path = Path(tmp) / f"case-{index}.json"
+            if isinstance(payload, str):
+                case_path.write_text(payload, encoding="utf-8")
+            else:
+                case_path.write_text(json.dumps(payload), encoding="utf-8")
+            proc = probe.run(prefix + [str(case_path)])
+            verdict, codes, reason = probe.check_structured(name, "submission", proc)
+            results[name] = {
+                "structured": reason is None,
+                "verdict": verdict,
+                "codes": list(codes) if codes else [],
+            }
     return results
 
 
@@ -160,6 +188,7 @@ def main(argv=None) -> int:
         "results": {
             "bundles": bundle_results(prefix),
             "verification_receipts": receipt_results(receipt_prefix),
+            "hostile_inputs": hostile_results(prefix),
         },
     }
     text = json.dumps(submission, indent=2) + "\n"

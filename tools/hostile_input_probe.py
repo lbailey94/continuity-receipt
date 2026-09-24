@@ -17,6 +17,9 @@ verdict or the error-code set for a case.
     python3 tools/hostile_input_probe.py --python-only   # no Rust binary needed
     python3 tools/hostile_input_probe.py --require-parity
     python3 tools/hostile_input_probe.py --json          # machine-readable summary
+    python3 tools/hostile_input_probe.py --manifest-out hostile-manifest.json
+                                                         # pin the corpus for the
+                                                         # hosted conformance referee
 
 Exit code is 0 only when every case produced a structured outcome.
 """
@@ -176,10 +179,65 @@ def check_structured(
     return verdict, tuple(sorted(entry["code"] for entry in errors)), None
 
 
+def write_hostile_manifest(path: str, full: bool, sample: int) -> int:
+    """Pin the hostile corpus for the hosted conformance referee.
+
+    Runs the reference (Python) verifier over every case, fails when any case
+    is not structured, and writes labels plus reference expectations:
+    documented reproductions and boundary cases pin verdict + codes; mutation
+    cases require a structured outcome only (their exact codes are not part
+    of the spec surface).
+    """
+    from continuity_receipt import records  # local import: CLI-only runs stay library-free
+
+    pinned_prefixes = ("repro.", "boundary.")
+    vectors = []
+    cases = documented_cases() + mutation_cases(full, sample)
+    with tempfile.TemporaryDirectory(prefix="cr-hostile-manifest-") as tmp:
+        for index, (name, payload) in enumerate(cases):
+            case_path = Path(tmp) / f"case-{index}.json"
+            if isinstance(payload, str):
+                case_path.write_text(payload, encoding="utf-8")
+            else:
+                case_path.write_text(json.dumps(payload), encoding="utf-8")
+            proc = run([sys.executable, "-m", "continuity_receipt.verify", str(case_path)])
+            verdict, codes, reason = check_structured(name, "python", proc)
+            if reason is not None:
+                print(
+                    f"error: reference implementation is not structured on {name}: {reason}",
+                    file=sys.stderr,
+                )
+                return 2
+            vector = {"case": name, "require": "structured"}
+            if name.startswith(pinned_prefixes):
+                vector["expected_verdict"] = verdict
+                vector["expected_codes"] = list(codes)
+            vectors.append(vector)
+
+    manifest = {
+        "kind": "continuity-receipt-hostile-vectors",
+        "version": 1,
+        "spec": records.SPEC_ID,
+        "generator": "tools/hostile_input_probe.py",
+        "seed": "0xC0FFEE",
+        "sample": sample,
+        "full": full,
+        "vectors": vectors,
+    }
+    Path(path).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {len(vectors)} hostile cases to {path}")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="hostile_input_probe")
     parser.add_argument("--full", action="store_true", help="exhaustive leaf mutations (slow)")
     parser.add_argument("--sample", type=int, default=200, help="mutation sample size (default 200)")
+    parser.add_argument(
+        "--manifest-out",
+        metavar="PATH",
+        help="write the pinned hostile manifest for the conformance referee and exit",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--python-only", action="store_true", help="skip the Rust CLI")
     mode.add_argument(
@@ -190,6 +248,9 @@ def main(argv=None) -> int:
     parser.add_argument("--rust-bin", metavar="PATH", help="Rust verifier binary to use")
     parser.add_argument("--json", action="store_true", help="print a machine-readable summary")
     args = parser.parse_args(argv)
+
+    if args.manifest_out:
+        return write_hostile_manifest(args.manifest_out, args.full, args.sample)
 
     rust_bin = None
     if not args.python_only:
