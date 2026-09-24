@@ -4,16 +4,20 @@ Verdicts: TRUSTED | PROVISIONAL | INSUFFICIENT_EVIDENCE | UNTRUSTED
 (IETF CTQ-aligned semantics; see spec §7).
 """
 import json
+import os
 import sys
 from dataclasses import dataclass, field as dc_field
 
-from . import keys, records
+from . import agreements, keys, records
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
 from .revocations import merge_statements, verify_statements
 
 ANCHOR_TYPES = ("opentimestamps", "public-chain", "custom")
 PROVENANCE_PREFIXES = ("sha256:", "merkle-sha256:")
+MAX_RECEIPTS = 10_000
+MAX_NESTING_DEPTH = 64
+MAX_BUNDLE_BYTES = 8 * 1024 * 1024
 
 
 @dataclass
@@ -41,6 +45,28 @@ def _fatal(result: VerifyResult, code: str, detail: str, receipt_id: str | None 
     result.errors.append({"code": code, "detail": detail, "receipt_id": receipt_id})
 
 
+def _try_digest(receipt: dict) -> str | None:
+    """receipt_digest for a well-formed receipt; None when not canonically encodable."""
+    try:
+        return receipt_digest(receipt)
+    except (TypeError, ValueError):
+        return None
+
+
+def _depth_exceeded(node, limit: int) -> bool:
+    """Iterative depth probe so hostile nesting cannot exhaust the stack."""
+    stack = [(node, 1)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > limit:
+            return True
+        if isinstance(current, dict):
+            stack.extend((value, depth + 1) for value in current.values())
+        elif isinstance(current, list):
+            stack.extend((value, depth + 1) for value in current)
+    return False
+
+
 def _iter_redactions(node, path, out):
     if isinstance(node, dict):
         if node.get("redacted") is True:
@@ -53,6 +79,43 @@ def _iter_redactions(node, path, out):
             _iter_redactions(value, f"{path}[{index}]", out)
 
 
+def _check_shape(result: VerifyResult, bundle: dict, receipts: list) -> None:
+    """Whole-shape validation before any semantic check.
+
+    Structural violations (a value of the wrong JSON type where the format
+    requires an object, list, or string) are recorded up front as
+    ``malformed``/``bad_revocation``/``anchor_invalid``, so every later pass
+    can rely on shape — and hostile input cannot reach a code path that would
+    raise. Semantic checks stay in their own passes.
+    """
+    for index, receipt in enumerate(receipts):
+        if not isinstance(receipt, dict):
+            _fatal(result, "malformed", f"receipt {index} is not an object")
+            continue
+        rid = receipt.get("receipt_id") if isinstance(receipt.get("receipt_id"), str) else None
+        if not isinstance(receipt.get("body"), dict):
+            _fatal(result, "malformed", "body is not an object", rid)
+        if not isinstance(receipt.get("issuer"), dict):
+            _fatal(result, "malformed", "issuer is not an object", rid)
+    anchors = bundle.get("anchors")
+    if anchors is not None and not isinstance(anchors, list):
+        _fatal(result, "malformed", "anchors is not a list")
+    elif isinstance(anchors, list):
+        for anchor in anchors:
+            if not isinstance(anchor, dict):
+                _fatal(result, "anchor_invalid", "anchor entry is not an object")
+    revocations = bundle.get("revocations")
+    if revocations is not None and not isinstance(revocations, list):
+        _fatal(result, "bad_revocation", "revocations must be a list")
+    elif isinstance(revocations, list):
+        for statement in revocations:
+            if not isinstance(statement, dict):
+                _fatal(result, "bad_revocation", "revocation statements must be objects")
+    disclosure_map = bundle.get("disclosure_map")
+    if disclosure_map is not None and not isinstance(disclosure_map, dict):
+        _fatal(result, "malformed", "disclosure_map is not an object")
+
+
 def verify_bundle(
     bundle: dict,
     require_anchor: bool = False,
@@ -63,6 +126,9 @@ def verify_bundle(
     if not isinstance(bundle, dict):
         _fatal(result, "malformed", "bundle is not an object")
         return _finish(result)
+    if _depth_exceeded(bundle, MAX_NESTING_DEPTH):
+        _fatal(result, "nesting_too_deep", f"bundle nesting exceeds depth {MAX_NESTING_DEPTH}")
+        return _finish(result)
 
     if bundle.get("spec") not in records.SUPPORTED_SPECS:
         _fatal(result, "version_unsupported", f"spec={bundle.get('spec')!r}")
@@ -72,14 +138,17 @@ def verify_bundle(
     if not isinstance(receipts, list) or not receipts:
         _fatal(result, "malformed", "bundle has no receipts")
         return _finish(result)
+    if len(receipts) > MAX_RECEIPTS:
+        _fatal(result, "too_many_receipts", f"{len(receipts)} receipts exceeds limit {MAX_RECEIPTS}")
+        return _finish(result)
+
+    _check_shape(result, bundle, receipts)
 
     task_id = bundle.get("task_id")
     expected_prev = None
-    type_by_seq: dict[int, str] = {}
 
     for index, receipt in enumerate(receipts):
         if not isinstance(receipt, dict):
-            _fatal(result, "malformed", f"receipt {index} is not an object")
             continue
         rid = receipt.get("receipt_id")
         if receipt.get("spec") not in records.SUPPORTED_SPECS:
@@ -90,12 +159,14 @@ def verify_bundle(
         if record_type not in records.RECORD_TYPES:
             _fatal(result, "unknown_type", f"type={record_type!r}", rid)
             continue
-        type_by_seq[index] = record_type
         body = receipt.get("body")
         if not isinstance(body, dict):
-            _fatal(result, "malformed", "body is not an object", rid)
             continue
-        missing = [name for name in records.REQUIRED_FIELDS[record_type] if name not in body]
+        missing = [
+            name
+            for name in records.required_fields(record_type, receipt.get("spec"))
+            if name not in body
+        ]
         if missing:
             _fatal(result, "malformed", f"missing body fields {missing}", rid)
 
@@ -106,75 +177,135 @@ def verify_bundle(
             _fatal(result, "chain_break", f"seq {receipt.get('seq')} != position {index}", rid)
         if receipt.get("prev") != expected_prev:
             _fatal(result, "chain_break", "prev digest mismatch", rid)
-        expected_prev = receipt_digest(receipt)
+        digest = _try_digest(receipt)
+        if digest is None:
+            _fatal(result, "malformed", "receipt is not canonically encodable (floats are rejected)", rid)
+            expected_prev = None
+        else:
+            expected_prev = digest
 
+        issuer = receipt.get("issuer")
         sig = receipt.get("sig")
-        if not isinstance(sig, dict) or sig.get("alg") != "ed25519" or not sig.get("value"):
+        if (
+            not isinstance(sig, dict)
+            or sig.get("alg") != "ed25519"
+            or not isinstance(sig.get("value"), str)
+            or not sig.get("value")
+        ):
             _fatal(result, "bad_signature", "missing or unsupported sig", rid)
         else:
-            issuer = receipt.get("issuer", {}).get("id", "")
-            message = canonical_bytes(records.unsigned_view(receipt))
-            if not keys.verify(issuer, message, sig["value"]):
-                _fatal(result, "bad_signature", "signature does not verify", rid)
+            issuer_id = issuer.get("id", "") if isinstance(issuer, dict) else ""
+            try:
+                message = canonical_bytes(records.unsigned_view(receipt))
+            except (TypeError, ValueError):
+                _fatal(result, "bad_signature", "receipt is not canonically encodable", rid)
+            else:
+                if not isinstance(issuer_id, str) or not keys.verify(issuer_id, message, sig["value"]):
+                    _fatal(result, "bad_signature", "signature does not verify", rid)
 
-    _check_cross_record(result, receipts, type_by_seq)
-    _check_agreements(result, receipts)
-    _check_redactions(result, receipts, bundle.get("disclosure_map") or {})
-    _check_attestations(result, receipts)
-    _check_provenance(result, receipts)
-    _check_revocations(result, bundle, receipts, external_revocations)
-    _check_anchors(result, bundle, receipts, require_anchor)
+    well_formed = [r for r in receipts if isinstance(r, dict)]
+    disclosure_map = bundle.get("disclosure_map")
+    if not isinstance(disclosure_map, dict):
+        disclosure_map = None
+    _check_cross_record(result, well_formed)
+    _check_agreements(result, well_formed)
+    _check_redactions(result, well_formed, disclosure_map or {})
+    _check_attestations(result, well_formed)
+    _check_provenance(result, well_formed)
+    _check_revocations(result, bundle, well_formed, external_revocations)
+    _check_anchors(result, bundle, well_formed, require_anchor)
 
+    types = [r.get("type") for r in well_formed]
     summary = {
         "receipts": len(receipts),
-        "types": [r.get("type") for r in receipts if isinstance(r, dict)],
+        "types": types,
         "issuers": sorted(
-            {r.get("issuer", {}).get("id", "") for r in receipts if isinstance(r, dict)}
+            {
+                r["issuer"]["id"]
+                for r in well_formed
+                if isinstance(r.get("issuer"), dict) and isinstance(r["issuer"].get("id"), str)
+            }
         ),
-        "terminated": "task.termination" in type_by_seq.values(),
-        "settled": "settlement" in type_by_seq.values(),
+        "terminated": "task.termination" in types,
+        "settled": "settlement" in types,
     }
     result.summary = {**summary, **result.summary}
     return _finish(result)
 
 
-def _check_cross_record(result: VerifyResult, receipts: list, type_by_seq: dict) -> None:
+def _check_cross_record(result: VerifyResult, receipts: list) -> None:
     pass_receipts = [r for r in receipts if r.get("type") == "session.pass.created"]
     if not pass_receipts:
         _fatal(result, "malformed", "chain has no session.pass.created receipt")
         return
-    pass_body = pass_receipts[0]["body"]
+    pass_body = pass_receipts[0].get("body")
+    if not isinstance(pass_body, dict):
+        return
     policy_version = pass_body.get("policy_version")
 
     for receipt in receipts:
-        if receipt.get("type") == "task.decision":
-            if receipt["body"].get("policy_version") != policy_version:
-                _fatal(
-                    result,
-                    "policy_mismatch",
-                    f"decision policy {receipt['body'].get('policy_version')!r} "
-                    f"!= pass policy {policy_version!r}",
-                    receipt.get("receipt_id"),
-                )
+        if receipt.get("type") != "task.decision":
+            continue
+        body = receipt.get("body")
+        if not isinstance(body, dict):
+            continue
+        if body.get("policy_version") != policy_version:
+            _fatal(
+                result,
+                "policy_mismatch",
+                f"decision policy {body.get('policy_version')!r} "
+                f"!= pass policy {policy_version!r}",
+                receipt.get("receipt_id"),
+            )
 
     spend_cap = pass_body.get("spend_cap")
+    if spend_cap is not None and not isinstance(spend_cap, dict):
+        _fatal(
+            result,
+            "malformed",
+            "pass spend_cap is not an object",
+            pass_receipts[0].get("receipt_id"),
+        )
+        spend_cap = None
+    type_by_seq = {index: r.get("type") for index, r in enumerate(receipts)}
     settlement_indexes = [i for i, t in type_by_seq.items() if t == "settlement"]
     delivery_indexes = [i for i, t in type_by_seq.items() if t == "delivery.attestation"]
 
     for index in settlement_indexes:
         settlement = receipts[index]
-        amount = settlement["body"].get("amount", {})
-        if spend_cap is not None and (
-            amount.get("currency") != spend_cap.get("currency")
-            or int(amount.get("minor", 0)) > int(spend_cap.get("minor", 0))
-        ):
+        body = settlement.get("body")
+        if not isinstance(body, dict):
+            continue
+        amount = body.get("amount") if "amount" in body else {}
+        if not isinstance(amount, dict):
             _fatal(
                 result,
-                "cap_exceeded",
-                f"settlement {amount} exceeds cap {spend_cap}",
+                "malformed",
+                "settlement amount is not an object",
                 settlement.get("receipt_id"),
             )
-        if settlement["body"].get("gated_on_delivery") and (
+            continue
+        if spend_cap is not None:
+            try:
+                exceeds = amount.get("currency") != spend_cap.get("currency") or int(
+                    amount.get("minor", 0)
+                ) > int(spend_cap.get("minor", 0))
+            except (TypeError, ValueError):
+                _fatal(
+                    result,
+                    "malformed",
+                    "settlement amount is not numeric",
+                    settlement.get("receipt_id"),
+                )
+                exceeds = False
+            if exceeds:
+                _fatal(
+                    result,
+                    "cap_exceeded",
+                    f"settlement {amount} exceeds cap {spend_cap}",
+                    settlement.get("receipt_id"),
+                )
+        if body.get("gated_on_delivery") and (
             not delivery_indexes or min(delivery_indexes) > index
         ):
             _fatal(
@@ -189,55 +320,203 @@ def _check_cross_record(result: VerifyResult, receipts: list, type_by_seq: dict)
 
 
 def _check_agreements(result: VerifyResult, receipts: list) -> None:
-    """0.3: `agreement.accept` binds to a preceding `agreement.offer`.
+    """Offer → accept binding: 0.3 resolves the offer; 0.4 carries the binding.
 
-    Binding rules (spec §4.9):
-    - `offer_ref` is the digest of the offer receipt (the same canonical view
-      used by `prev` links). An accept whose offer is absent from the bundle is
-      unverifiable, not false: INSUFFICIENT_EVIDENCE (`missing_offer`).
-    - A present offer with a different `offer_id` or `terms_hash` is a failed
-      checked claim: UNTRUSTED (`offer_mismatch`).
-    - An accept issued after the offer's `valid_until` is UNTRUSTED
-      (`offer_expired`). Ordering is by timestamps here because the two
-      receipts may be on different chains; skew tolerance is the caller's.
+    0.3 (unchanged): `offer_ref` resolves to an offer in the bundle; `offer_id`
+    and `terms_hash` must match (`offer_mismatch`); an accept after the offer's
+    `valid_until` is expired (`offer_expired`). A missing offer is
+    INSUFFICIENT_EVIDENCE (`missing_offer`), never silently trusted.
+
+    0.4 additions:
+    - The accept names the offeree (`offeree` is required) and must be signed
+      by it; it must equal the offer's offeree — otherwise `offeree_mismatch`.
+    - The accept must follow the offer in time (`accept_before_offer`).
+    - A 0.4 bound record (`BOUND_TYPES`) carrying `agreement_ref` must resolve
+      to an accept in the bundle (absent → `missing_agreement`), must follow it
+      (`agreement_before_accept`), and its issuer must be the accept's offeree
+      (`agreement_issuer_mismatch`). Non-0.4 records ignore `agreement_ref` as
+      an additional member.
+    - The offeree's post-accept bound records must carry `agreement_ref`
+      (`missing_agreement_ref`), and an accept nothing references is
+      `agreement_unreferenced` — both PROVISIONAL: the linkage evidence is
+      missing, not false.
     """
-    offers = {receipt_digest(r): r for r in receipts if r.get("type") == "agreement.offer"}
+    offers: dict = {}
+    accepts: dict = {}
+    for r in receipts:
+        record_type = r.get("type")
+        if record_type not in ("agreement.offer", "agreement.accept"):
+            continue
+        digest = _try_digest(r)
+        if digest is None:
+            continue
+        (offers if record_type == "agreement.offer" else accepts)[digest] = r
+
     for receipt in receipts:
-        if receipt.get("type") != "agreement.accept":
+        if receipt.get("type") == "agreement.accept":
+            _check_accept(result, receipt, offers)
+
+    referenced: set = set()
+    for receipt in receipts:
+        if receipt.get("type") not in agreements.BOUND_TYPES:
             continue
-        body = receipt.get("body", {})
-        offer = offers.get(body.get("offer_ref"))
-        if offer is None:
-            result.insufficient_reasons.append(f"missing_offer:{receipt.get('receipt_id')}")
+        if receipt.get("spec") != "continuity-receipt/0.4":
             continue
-        offer_body = offer.get("body", {})
-        valid_until = offer_body.get("valid_until")
-        if not records.validate_timestamp(valid_until):
-            _fatal(
-                result,
-                "malformed",
-                f"offer valid_until not RFC 3339 UTC: {valid_until!r}",
-                offer.get("receipt_id"),
+        body = receipt.get("body")
+        if not isinstance(body, dict):
+            continue
+        ref = body.get("agreement_ref")
+        if ref is None:
+            continue
+        accept = accepts.get(ref) if isinstance(ref, str) else None
+        if accept is None:
+            result.insufficient_reasons.append(
+                f"missing_agreement:{receipt.get('receipt_id')}"
             )
             continue
+        referenced.add(ref)
+        accept_body = accept.get("body")
+        if not isinstance(accept_body, dict):
+            continue
+        accept_issued = accept.get("issued_at")
+        bound_issued = receipt.get("issued_at")
         if (
-            body.get("offer_id") != offer_body.get("offer_id")
-            or body.get("terms_hash") != offer_body.get("terms_hash")
+            records.validate_timestamp(accept_issued)
+            and records.validate_timestamp(bound_issued)
+            and records.parse_timestamp(bound_issued) < records.parse_timestamp(accept_issued)
         ):
             _fatal(
                 result,
-                "offer_mismatch",
-                "accept does not match the referenced offer",
+                "agreement_before_accept",
+                f"bound receipt issued before its accept {accept.get('receipt_id')}",
                 receipt.get("receipt_id"),
             )
-            continue
-        if records.parse_timestamp(receipt["issued_at"]) > records.parse_timestamp(valid_until):
+        issuer = receipt.get("issuer")
+        issuer_id = issuer.get("id") if isinstance(issuer, dict) else None
+        offeree = accept_body.get("offeree")
+        if isinstance(offeree, str) and issuer_id != offeree:
             _fatal(
                 result,
-                "offer_expired",
-                f"accept issued after offer valid_until {valid_until}",
+                "agreement_issuer_mismatch",
+                f"bound receipt issuer {issuer_id!r} is not the offeree",
                 receipt.get("receipt_id"),
             )
+
+    _check_agreement_completeness(result, receipts, accepts, referenced)
+
+
+def _check_accept(result: VerifyResult, receipt: dict, offers: dict) -> None:
+    body = receipt.get("body")
+    if not isinstance(body, dict):
+        return
+    offer_ref = body.get("offer_ref")
+    offer = offers.get(offer_ref) if isinstance(offer_ref, str) else None
+    if offer is None:
+        result.insufficient_reasons.append(f"missing_offer:{receipt.get('receipt_id')}")
+        return
+    offer_body = offer.get("body")
+    if not isinstance(offer_body, dict):
+        return
+    valid_until = offer_body.get("valid_until")
+    if not records.validate_timestamp(valid_until):
+        _fatal(
+            result,
+            "malformed",
+            f"offer valid_until not RFC 3339 UTC: {valid_until!r}",
+            offer.get("receipt_id"),
+        )
+        return
+    if (
+        body.get("offer_id") != offer_body.get("offer_id")
+        or body.get("terms_hash") != offer_body.get("terms_hash")
+    ):
+        _fatal(
+            result,
+            "offer_mismatch",
+            "accept does not match the referenced offer",
+            receipt.get("receipt_id"),
+        )
+        return
+    accept_issued = receipt.get("issued_at")
+    if records.validate_timestamp(accept_issued) and records.parse_timestamp(
+        accept_issued
+    ) > records.parse_timestamp(valid_until):
+        _fatal(
+            result,
+            "offer_expired",
+            f"accept issued after offer valid_until {valid_until}",
+            receipt.get("receipt_id"),
+        )
+    if receipt.get("spec") != "continuity-receipt/0.4":
+        return
+    offeree = body.get("offeree")
+    issuer = receipt.get("issuer")
+    issuer_id = issuer.get("id") if isinstance(issuer, dict) else None
+    if not isinstance(offeree, str) or not offeree:
+        _fatal(
+            result,
+            "malformed",
+            f"accept offeree is not a string: {offeree!r}",
+            receipt.get("receipt_id"),
+        )
+    elif issuer_id != offeree or offeree != offer_body.get("offeree"):
+        _fatal(
+            result,
+            "offeree_mismatch",
+            f"accept offeree {offeree!r} does not match the signer {issuer_id!r} / offer",
+            receipt.get("receipt_id"),
+        )
+    offer_issued = offer.get("issued_at")
+    if (
+        records.validate_timestamp(accept_issued)
+        and records.validate_timestamp(offer_issued)
+        and records.parse_timestamp(accept_issued) < records.parse_timestamp(offer_issued)
+    ):
+        _fatal(
+            result,
+            "accept_before_offer",
+            f"accept issued before offer {offer.get('receipt_id')}",
+            receipt.get("receipt_id"),
+        )
+
+
+def _check_agreement_completeness(
+    result: VerifyResult, receipts: list, accepts: dict, referenced: set
+) -> None:
+    """0.4: an accept nothing references, and offeree receipts that skip the ref."""
+    for digest, accept in accepts.items():
+        if accept.get("spec") == "continuity-receipt/0.4" and digest not in referenced:
+            result.provisional_reasons.append(
+                f"agreement_unreferenced:{accept.get('receipt_id')}"
+            )
+    for receipt in receipts:
+        if receipt.get("spec") != "continuity-receipt/0.4":
+            continue
+        if receipt.get("type") not in agreements.BOUND_TYPES:
+            continue
+        body = receipt.get("body")
+        if not isinstance(body, dict) or body.get("agreement_ref") is not None:
+            continue
+        issuer = receipt.get("issuer")
+        issuer_id = issuer.get("id") if isinstance(issuer, dict) else None
+        bound_issued = receipt.get("issued_at")
+        if not isinstance(issuer_id, str) or not records.validate_timestamp(bound_issued):
+            continue
+        bound_at = records.parse_timestamp(bound_issued)
+        for accept in accepts.values():
+            if accept.get("spec") != "continuity-receipt/0.4":
+                continue
+            accept_body = accept.get("body")
+            if not isinstance(accept_body, dict) or accept_body.get("offeree") != issuer_id:
+                continue
+            accept_issued = accept.get("issued_at")
+            if not records.validate_timestamp(accept_issued):
+                continue
+            if records.parse_timestamp(accept_issued) <= bound_at:
+                result.provisional_reasons.append(
+                    f"missing_agreement_ref:{receipt.get('receipt_id')}"
+                )
+                break
 
 
 def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict) -> None:
@@ -248,8 +527,13 @@ def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict
             _fatal(result, "redacted_required", f"required field redacted at {path}")
             continue
         entry = disclosure_map.get(path)
-        if entry and "salt" in entry and "value" in entry:
-            if commit_field(entry["salt"], entry["value"]) != field.get("commit"):
+        if isinstance(entry, dict) and "salt" in entry and "value" in entry:
+            try:
+                commit = commit_field(entry["salt"], entry["value"])
+            except (TypeError, ValueError):
+                _fatal(result, "commit_mismatch", f"disclosure entry malformed at {path}")
+                continue
+            if commit != field.get("commit"):
                 _fatal(result, "commit_mismatch", f"commit mismatch at {path}")
             continue
         if field.get("erased"):
@@ -281,16 +565,19 @@ def _check_attestations(result: VerifyResult, receipts: list) -> None:
                 }
             )
             continue
-        valid = (
+        view = None
+        if (
             isinstance(attestation, dict)
             and attestation.get("alg") == "ed25519"
             and isinstance(attestation.get("key"), str)
             and isinstance(attestation.get("value"), str)
-            and keys.verify(
-                attestation["key"],
-                canonical_bytes(records.attestation_view(body)),
-                attestation["value"],
-            )
+        ):
+            try:
+                view = canonical_bytes(records.attestation_view(body))
+            except (TypeError, ValueError):
+                view = None
+        valid = view is not None and keys.verify(
+            attestation["key"], view, attestation["value"]
         )
         seen.append(
             {
@@ -316,7 +603,10 @@ def _check_provenance(result: VerifyResult, receipts: list) -> None:
     for receipt in receipts:
         if receipt.get("type") != "task.decision":
             continue
-        provenance = receipt.get("body", {}).get("input_provenance")
+        body = receipt.get("body")
+        if not isinstance(body, dict):
+            continue
+        provenance = body.get("input_provenance")
         if not isinstance(provenance, dict):
             continue
         observed = provenance.get("observed_sources_hash")
@@ -348,16 +638,22 @@ def _check_revocations(
     """
     bundle_revocations = bundle.get("revocations") or []
     if not isinstance(bundle_revocations, list):
-        _fatal(result, "bad_revocation", "revocations must be a list")
         return
-    revocations = merge_statements(bundle_revocations, external_revocations)
-    revoked, statement_errors = verify_statements(revocations)
+    if not all(isinstance(statement, dict) for statement in bundle_revocations):
+        return
+    try:
+        revocations = merge_statements(bundle_revocations, external_revocations)
+        revoked, statement_errors = verify_statements(revocations)
+    except (TypeError, ValueError) as exc:
+        _fatal(result, "bad_revocation", f"revocations unusable: {exc}")
+        return
     for code, detail in statement_errors:
         _fatal(result, code, detail)
     checked = len(revoked)
 
     for receipt in receipts:
-        key_id = receipt.get("issuer", {}).get("id")
+        issuer = receipt.get("issuer")
+        key_id = issuer.get("id") if isinstance(issuer, dict) else None
         issued = receipt.get("issued_at")
         if not isinstance(key_id, str) or not records.validate_timestamp(issued):
             continue
@@ -385,7 +681,11 @@ def _required_field_for_path(path: str, receipts: list) -> str | None:
         except (ValueError, IndexError):
             return None
         record_type = receipt.get("type")
-        if record_type in records.REQUIRED_FIELDS and parts[2] in records.REQUIRED_FIELDS[record_type]:
+        if (
+            isinstance(record_type, str)
+            and record_type in records.REQUIRED_FIELDS
+            and parts[2] in records.REQUIRED_FIELDS[record_type]
+        ):
             return parts[2]
     return None
 
@@ -396,11 +696,21 @@ def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_a
         if require_anchor:
             result.provisional_reasons.append("anchor_missing")
         return
-    by_id = {r.get("receipt_id"): r for r in receipts if isinstance(r, dict)}
+    if not isinstance(anchors, list):
+        return
+    by_id = {}
+    for r in receipts:
+        rid = r.get("receipt_id")
+        if isinstance(rid, str):
+            by_id[rid] = r
     kinds = []
     for anchor in anchors:
-        target = by_id.get(anchor.get("target"))
-        if target is None or anchor.get("hash") != receipt_digest(target):
+        if not isinstance(anchor, dict):
+            continue
+        target_key = anchor.get("target")
+        target = by_id.get(target_key) if isinstance(target_key, str) else None
+        digest = _try_digest(target) if target is not None else None
+        if target is None or digest is None or anchor.get("hash") != digest:
             _fatal(result, "anchor_invalid", f"anchor invalid for {anchor.get('target')}")
             continue
         meta = anchor.get("anchor")
@@ -464,8 +774,59 @@ def main(argv=None) -> int:
             )
             return 1
 
-    with open(args.bundle, "r", encoding="utf-8") as handle:
-        bundle = json.load(handle)
+    try:
+        size = os.path.getsize(args.bundle)
+    except OSError as exc:
+        print(f"error: cannot read bundle: {exc}", file=sys.stderr)
+        return 2
+    if size > MAX_BUNDLE_BYTES:
+        print(
+            json.dumps(
+                {
+                    "verdict": "UNTRUSTED",
+                    "errors": [
+                        {
+                            "code": "bundle_too_large",
+                            "detail": f"{size} bytes exceeds limit {MAX_BUNDLE_BYTES}",
+                        }
+                    ],
+                },
+                indent=2,
+            )
+        )
+        return 1
+    try:
+        with open(args.bundle, "r", encoding="utf-8") as handle:
+            bundle = json.load(handle)
+    except RecursionError:
+        print(
+            json.dumps(
+                {
+                    "verdict": "UNTRUSTED",
+                    "errors": [
+                        {
+                            "code": "nesting_too_deep",
+                            "detail": "JSON nesting exceeds the parser limit",
+                        }
+                    ],
+                },
+                indent=2,
+            )
+        )
+        return 1
+    except ValueError as exc:
+        print(
+            json.dumps(
+                {
+                    "verdict": "UNTRUSTED",
+                    "errors": [
+                        {"code": "malformed", "detail": f"bundle is not valid JSON: {exc}"}
+                    ],
+                },
+                indent=2,
+            )
+        )
+        return 1
     result = verify_bundle(
         bundle,
         require_anchor=args.require_anchor,

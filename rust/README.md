@@ -1,8 +1,8 @@
 # continuity-receipt (Rust)
 
 Second, independent implementation of the Continuity Receipt verifier for
-`continuity-receipt/0.1`-`0.3` bundles and verification receipts (companion
-v1). The Python implementation in `../continuity_receipt/` remains the
+`continuity-receipt/0.1`-`0.4` bundles and verification receipts (companion
+v1), including the 0.4 agreement-binding rules. The Python implementation in `../continuity_receipt/` remains the
 reference; this crate exists for the two-independent-implementations bar,
 native embedding, and single-binary deployment.
 
@@ -108,9 +108,9 @@ substitute for proof-of-work or confirmation checks.
 cargo test
 ```
 
-The vector runner reads `../vectors/manifest.json` and checks all 26 bundle
+The vector runner reads `../vectors/manifest.json` and checks all 40 bundle
 vectors against their expected verdict and error code; `tests/verification.rs`
-does the same for the 20 verification-receipt vectors
+does the same for the 21 verification-receipt vectors
 (`../vectors/verification/manifest.json`), including consistency violations
 and receipt digests. Malformed-bundle smoke cases
 (empty object, non-object, missing receipts) are included so the verifier
@@ -132,6 +132,7 @@ python3 tools/differential_vectors.py               # verdict + error-code parit
 python3 tools/differential_disclose.py              # maps, signatures, cross-verification
 python3 tools/differential_anchor.py                # status/code/confirmed parity
 python3 tools/differential_verification_receipts.py # validity/codes/digest parity
+python3 tools/hostile_input_probe.py --require-parity # structured outcomes + verdict/code parity
 ```
 
 ## Intentional, documented differences from Python

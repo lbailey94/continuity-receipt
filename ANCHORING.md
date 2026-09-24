@@ -1,6 +1,6 @@
 # Anchoring — policy and decision record
 
-**Status:** decided 2026-09-18 (v0 policy). Applies to `continuity-receipt/0.1`–`0.2`.
+**Status:** decided 2026-09-18 (v0 policy). Applies to `continuity-receipt/0.1`–`0.4`.
 **Scope:** the `anchors[]` bundle member and issuance practice; not a new protocol layer.
 
 ## Decision

@@ -13,7 +13,7 @@ pip install continuity-receipt
 ## 1. Verify a bundle offline (30 seconds)
 
 Any Continuity Receipt bundle verifies with one command — no network, no
-accounts, no trust in us:
+accounts, no trust in the channel:
 
 ```bash
 continuity-receipt-verify vectors/02_happy_full.json
@@ -86,12 +86,19 @@ service's `did:key` (published at `api.whitemagic.dev/info`).
 `digest_match: true` proves the receipt is about *your* bundle; the signature
 proves who said it. The service never stores your bundle.
 
-Tamper with one byte of `receipt.json` and re-run — `bad_signature`. Tamper
-with the bundle — `bundle_digest_mismatch`.
+Tamper with a signed value in `receipt.json` and re-run — `bad_signature`.
+(Whitespace or key-order edits do not change the canonical object, so those
+still verify.) Tamper with the bundle — `bundle_digest_mismatch`.
+
+A receipt check does **not** recompute the verification result: it proves a
+signer made a signed, internally consistent statement about your bundle's
+digest. To check the recorded result itself, re-run step 1 over the bundle and
+compare — the receipt is evidence about the verification run, the bundle is
+the evidence about the task.
 
 ## What you can claim now
 
-> "This bundle verified as TRUSTED under continuity-receipt 0.3, at time T,
+> "This bundle verified as TRUSTED under continuity-receipt 0.4, at time T,
 > by implementation X version Y — and here is the signed statement, checkable
 > offline."
 
@@ -100,8 +107,8 @@ That is the whole integration. No SDK required; the wire formats are JSON.
 ## Where things are
 
 - Spec: `SPEC.md` · verification receipts: `VERIFICATION_RECEIPTS.md`
-- Schema: `schema/` · vectors: `vectors/` (26 bundle cases) and
-  `vectors/verification/` (14 receipt cases)
+- Schema: `schema/` · vectors: `vectors/` (40 bundle cases) and
+  `vectors/verification/` (21 receipt cases)
 - Second implementation: `cargo install continuity-receipt`
 - Hosted API contract: <https://api.whitemagic.dev/docs> ·
   OpenAPI: <https://api.whitemagic.dev/openapi.json>

@@ -53,7 +53,7 @@ jobs:
       - name: Conformance submission tool (self-check)
         run: |
           python3 tools/conformance_submit.py --python --version ci --out /tmp/submission.json
-          python3 -c "import json; s = json.load(open('/tmp/submission.json')); assert len(s['results']['bundles']) == 26 and len(s['results']['verification_receipts']) == 20, s"
+          python3 -c "import json; s = json.load(open('/tmp/submission.json')); assert len(s['results']['bundles']) == 40 and len(s['results']['verification_receipts']) == 21, s"
 
   package:
     runs-on: ubuntu-latest
@@ -105,3 +105,5 @@ jobs:
         run: python3 tools/differential_anchor.py
       - name: Differential check (Python vs Rust verification receipts)
         run: python3 tools/differential_verification_receipts.py
+      - name: Hostile-input probe (both implementations, structured outcomes + parity)
+        run: python3 tools/hostile_input_probe.py --sample 300 --require-parity

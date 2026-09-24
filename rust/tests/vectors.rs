@@ -29,7 +29,7 @@ fn all_vectors_match_manifest() {
     let entries = manifest["vectors"]
         .as_array()
         .expect("manifest has a vectors array");
-    assert_eq!(entries.len(), 26, "manifest vector count");
+    assert_eq!(entries.len(), 40, "manifest vector count");
 
     for entry in entries {
         let file = entry["file"].as_str().expect("vector file name");
@@ -95,6 +95,26 @@ fn malformed_bundles_fail_closed_without_panicking() {
                 "receipts": [{"spec": "continuity-receipt/0.2", "task_id": "t", "type": "nope", "seq": 0}]
             }),
             "unknown_type",
+        ),
+        (
+            "too many receipts",
+            serde_json::json!({
+                "spec": "continuity-receipt/0.2",
+                "task_id": "t",
+                "receipts": vec![serde_json::json!({}); 10_001]
+            }),
+            "too_many_receipts",
+        ),
+        (
+            "nesting too deep",
+            {
+                let mut deep = serde_json::json!("leaf");
+                for _ in 0..100 {
+                    deep = serde_json::json!({"next": deep});
+                }
+                serde_json::json!({"spec": "continuity-receipt/0.2", "task_id": "t", "deep": deep})
+            },
+            "nesting_too_deep",
         ),
     ];
 

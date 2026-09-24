@@ -31,7 +31,7 @@ VECTORS = ROOT / "vectors" / "verification"
 VERIFIER_DID, VERIFIER_KEY = keys.generate(keys.deterministic_seed("verifier-1"))
 OTHER_DID, _OTHER_KEY = keys.generate(keys.deterministic_seed("verifier-2"))
 VERIFIED_AT = "2026-09-23T21:00:00Z"
-IMPLEMENTATION_VERSION = "0.3.3"  # pinned in vectors; bump with the release
+IMPLEMENTATION_VERSION = "0.4.0"  # pinned in vectors; bump with the release
 
 
 def write(name: str, document) -> str:
@@ -252,6 +252,25 @@ def main() -> int:
     write("20_bad_summary.json", sign_statement(bad_summary))
     record("20_bad_summary.json", False, ["bad_summary"],
            "summary is not an object (signed as issued)")
+
+    write("21_valid_statement_after_verified_at.json", valid)
+    write(
+        "21_valid_statement_after_verified_at.revocations.json",
+        {
+            "kind": revocations_mod.DOCUMENT_KIND,
+            "version": revocations_mod.DOCUMENT_VERSION,
+            "issued_at": VERIFIED_AT,
+            "statements": [revocation_statement("2026-09-23T22:00:00Z")],
+        },
+    )
+    record(
+        "21_valid_statement_after_verified_at.json",
+        True,
+        [],
+        "valid receipt with a revocation statement dated after verified_at",
+        bundle_file="bundle.json",
+        revocations_file="21_valid_statement_after_verified_at.revocations.json",
+    )
 
     # Self-check every row against the reference verifier before writing.
     for row in rows:

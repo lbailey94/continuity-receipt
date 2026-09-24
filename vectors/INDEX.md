@@ -32,3 +32,17 @@ Verify with:
 | 16d_accept_without_offer.json | INSUFFICIENT_EVIDENCE | — | 0.3 accept references an offer absent from the bundle |
 | 16e_offer_terms_redacted.json | PROVISIONAL | — | 0.3 redacted terms_ref without disclosure |
 | 16f_offer_terms_disclosed.json | TRUSTED | — | 0.3 redacted terms_ref disclosed selectively |
+| 17_agreement_bound.json | TRUSTED | — | 0.4 accept names the offeree; the binding is carried through decision→settlement |
+| 17b_offeree_mismatch.json | UNTRUSTED | offeree_mismatch | 0.4 accept names an offeree that is not the signer or the offer's offeree |
+| 17c_accept_wrong_signer.json | UNTRUSTED | offeree_mismatch | 0.4 accept signed by someone other than the named offeree |
+| 17d_accept_before_offer.json | UNTRUSTED | accept_before_offer | 0.4 accept issued before the offer it references |
+| 17e_bound_before_accept.json | UNTRUSTED | agreement_before_accept | 0.4 bound receipt issued before the accept it references |
+| 17f_bound_wrong_issuer.json | UNTRUSTED | agreement_issuer_mismatch | 0.4 bound receipt signed by someone other than the offeree |
+| 17g_missing_agreement.json | INSUFFICIENT_EVIDENCE | — | 0.4 agreement_ref points at an accept absent from the bundle |
+| 17h_agreement_unreferenced.json | PROVISIONAL | — | 0.4 accept present but no bound receipt carries its ref |
+| 17i_missing_agreement_ref.json | PROVISIONAL | — | 0.4 offeree receipt after the accept carries no agreement_ref |
+| 17j_duplicate_offer_ids.json | TRUSTED | — | 0.4 two offers share offer_id; the accept binds by digest |
+| 18_legacy_agreement_ref_ignored.json | TRUSTED | — | 0.3 envelope: agreement_ref is an ignored additional member (mixed-version rule) |
+| 19_policy_mismatch.json | UNTRUSTED | policy_mismatch | decision policy_version differs from the pass policy_version |
+| 20_redacted_required.json | UNTRUSTED | redacted_required | required field (task.termination.reason) redacted at issuance |
+| 21_commit_mismatch.json | UNTRUSTED | commit_mismatch | disclosure value does not match the signed commitment |

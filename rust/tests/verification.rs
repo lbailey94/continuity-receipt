@@ -31,7 +31,7 @@ fn all_verification_vectors_match_manifest() {
     let entries = manifest["vectors"]
         .as_array()
         .expect("manifest has a vectors array");
-    assert_eq!(entries.len(), 20, "manifest vector count");
+    assert_eq!(entries.len(), 21, "manifest vector count");
 
     for entry in entries {
         let file = entry["file"].as_str().expect("vector file name");

@@ -1,6 +1,9 @@
 # Signing and verification
 
-The `continuity-receipt/0.1` release is attested by a signed git tag.
+Release tags are signed with the WhiteMagic release tag-signing key. `v0.1.0`
+and `v0.2.0` are signed; `v0.3.0` was annotated without a signature — a lapse,
+corrected by retro-tagging the 0.3 line at the 0.4 release. From 0.4.0 on,
+every release tag is signed before publication.
 
 ## Signing key
 

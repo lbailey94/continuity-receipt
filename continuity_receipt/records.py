@@ -1,4 +1,4 @@
-"""Receipt envelopes and body validation (0.1 + 0.2 + 0.3)."""
+"""Receipt envelopes and body validation (0.1 + 0.2 + 0.3 + 0.4)."""
 import os
 import re
 import time
@@ -7,11 +7,12 @@ from datetime import datetime, timezone
 
 from . import keys
 
-SPEC_ID = "continuity-receipt/0.3"
+SPEC_ID = "continuity-receipt/0.4"
 SUPPORTED_SPECS = (
     "continuity-receipt/0.1",
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
+    "continuity-receipt/0.4",
 )
 
 RECORD_TYPES = (
@@ -53,6 +54,19 @@ REQUIRED_FIELDS = {
     "agreement.accept": ("offer_ref", "offer_id", "terms_hash"),
 }
 
+# 0.4: the accept must name (and be signed by) the offeree — the binding is
+# carried by the accept record itself.
+REQUIRED_FIELDS_04 = {
+    "agreement.accept": ("offer_ref", "offer_id", "terms_hash", "offeree"),
+}
+
+
+def required_fields(record_type: str, spec: str | None = None) -> tuple:
+    """Required body fields for a record type under a given envelope spec."""
+    if spec == "continuity-receipt/0.4" and record_type in REQUIRED_FIELDS_04:
+        return REQUIRED_FIELDS_04[record_type]
+    return REQUIRED_FIELDS.get(record_type, ())
+
 # RFC 3339 UTC; fractional seconds optional (0.2 allows millisecond precision).
 _TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$")
 
@@ -86,12 +100,12 @@ def parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def validate_body(record_type: str, body: dict) -> None:
+def validate_body(record_type: str, body: dict, spec: str | None = None) -> None:
     if record_type not in REQUIRED_FIELDS:
         raise ValueError(f"unknown_type: {record_type}")
     if not isinstance(body, dict):
         raise ValueError(f"malformed body for {record_type}: not an object")
-    missing = [name for name in REQUIRED_FIELDS[record_type] if name not in body]
+    missing = [name for name in required_fields(record_type, spec) if name not in body]
     if missing:
         raise ValueError(f"malformed body for {record_type}: missing {missing}")
 
@@ -107,7 +121,7 @@ def new_envelope(
     spec: str | None = None,
     issued_at: str | None = None,
 ) -> dict:
-    validate_body(record_type, body)
+    validate_body(record_type, body, spec or SPEC_ID)
     return {
         "spec": spec or SPEC_ID,
         "receipt_id": "urn:uuid:" + str(uuid7()),

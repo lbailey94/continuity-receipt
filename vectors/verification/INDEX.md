@@ -29,3 +29,4 @@ semantics: `VERIFICATION_RECEIPTS.md`; schema:
 | 18_error_codes_mismatch.json | invalid | error_codes_mismatch | — | errors present but error_codes empty (signed as issued) |
 | 19_bad_errors.json | invalid | bad_errors | — | errors is not a list of {code} objects (signed as issued) |
 | 20_bad_summary.json | invalid | bad_summary | — | summary is not an object (signed as issued) |
+| 21_valid_statement_after_verified_at.json | valid | — | bundle.json, 21_valid_statement_after_verified_at.revocations.json | statement present but revoked_at after verified_at; receipt stays valid |

@@ -42,6 +42,18 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
 
+    const MAX_BUNDLE_BYTES: u64 = 8 * 1024 * 1024;
+    match std::fs::metadata(&path) {
+        Ok(metadata) if metadata.len() > MAX_BUNDLE_BYTES => {
+            print_result(&VerifyResult::coded(
+                "bundle_too_large",
+                format!("{} bytes exceeds limit {MAX_BUNDLE_BYTES}", metadata.len()),
+            ));
+            return ExitCode::from(1);
+        }
+        _ => {}
+    }
+
     let text = match std::fs::read_to_string(&path) {
         Ok(text) => text,
         Err(error) => {
@@ -53,9 +65,16 @@ fn main() -> ExitCode {
     let bundle: Value = match serde_json::from_str(&text) {
         Ok(bundle) => bundle,
         Err(error) => {
-            print_result(&VerifyResult::malformed(format!(
-                "bundle is not valid JSON: {error}"
-            )));
+            let message = error.to_string();
+            let code = if message.contains("recursion limit exceeded") {
+                "nesting_too_deep"
+            } else {
+                "malformed"
+            };
+            print_result(&VerifyResult::coded(
+                code,
+                format!("bundle is not valid JSON: {message}"),
+            ));
             return ExitCode::from(1);
         }
     };

@@ -2,8 +2,8 @@
 """Build or verify a conformance submission for the referee.
 
 The referee (`POST /conformance` on the hosted API) grades a verifier's
-outputs over the pinned corpus — `vectors/manifest.json` (26 bundles) and
-`vectors/verification/manifest.json` (20 verification receipts) — against the
+outputs over the pinned corpus — `vectors/manifest.json` (40 bundles) and
+`vectors/verification/manifest.json` (21 verification receipts) — against the
 manifests and issues a signed conformance report.
 
 This tool runs a verifier CLI over both corpora and writes the submission

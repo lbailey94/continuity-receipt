@@ -1,10 +1,28 @@
-# Continuity Receipt — v0.3 Specification
+# Continuity Receipt — v0.4 Specification
 
-**Status:** `continuity-receipt/0.3` — published 2026-09-23; `0.1` and `0.2`
-remain supported by the verifier. Open items in §11.
-**Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23.
+**Status:** `continuity-receipt/0.4` — **release candidate** (2026-09-24);
+publication pending. `0.1`–`0.3` remain supported by the verifier. Open items
+in §11.
+**Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
+0.4 release candidate 2026-09-24.
 **Home:** this repository — versioned independently of any product release
 train.
+
+## 0.4 changes at a glance
+
+- **The offer → accept binding is carried through the chain.** `agreement.accept`
+  now requires `offeree` and must be signed by it; the accept must follow its
+  offer. The bound stages — `task.decision`, `task.execution`,
+  `delivery.attestation`, `settlement` — carry `agreement_ref`, the digest of
+  the accept that governs them (§4.9, §7).
+- New verification rules: `offeree_mismatch`, `accept_before_offer`,
+  `agreement_before_accept`, `agreement_issuer_mismatch` (all `UNTRUSTED`);
+  `missing_agreement` is an insufficient-evidence reason;
+  `agreement_unreferenced` and `missing_agreement_ref` are PROVISIONAL —
+  linkage evidence missing, not false (§7).
+- JSON Schema `continuity-receipt-0.4.schema.json`; vectors 17/17b–17j.
+  `0.1`–`0.3` records verify under their original rules; the 0.4 rules apply
+  to 0.4 envelopes.
 
 ## 0.3 changes at a glance
 
@@ -38,19 +56,26 @@ train.
 A Continuity Receipt is a portable, independently verifiable, privacy-preserving
 record of one governed task: **decision → authority → execution → delivery →
 termination → settlement**. It is designed to be consumed by insurers,
-arbiters, procurement, reputation systems, and courts — without requiring trust
-in the issuer.
+arbiters, procurement, reputation systems, and courts: every check in this
+format is reproducible offline by the consumer, so a relying party does not
+have to trust the channel that delivered the record or accept someone else's
+verification. What the record proves is bounded — a receipt attests what its
+issuer signed, not that the described events occurred; issuer honesty is out
+of scope by design (`THREAT_MODEL.md` #2–#3, `CONFORMANCE_TABLE.md` §E).
 
 ### 1.1 Goals (v0)
 1. One canonical record per task, hash-chained; integrity verifiable offline.
-2. Grounded: fields bind to verifiable events (hashes, signatures,
-   counterparty attestations), never self-reported claims alone.
+2. Auditable and internally consistent: fields bind to hashes, signatures,
+   and optional counterparty attestations, and the record's consistency is
+   checkable offline. Issuer-attested fields remain issuer claims — grounding
+   against reality comes from counterparties, anchors, and external evidence,
+   not from the format alone.
 3. Privacy-preserving: redaction with salted commitments; content erasure
    possible without breaking integrity verification.
 4. Rail-agnostic: settlement references are opaque strings (x402 tx, invoice
    line, offchain://).
-5. Small enough to implement: JSON Schema + 10 test vectors + reference
-   verifier; no new cryptography beyond Ed25519 + SHA-256.
+5. Small enough to implement: JSON Schema + a published vector corpus +
+   reference verifier; no new cryptography beyond Ed25519 + SHA-256.
 
 ### 1.2 Non-goals (v0)
 - Not a payment protocol; no custody; settlement stays on external rails.
@@ -100,8 +125,15 @@ Rules:
   precision (1–3 fractional digits) in 0.2. Ordering within a chain is by
   `seq`, never by timestamp; verifiers must not fail on clock skew alone.
 - Money is integer minor units + ISO-4217-like currency code, never floats.
-- Identifiers are UUIDv7 URNs or DID URIs; no emails, names, or free-text PII
-  in required fields.
+- Identifiers: `receipt_id` and `task_id` are UUID URNs (schema-enforced);
+  `issuer.id` and `sig.key` are `did:key` URIs the verifier resolves for
+  signature checks. Other identifier fields (`agent_id`, `counterparty.id`,
+  succession authorities, `offer_id`) are **opaque labels**: the verifier
+  checks presence and type, not a URN/DID form — `agent_id` in practice holds
+  free-form subject labels (issue #5). In 0.4, `agreement.accept.offeree` must
+  equal the accept's `issuer.id`, so it is a keyed-party reference by
+  construction. No emails, names, or free-text PII in required fields; labels
+  are correlation-bearing metadata (`THREAT_MODEL.md` #13).
 
 **Reference implementation:** `continuity_receipt/` in this repository
 (Python, Ed25519 via `cryptography`), status 2026-09-18 — 11 test vectors
@@ -119,6 +151,10 @@ the wider project suite.
 `gate_id`, `mandala_class` (`gate-lite|gate-hard`), `quotas`
 {`cpu_ms`,`mem_mb`,`disk_mb`,`wall_ms`}, `expires_at`, `policy_version`,
 `mandate_ref` (hash), `agent_id`, `principal_id`, `pass_token_id`.
+**Quotas convention:** a zero-valued quota field means "not enforced" — a
+convention, not a check; the verifier does not enforce quotas (it records
+them and checks cross-record structure). Recorded usage lives in
+`task.execution.resources`.
 ### 4.2 `task.decision`
 `action` (tool/verb), `action_args_hash` (grounded), `model` {`provider`,
 `id`, `version`?}, `input_provenance` {`policy_id`, `allowed_sources[]`,
@@ -142,7 +178,8 @@ require counterparty attestations must check for them explicitly.
 `limits_at_stop` {`cpu_ms`, `wall_ms`, `spend_minor`, `currency`},
 `remaining` {…}, `kill_signal`? (`dharma|operator|quota|aup`).
 **Presence of a termination receipt is required for a task to verify as
-complete.** (The "proof it stopped" link.)
+complete** — a signed claim by the issuer that the task stopped, not
+independent proof that it did.
 ### 4.6 `settlement`
 `rail` (`x402|invoice|stripe|offchain|none`), `rail_ref`, `amount`
 {`minor`, `currency`}, `gated_on_delivery` (bool), `settled_at`,
@@ -163,14 +200,20 @@ Terms stay off-receipt by construction: only their hash is signed, so the
 terms can be disclosed selectively or kept private without invalidating the
 binding. `nonce` makes otherwise-identical offers distinct.
 
-### 4.9 `agreement.accept` (0.3)
+### 4.9 `agreement.accept` (0.3; binding carried in 0.4)
 `offer_ref` (grounded — the SHA-256 digest of the referenced offer receipt,
-the same canonical view used by `prev` links), `offer_id`, `terms_hash`.
+the same canonical view used by `prev` links), `offer_id`, `terms_hash`;
+0.4 adds `offeree` (the accepting party, which must be the receipt's issuer).
 An accept binds the offeree's subsequent receipts (decision → execution →
 delivery → settlement) to a specific offer: verifiers resolve `offer_ref`
 against the offers present in the bundle and check the id and terms match
-(§7, step 4). An accept whose offer is not in the bundle is
-`INSUFFICIENT_EVIDENCE`, never silently trusted.
+(§7, step 4). In 0.4 the binding is carried by the records themselves: the
+accept must be signed by its `offeree`, must equal the offer's `offeree`, and
+must follow the offer; each bound stage carries `agreement_ref` — the digest
+of the accept — and must resolve it, follow the accept in time, and be issued
+by the offeree. An accept whose offer is not in the bundle is
+`INSUFFICIENT_EVIDENCE`, never silently trusted; an accept that nothing
+references is PROVISIONAL (linkage evidence missing).
 
 ## 5. Canonicalization and signing
 
@@ -214,7 +257,10 @@ against the offers present in the bundle and check the id and terms match
 
 ## 7. Verification algorithm and semantics
 
-Ordered checks (first failure wins):
+Checks, in order of exposition. The verifier accumulates every failure and
+derives one verdict from the collected errors and reasons — `UNTRUSTED` if any
+error was recorded, else `INSUFFICIENT_EVIDENCE`, else `PROVISIONAL`, else
+`TRUSTED`:
 1. Parse + schema per record type; canonical bytes reconstructable; envelope
    `issued_at` is RFC 3339 UTC (0.2: milliseconds allowed).
 2. Chain: `seq` contiguous, `prev` hashes match.
@@ -231,6 +277,18 @@ Ordered checks (first failure wins):
    `INSUFFICIENT_EVIDENCE` (`missing_offer`) — unverifiable, not false; a
    mismatch is `UNTRUSTED` (`offer_mismatch`); an expired accept is
    `UNTRUSTED` (`offer_expired`).
+   **Binding carried (0.4):** for 0.4 envelopes, the accept's `offeree` must
+   equal the accept's issuer and the offer's `offeree` (else `UNTRUSTED`,
+   `offeree_mismatch`) and the accept must follow the offer (else `UNTRUSTED`,
+   `accept_before_offer`). Each bound stage (decision, execution,
+   delivery.attestation, settlement) carrying `agreement_ref` must resolve it
+   to a present accept (absent → `INSUFFICIENT_EVIDENCE`,
+   `missing_agreement`), must follow the accept (else `UNTRUSTED`,
+   `agreement_before_accept`), and must be issued by the accept's offeree
+   (else `UNTRUSTED`, `agreement_issuer_mismatch`). The offeree's post-accept
+   bound stages must carry `agreement_ref` (`missing_agreement_ref`) and an
+   accept nothing references is `agreement_unreferenced` — both PROVISIONAL:
+   the linkage evidence is missing, not false.
 5. Revocations (0.2, bundle-level): each statement is self-signed by the key it
    revokes; a receipt whose issuer key was revoked at or before its
    `issued_at` fails (`key_revoked`). Receipts issued before revocation remain
@@ -240,9 +298,9 @@ Ordered checks (first failure wins):
 6. Anchors (optional): if present, the committed digest must match the
    receipt; anchor metadata, when present, must declare one of the known types
    (`opentimestamps`, `public-chain`, `custom`); if anchors are absent and the
-   caller required one, note `anchor_missing` (not fatal by default). External
-   proof verification is performed with the anchor provider's tooling, not by
-   this verifier.
+   caller required one, note `anchor_missing` (not fatal by default). Proof
+   verification is the companion tool's job (`continuity-receipt-anchor`);
+   this verifier checks shape and digest binding only.
 
 Output semantics (IETF CTQ-aligned):
 `TRUSTED` (all checks pass), `PROVISIONAL` (structure intact; some optional
@@ -255,8 +313,11 @@ Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 `delivery_before_settlement`, `missing_termination`, `anchor_invalid`,
 `redacted_required`, `commit_mismatch`, `version_unsupported`;
 0.2 adds `bad_attestation`, `bad_revocation`, `key_revoked`,
-`provenance_invalid`; 0.3 adds `offer_mismatch`, `offer_expired`
-(`missing_offer` is an insufficient-evidence reason, not an error).
+`provenance_invalid`; 0.3 adds `offer_mismatch`, `offer_expired`; 0.4 adds
+`offeree_mismatch`, `accept_before_offer`, `agreement_before_accept`,
+`agreement_issuer_mismatch` (`missing_offer` and `missing_agreement` are
+insufficient-evidence reasons, not errors; `agreement_unreferenced` and
+`missing_agreement_ref` are PROVISIONAL reasons).
 
 ## 8. Interop mapping (informative)
 
@@ -273,9 +334,10 @@ Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 The full set ships with the verifier:
 **machine-readable expectations** in `vectors/manifest.json` (file → expected
 verdict → expected error code → anchor requirement), and a human index in
-`vectors/INDEX.md`. The JSON Schema is
-`schema/continuity-receipt-0.3.schema.json`; every schema-valid vector is
-validated against it in CI.
+`vectors/INDEX.md`. The JSON Schemas are
+`schema/continuity-receipt-0.4.schema.json` (0.4) and its predecessors; every
+schema-valid vector is validated against the schema for its spec version in
+CI.
 
 Companion (not bundle) vectors: `vectors/verification/` pins the
 verification-receipt format (`VERIFICATION_RECEIPTS.md`,
@@ -307,14 +369,38 @@ termination, cap/delivery ordering, redaction/erasure, anchors.
 | `16c_offer_expired.json` | UNTRUSTED (`offer_expired`) | accept issued after `valid_until` |
 | `16d_accept_without_offer.json` | INSUFFICIENT_EVIDENCE (`missing_offer`) | referenced offer absent from the bundle |
 
+0.4 additions:
+
+| Vector | Expected | Exercises |
+|---|---|---|
+| `17_agreement_bound.json` | TRUSTED | offeree signs the accept; binding carried through decision → settlement |
+| `17b_offeree_mismatch.json` | UNTRUSTED (`offeree_mismatch`) | accept names an offeree that is not the signer or the offer's offeree |
+| `17c_accept_wrong_signer.json` | UNTRUSTED (`offeree_mismatch`) | accept signed by someone other than the named offeree |
+| `17d_accept_before_offer.json` | UNTRUSTED (`accept_before_offer`) | accept issued before the offer |
+| `17e_bound_before_accept.json` | UNTRUSTED (`agreement_before_accept`) | bound record issued before the accept |
+| `17f_bound_wrong_issuer.json` | UNTRUSTED (`agreement_issuer_mismatch`) | bound record not signed by the offeree |
+| `17g_missing_agreement.json` | INSUFFICIENT_EVIDENCE (`missing_agreement`) | `agreement_ref` points at an absent accept |
+| `17h_agreement_unreferenced.json` | PROVISIONAL (`agreement_unreferenced`) | accept nothing references |
+| `17i_missing_agreement_ref.json` | PROVISIONAL (`missing_agreement_ref`) | offeree stage after the accept carries no ref |
+| `17j_duplicate_offer_ids.json` | TRUSTED | duplicate `offer_id`s disambiguated by digest |
+
 ## 10. Versioning
 
-`spec: continuity-receipt/0.3` in new envelopes; `0.1` and `0.2` remain supported
+`spec: continuity-receipt/0.4` in new envelopes; `0.1`–`0.3` remain supported
 (bundle-level and per-receipt). Additive fields within 0.x; breaking changes
 require a new minor version plus a new vector set. The verifier refuses
 unknown spec versions (`version_unsupported`); unknown *additional* members
 are preserved and ignored (they are inside the signed bytes, so they cannot be
 injected after signing).
+
+**Mixed-version bundles are legal.** The bundle-level `spec` names the
+envelope the bundle was written for; every receipt carries its own `spec` and
+is verified under that version's rules. A member that a receipt's version does
+not define — for example `agreement_ref` on a 0.3 record — is an additional
+member and is ignored, exactly like any other unknown member. This keeps
+published 0.1–0.3 bundles verifying unchanged while upgrade-period bundles mix
+versions without ambiguity (compatibility vector
+`18_legacy_agreement_ref_ignored.json`).
 
 ## 11. Open items
 
@@ -333,7 +419,13 @@ with digest binding (`offer_ref`), terms/id equality checks, expiry semantics,
 and the missing-offer-is-insufficient rule; vectors 16–16d; schema 0.3.
 Rust parity landed 2026-09-23 (crate 0.3.2; differential 26/26).
 
-**Deferred to 0.3, with reasons:**
+**Resolved for 0.4** (2026-09-24): the offer → accept binding is carried —
+`agreement.accept.offeree` required and signer-checked, accept-after-offer
+chronology, `agreement_ref` on the bound stages with resolution, chronology,
+and issuer checks; unreferenced accepts and missing refs are PROVISIONAL;
+vectors 17–17j; schema 0.4; Python + Rust parity (differential 36/36).
+
+**Deferred (0.3 era), with reasons:**
 1. **CBOR equivalence** — no implementer need demonstrated yet, and the signed
    domain is JSON canonical bytes; adding a second encoding requires an
    equivalence proof and vectors, not a paragraph.

@@ -1,12 +1,56 @@
 # Changelog
 
-## Unreleased — 2026-09-23
+## Unreleased — 0.4.0 release candidate (2026-09-24)
 
+Spec 0.4 and tooling 0.4.0: the offer → accept binding is carried through the
+chain, plus verifier robustness hardening, the conformance table, and the
+documentation pass. **Release candidate — publication pending.**
+
+- **Spec 0.4 — binding carried.** `agreement.accept` requires `offeree` and
+  must be signed by it; accepts must follow their offer; bound stages
+  (`task.decision`, `task.execution`, `delivery.attestation`, `settlement`)
+  carry `agreement_ref` — the digest of the accept — checked for resolution
+  (`missing_agreement` → `INSUFFICIENT_EVIDENCE`), chronology
+  (`agreement_before_accept`), and issuer (`agreement_issuer_mismatch`).
+  Offeree stages that skip the ref (`missing_agreement_ref`) and accepts that
+  nothing references (`agreement_unreferenced`) are PROVISIONAL. Mixed-version
+  bundles are legal: each receipt is verified under its own spec, and members
+  a version does not define are ignored (compatibility vector `18`).
+- **Verifier robustness.** A whole-shape validation pass runs before the
+  semantic checks in both implementations; malformed input returns structured
+  verdicts (the four crash reproductions from the independent review are
+  permanent corpus cases). Input boundaries: 10,000 receipts, nesting depth
+  64, 8 MiB bundle cap (CLI). `tools/hostile_input_probe.py` asserts
+  structured outcomes and Python↔Rust parity of verdicts and error-code sets
+  in CI; an exhaustive in-process sweep of 26,280 leaf mutations across the
+  vector set raises nothing.
+- **Vectors 26 → 40, receipt vectors 20 → 21.** New: `17`–`17j` (binding
+  carried, adversarial), `18` (mixed-version compatibility), `19`–`21`
+  (`policy_mismatch`, `redacted_required`, `commit_mismatch`), and the
+  positive receipt-level revocation case. The published 0.1–0.3 fixtures are
+  byte-for-byte unchanged.
+- **Schema 0.4** (`schema/continuity-receipt-0.4.schema.json`): `offeree`
+  required on 0.4 accepts, `agreement_ref` documented on bound bodies; every
+  schema-valid vector is validated against the schema for its spec version.
+- **Conformance table** (`CONFORMANCE_TABLE.md`): every normative rule mapped
+  to Python and Rust checks, positive and negative vectors, and deliberate
+  non-enforcement; coverage gaps closed with `19`–`21` and `verification/21`.
+- **Docs aligned with the proof boundary**: README/SPEC openings state that a
+  receipt attests what its issuer signed, not that the described events
+  occurred; `agent_id`-style identifiers are documented as opaque labels;
+  zero-valued quotas mean "not enforced".
 - **Independent review brief** (`REVIEW_BRIEF.md`): one-page scope for an
   adversarial technical review of the verification-receipt format, both
   implementations, the cryptographic core, the anchor tooling, and the hosted
   issuer — including the specific questions we want answered and the
   weaknesses we already know about.
+
+## Rust crate 0.4.0 — release candidate (2026-09-24)
+
+`continuity-receipt` 0.4.0: parity for spec 0.4 (the binding carried through
+the chain), the whole-shape validation pass, input boundaries, and the
+hostile-input parity assertions — differential 40/40 bundle and 21/21
+verification-receipt vectors.
 
 ## Rust crate 0.3.3 — 2026-09-23
 

@@ -2,9 +2,11 @@
 
 **Status:** open invitation, 2026-09-23. One page of scope, questions, and
 logistics.
-**Materials frozen at:** repo `1911ca1` — spec `continuity-receipt/0.3`;
-Python tooling **0.3.3** (PyPI); Rust crate **0.3.3** (crates.io); hosted
-service verifier 0.3.3.
+**Materials frozen at:** the 0.4.0 release-candidate commit (tag `v0.4.0`
+to be created at freeze; publication pending at review time) — spec
+`continuity-receipt/0.4` (release candidate); Python tooling **0.4.0**
+(release candidate); Rust crate **0.4.0** (release candidate); hosted
+service verifier 0.4.0 pending deployment.
 **Repository:** <https://github.com/lbailey94/continuity-receipt> ·
 **Contact:** lbailey94@protonmail.com (subject: "verification review").
 
@@ -27,16 +29,18 @@ weaknesses.
 
 1. **Verification receipt format v1** — `VERIFICATION_RECEIPTS.md`, schema
    `schema/verification-receipt-1.schema.json`, vectors
-   `vectors/verification/` (20 cases): wire format, the JCS-canonical
+   `vectors/verification/` (21 cases): wire format, the JCS-canonical
    `bundle_digest` rule, the offline consistency rules (`error_codes_mismatch`,
-   `verdict_mismatch`), revocation semantics, the anchoring recipe.
-2. **Core bundle verification** — `SPEC.md` (0.3), `continuity_receipt/verify.py`,
-   `vectors/` (26 cases): chain, signature, attestation, redaction/erasure
-   semantics.
+   `verdict_mismatch`), revocation semantics (including the positive case), the
+   anchoring recipe.
+2. **Core bundle verification** — `SPEC.md` (0.4), `continuity_receipt/verify.py`,
+   `vectors/` (40 cases): chain, signature, attestation, redaction/erasure
+   semantics, the 0.4 agreement-binding rules, hostile-input handling.
 3. **Two implementations** — Python reference (`continuity_receipt/`) and Rust
-   (`rust/src/`, crate 0.3.3), plus the differential claims
-   (`tools/differential_vectors.py` 26/26,
-   `tools/differential_verification_receipts.py` 20/20).
+   (`rust/src/`, crate 0.4.0), plus the differential claims
+   (`tools/differential_vectors.py` 40/40,
+   `tools/differential_verification_receipts.py` 21/21) and the hostile-input
+   parity claim (`tools/hostile_input_probe.py --require-parity`).
 4. **Cryptographic core** — Ed25519 + `did:key` handling, the pinned JCS
    subset (`canon.py` / `canon.rs`; floats rejected), salted commitments
    (`commit_field`), the canonical-view signing rule.
@@ -47,8 +51,9 @@ weaknesses.
    (<https://api.whitemagic.dev/docs>, `GET /info`, OpenAPI) and, for the
    reviewer, the service source on request: signing-key handling, rotation and
    revocation procedure, cache semantics, contract-vs-spec consistency.
-7. **Claims discipline** — do `CONFORMANCE.md`, `THREAT_MODEL.md`, and
-   `VERIFICATION_RECEIPTS.md` claim more than the implementation supports?
+7. **Claims discipline** — do `CONFORMANCE.md`, `CONFORMANCE_TABLE.md`,
+   `THREAT_MODEL.md`, and `VERIFICATION_RECEIPTS.md` claim more than the
+   implementation supports? Are any table cells softened to avoid work?
 
 ## Out of scope
 
@@ -74,6 +79,10 @@ weaknesses.
 7. Redaction/erasure: can a commitment be substituted, or a required field
    hidden, without detection?
 8. Anything in the threat model that is asserted but not tested.
+9. Can the 0.4 binding be evaded — wrong offeree/signer, chronology, ref
+   substitution, mixed-version downgrade — given the new rules and vectors?
+10. Does hostile-input handling stay structured and parity-consistent beyond
+   the sampled corpus (leaf/deletion mutations, boundaries)?
 
 ## Deliverable
 
@@ -102,6 +111,7 @@ interest; we will decline reviewers with a stake in competing formats.
   python3 -m unittest discover -s tests -v
   python3 tools/differential_vectors.py
   python3 tools/differential_verification_receipts.py
+  python3 tools/hostile_input_probe.py --require-parity
   cargo test --manifest-path rust/Cargo.toml
   ```
 
@@ -110,6 +120,7 @@ interest; we will decline reviewers with a stake in competing formats.
 - Pre-revocation key compromise is not detectable (`THREAT_MODEL.md`).
 - Revocation-list freshness: a mirror can withhold a statement.
 - `verified_at` is issuer-asserted unless the receipt is anchored.
-- Verification receipts are v1 and days old; the format was revised once
-  before external issuance (see `CHANGELOG.md`, 0.3.3).
+- Verification receipts are v1 and young; the format was revised once before
+  external issuance (see `CHANGELOG.md`, 0.3.3), and 0.4 was shaped by an
+  independent review whose findings and responses are in the changelog.
 - The Rust receipt CLI accepts local revocation documents only (no URLs).

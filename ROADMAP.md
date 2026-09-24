@@ -1,12 +1,21 @@
 # Roadmap
 
-**Current release:** spec `continuity-receipt/0.3` (2026-09-23; Python tooling
-0.3.3 on PyPI, Rust crate 0.3.3 on crates.io). Spec `0.1` and `0.2` remain
-supported.
+**Current release:** spec `continuity-receipt/0.4` — release candidate
+(2026-09-24; Python tooling 0.4.0 and Rust crate 0.4.0 release candidates;
+publication pending). Spec `0.1`–`0.3` remain supported.
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
 
 ## Shipped
+
+### Spec 0.4 (2026-09-24) — release candidate: the binding is carried
+- [x] `agreement.accept.offeree` required and signer-checked; accept must follow its offer.
+- [x] `agreement_ref` on `task.decision` / `task.execution` / `delivery.attestation` / `settlement`, checked for resolution, chronology, and issuer; unreferenced accepts and missing refs are PROVISIONAL.
+- [x] Vectors 17–17j (adversarial), 18 (mixed-version compatibility), 19–21 (`policy_mismatch`, `redacted_required`, `commit_mismatch`); schema 0.4; SPEC §10 mixed-version rule.
+- [x] Verifier robustness: whole-shape validation pass, input boundaries, structured hostile-input outcomes with Python↔Rust parity (`tools/hostile_input_probe.py`).
+- [x] Conformance table (`CONFORMANCE_TABLE.md`) — rule → checks → vectors → non-enforcement.
+- [x] Documentation pass: proof-boundary wording, opaque-label identifiers, quota convention, counts and compatibility notes.
+- [ ] Publication: PyPI + crates.io 0.4.0, hosted verifier redeploy, signed tags (including retro-tags for the 0.3 line).
 
 ### 0.1.0 (2026-09-18)
 Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, `did:key`; salted-commitment redaction; CTQ-aligned verdicts.
@@ -62,7 +71,7 @@ Spec, reference verifier, 11 vectors. JSON + RFC 8785 subset, SHA-256, Ed25519, 
 - [x] Anchor metadata type enum (`anchor_invalid` for unknown types).
 - [x] Test set 11 → 20 vectors; suite: vectors + schema + primitives, 10 tests.
 
-## 0.3 candidates (in suggested order)
+## 0.3 cycle — landed (retained for provenance)
 
 **Priority pin (2026-09-20):** 1) anchor proof verification, 2) revocation
 distribution design, 3) remaining Rust completion + crates.io publication.
@@ -88,7 +97,7 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 2. **Anchor proof verification** — **companion tool landed 2026-09-21:**
    `continuity_receipt.anchor` + `continuity-receipt-anchor` verify
    OpenTimestamps detached proofs (wire-format parser with LEB128 varints,
-   tree replay, Bitcoin attestation    checked against a supplied 80-byte header
+   tree replay, Bitcoin attestation checked against a supplied 80-byte header
    by merkle-root equality; `verified` / `unverified` / `mismatch` /
    `invalid`). **Rust parity landed 2026-09-21** (`rust/src/anchor.rs` +
    `continuity-receipt-anchor` + `tools/differential_anchor.py` in CI, 7/7
@@ -99,9 +108,11 @@ distribution design, 3) remaining Rust completion + crates.io publication.
    `opentimestamps-client`, MIT, plus headers from the Blockstream Esplora
    API; keccak256 path is a published `unsupported_op` negative case).
    Renewal guidance: `ANCHORING.md` §Failure and renewal.
-3. **Conformance packaging** — machine-readable verifier capability
-   disclosure + vector manifest prepared for the CG conformance surface;
-   SAIHM field-mapping crosswalk and memorywire five-op interop profile.
+3. **Conformance packaging** — **landed 2026-09-24:** machine-readable
+   capability disclosure + vector manifest + `CONFORMANCE_TABLE.md` (rule →
+   checks → vectors) + the hosted conformance referee (`POST /conformance`,
+   signed reports). Remaining: SAIHM field-mapping crosswalk and memorywire
+   five-op interop profile.
 4. **Revocation distribution design** — **tooling landed 2026-09-21:**
    static revocation lists (`continuity-receipt-revocations` document) +
    `--revocations` on the verify/disclose CLIs, merged with bundle statements;

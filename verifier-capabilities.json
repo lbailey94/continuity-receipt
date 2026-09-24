@@ -2,7 +2,7 @@
   "kind": "continuity-receipt-verifier-capabilities",
   "version": 1,
   "implementation": "continuity-receipt (Python reference)",
-  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2", "continuity-receipt/0.3"],
+  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2", "continuity-receipt/0.3", "continuity-receipt/0.4"],
   "verdicts": ["TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED"],
   "checks": [
     "envelope_schema",
@@ -34,10 +34,26 @@
     "key_revoked",
     "provenance_invalid",
     "offer_mismatch",
-    "offer_expired"
+    "offer_expired",
+    "offeree_mismatch",
+    "accept_before_offer",
+    "agreement_before_accept",
+    "agreement_issuer_mismatch",
+    "too_many_receipts",
+    "nesting_too_deep",
+    "bundle_too_large"
   ],
-  "provisional_reasons": ["anchor_missing", "redacted_without_disclosure:<path>"],
-  "insufficient_reasons": ["erased_content:<path>", "missing_offer:<receipt_id>"],
+  "provisional_reasons": [
+    "anchor_missing",
+    "redacted_without_disclosure:<path>",
+    "agreement_unreferenced:<path>",
+    "missing_agreement_ref:<path>"
+  ],
+  "insufficient_reasons": [
+    "erased_content:<path>",
+    "missing_offer:<receipt_id>",
+    "missing_agreement:<receipt_id>"
+  ],
   "revocation_lists": {
     "supported": true,
     "document_kind": "continuity-receipt-revocations",

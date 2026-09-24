@@ -164,6 +164,14 @@
         "bad_summary"
       ],
       "note": "summary is not an object (signed as issued)"
+    },
+    {
+      "file": "21_valid_statement_after_verified_at.json",
+      "expected_valid": true,
+      "expected_errors": [],
+      "note": "valid receipt with a revocation statement dated after verified_at",
+      "bundle_file": "bundle.json",
+      "revocations_file": "21_valid_statement_after_verified_at.revocations.json"
     }
   ]
 }

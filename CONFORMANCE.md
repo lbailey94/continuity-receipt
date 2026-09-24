@@ -4,15 +4,19 @@ Machine-readable companion:
 [`verifier-capabilities.json`](verifier-capabilities.json). This page
 explains what the reference implementation checks, what its verdicts mean,
 and what it deliberately does not do. It is an implementation disclosure, not
-a spec: `SPEC.md` is normative.
+a spec: `SPEC.md` is normative. For the rule-by-rule audit surface — every
+normative requirement mapped to a check in both implementations and to its
+vectors — see [`CONFORMANCE_TABLE.md`](CONFORMANCE_TABLE.md).
 
 ## Supported spec versions
 
-`continuity-receipt/0.1`, `continuity-receipt/0.2`, and
-`continuity-receipt/0.3`. Unknown versions are refused
-(`version_unsupported`) rather than guessed at.
+`continuity-receipt/0.1`, `continuity-receipt/0.2`, `continuity-receipt/0.3`,
+and `continuity-receipt/0.4`. Unknown versions are refused
+(`version_unsupported`) rather than guessed at. Each receipt carries its own
+`spec` and is verified under that version's rules; mixed-version bundles are
+legal (SPEC §10).
 
-## Checks, in order (first failure wins)
+## Checks, in order of exposition (all failures are collected)
 
 1. **Envelope and schema** — required fields per record type; `issued_at`
    RFC 3339 UTC (0.2 allows milliseconds); canonical bytes reconstructable.
@@ -25,14 +29,20 @@ a spec: `SPEC.md` is normative.
    versions agree; settlement ≤ run cap; delivery before settlement when
    gated; termination present; provenance hash form (`sha256:` or
    `merkle-sha256:`).
-5. **Revocations** — bundle statements plus external lists (0.3 tooling;
+5. **Agreement binding** — 0.3: `offer_ref` resolves to a present offer, with
+   `offer_id`/`terms_hash` equality and `valid_until` expiry. 0.4: the accept
+   names and is signed by its `offeree`; accepts follow their offer; bound
+   stages carry `agreement_ref`, checked for resolution, chronology, and
+   issuer; offeree stages that skip the ref and accepts nothing references are
+   PROVISIONAL.
+6. **Revocations** — bundle statements plus external lists (0.3 tooling;
    `--revocations`), merged and deduplicated; a receipt issued at or after
    `revoked_at` fails `key_revoked`.
-6. **Anchors** — digest binding and declared type only. Proof verification is
+7. **Anchors** — digest binding and declared type only. Proof verification is
    the companion tool's job (`continuity-receipt-anchor`, OpenTimestamps
    proofs against a caller-supplied header); header chain validation is out
    of scope.
-7. **Redactions and erasure** — required fields may not be redacted; redacted
+8. **Redactions and erasure** — required fields may not be redacted; redacted
    values without disclosure are provisional; erased payloads are
    insufficient evidence, not failures.
 
@@ -51,7 +61,11 @@ canonical view minus `sig`; optional bundle digest match
 (`bundle_digest_mismatch`); optional issuer-revocation check (`key_revoked`,
 statements in the bundle shape). CLI: `continuity-receipt-verify-receipt`
 (`--digest` prints the receipt digest for anchoring); vectors:
-`vectors/verification/` (20 cases).
+`vectors/verification/` (21 cases).
+A valid receipt proves that a signer made an internally consistent, signed
+statement about a bundle digest at a time — it does **not** recompute the
+verification result. To check a recorded result, re-run the bundle verifier
+over the bundle and compare (`VERIFICATION_RECEIPTS.md` §What it proves).
 
 ## Conformance referee (hosted service)
 
@@ -84,7 +98,16 @@ contract in the service docs (`api.whitemagic.dev/docs`).
 `chain_break`, `task_mismatch`, `policy_mismatch`, `cap_exceeded`,
 `delivery_before_settlement`, `missing_termination`, `anchor_invalid`,
 `redacted_required`, `commit_mismatch`, `version_unsupported`,
-`bad_attestation`, `bad_revocation`, `key_revoked`, `provenance_invalid`.
+`bad_attestation`, `bad_revocation`, `key_revoked`, `provenance_invalid`,
+`offer_mismatch`, `offer_expired`, `offeree_mismatch`, `accept_before_offer`,
+`agreement_before_accept`, `agreement_issuer_mismatch`, `too_many_receipts`,
+`nesting_too_deep`, `bundle_too_large`.
+
+**PROVISIONAL reasons (bundle):** `anchor_missing`,
+`redacted_without_disclosure:<path>`, `agreement_unreferenced:<path>`,
+`missing_agreement_ref:<path>`.
+**INSUFFICIENT_EVIDENCE reasons (bundle):** `erased_content:<path>`,
+`missing_offer:<receipt_id>`, `missing_agreement:<receipt_id>`.
 
 **Revocation lists (CLI):** `bad_revocations_document`,
 `revocations_unreachable`, `revocations_insecure_url`,
@@ -109,12 +132,15 @@ with codes including `anchor_verified`, `anchor_unverified`,
 python3 -m unittest discover -s tests -v          # unit + real-fixture tests
 python3 tools/differential_vectors.py             # Python vs Rust over all bundle vectors
 python3 tools/differential_verification_receipts.py  # Python vs Rust over all receipt vectors
+python3 tools/hostile_input_probe.py --require-parity  # structured outcomes + parity
 cargo test --manifest-path rust/Cargo.toml        # Rust second implementation
 ```
 
-CI runs all four; `vectors/manifest.json` pins the conformance verdicts,
-`vectors/verification/manifest.json` pins the verification-receipt cases, and
-`vectors/anchor/` pins the anchor tool against real OpenTimestamps proofs.
+CI runs these (plus the disclosure and anchor differentials);
+`vectors/manifest.json` pins the conformance verdicts,
+`vectors/verification/manifest.json` pins the verification-receipt cases,
+`vectors/anchor/` pins the anchor tool against real OpenTimestamps proofs, and
+`CONFORMANCE_TABLE.md` maps every rule to its checks and vectors.
 
 ## Out of scope — do not infer
 

@@ -1,6 +1,6 @@
 # Threat model
 
-**Scope:** what Continuity Receipts prove, what they do not, and how each attack class is handled in `continuity-receipt/0.1` / `0.2`.
+**Scope:** what Continuity Receipts prove, what they do not, and how each attack class is handled in `continuity-receipt/0.1`–`0.4`. The rule-by-rule checks and their vectors are in `CONFORMANCE_TABLE.md`; §E there is the non-enforcement boundary.
 
 A receipt is evidence about what a governed system recorded and signed — not a claim about ground truth. The verifier's job is to distinguish **missing** evidence (`PROVISIONAL`, `INSUFFICIENT_EVIDENCE`) from **false** evidence (`UNTRUSTED`), and to make the difference legible to a third party who trusts nobody in the chain.
 
@@ -16,11 +16,12 @@ A receipt is evidence about what a governed system recorded and signed — not a
 | 6 | **Erasure abuse** (claim erasure to hide evidence) | Disclosed | Erased content yields `INSUFFICIENT_EVIDENCE` — never `TRUSTED`, never silently ignored. Consumers must treat it as missing, not as clean. |
 | 7 | **Key compromise** | Partially handled (0.2 + 0.3 tooling) | Bundle-level self-signed revocation statements; receipts issued **at or after** `revoked_at` fail (`key_revoked`). Receipts issued **before** revocation remain valid. External revocation lists (0.3 tooling, `--revocations`, `REVOCATION_DISTRIBUTION.md`) let verifiers learn revocations without a re-issued bundle; authenticity is per statement, so a mirror can withhold but not forge. **Open gap:** compromise *before* a statement is published is indistinguishable — monitoring cadence and multiple mirrors bound it; no transparency log exists. |
 | 8 | **Clock manipulation / skew** | Disclosed (0.2) | Chain order is `seq`, not time; timestamps are not trust anchors. Verification does not fail on skew. Millisecond precision reduces ordering ambiguity but is not authoritative. |
-| 9 | **Commitment substitution across fields** | Disclosed | Per-field random salts are issued at redaction time; substitution requires a salt collision. Domain separation and HMAC commitments are deferred to 0.3 with this analysis on record. |
+| 9 | **Commitment substitution across fields** | Disclosed | Per-field random salts are issued at redaction time; substitution requires a salt collision. Domain separation and HMAC commitments remain deferred (SPEC §11) with this analysis on record. |
 | 10 | **Provenance-set misrepresentation** | Partially handled | `observed_sources_hash` must be `sha256:` or `merkle-sha256:` (`provenance_invalid` otherwise). Merkle inclusion proofs are *not* shipped in 0.2; the root alone does not prove membership. |
-| 11 | **Anchor games** (fake/stale anchors) | Partially handled | Anchor entries must bind an existing receipt by digest and use a declared type (`opentimestamps`, `public-chain`, `custom`). **The verifier does not validate external proofs** — that is done with the anchor provider's tooling. Anchoring is optional in v0. |
+| 11 | **Anchor games** (fake/stale anchors) | Partially handled | Anchor entries must bind an existing receipt by digest and use a declared type (`opentimestamps`, `public-chain`, `custom`). The verifier checks shape and digest binding; **proof verification is the companion tool's job** (`continuity-receipt-anchor`, OpenTimestamps proofs against a caller-supplied header), and header chain validation is out of scope. Anchoring is optional. |
 | 12 | **Verifier implementation bugs** | Acknowledged | The reference verifier is small (no new cryptography) and schema-checked, but is not audited. Independent implementations are explicitly invited; conformance is defined by the vectors. |
 | 13 | **Metadata correlation** (receipts leak who worked with whom) | Disclosed | Identifiers are DIDs; required fields avoid names/emails, but issuer/counterparty/timing correlation is possible. Selective disclosure and privacy profiles are future work. |
+| 14 | **Agreement-binding abuse** (wrong offeree, wrong signer, replay/chronology, unbounded stages) | Handled (0.4) | The accept names its `offeree` and must be signed by it; accepts must follow their offer; bound stages carry `agreement_ref`, checked for resolution, chronology, and issuer; offeree stages that skip the ref and accepts nothing references are PROVISIONAL. Adversarial vectors `17b`–`17j`. |
 
 ## Non-goals (restated)
 

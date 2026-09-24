@@ -10,7 +10,7 @@ members.
 CLI `continuity-receipt-verify-receipt`; second implementation:
 `rust/src/verification.rs` + the same CLI in the Rust crate (differential
 20/20 over the vectors); schema `schema/verification-receipt-1.schema.json`;
-vectors `vectors/verification/` (20 cases).
+vectors `vectors/verification/` (21 cases).
 
 ## Why
 
@@ -63,7 +63,7 @@ Three properties do the work:
     "settled": true
   },
   "verified_at": "2026-09-23T21:00:00Z",
-  "verifier": {"implementation": "python-reference", "version": "0.3.3"},
+  "verifier": {"implementation": "python-reference", "version": "0.4.0"},
   "issuer": "did:key:z6Mk…",
   "sig": {"alg": "ed25519", "key": "did:key:z6Mk…", "value": "…"}
 }
@@ -197,7 +197,8 @@ and the stamped file from the receipt itself.
 The issuer key carries the same revocation semantics as bundle receipts:
 statements are self-signed by the key they revoke
 (`REVOCATION_DISTRIBUTION.md`), and a receipt is invalid when
-`revoked_at <= verified_at`. The check is **opt-in input** — a verifier
+`revoked_at <= verified_at`; a statement dated after `verified_at` leaves the
+receipt valid (vector `21_valid_statement_after_verified_at`). The check is **opt-in input** — a verifier
 without revocation information cannot perform it. Consumers who need the
 check can fetch the issuer's published document (the hosted service serves
 `GET /revocations/<issuer>`) and pass its statements.
@@ -205,12 +206,14 @@ check can fetch the issuer's published document (the hosted service serves
 ## Vectors and schema
 
 - Schema: `schema/verification-receipt-1.schema.json` (JSON Schema 2020-12).
-- Vectors: `vectors/verification/` — 20 cases: valid TRUSTED, PROVISIONAL
+- Vectors: `vectors/verification/` — 21 cases: valid TRUSTED, PROVISIONAL
   (`anchor_missing`), INSUFFICIENT_EVIDENCE (erased content),
   signature/verdict tampering, wrong bundle, bad
   kind/version/verdict/timestamp/digest/error-codes/errors/reasons/summary,
   consistency violations (`verdict_mismatch`, `error_codes_mismatch`),
-  missing signature, issuer swap, revoked issuer, unknown member.
+  missing signature, issuer swap, revoked issuer (`key_revoked`) and the
+  positive revocation case (a statement dated after `verified_at` leaves the
+  receipt valid), unknown member.
   Machine-readable expectations in `vectors/verification/manifest.json`;
   human index in `vectors/verification/INDEX.md`.
 - Verify with:

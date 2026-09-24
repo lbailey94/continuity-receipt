@@ -26,6 +26,7 @@ class TaskChain:
         issuer_did: str,
         private_key,
         body: dict,
+        issued_at: str | None = None,
     ) -> dict:
         prev = receipt_digest(self.receipts[-1]) if self.receipts else None
         receipt = records.new_envelope(
@@ -37,7 +38,7 @@ class TaskChain:
             prev,
             body,
             spec=self.spec,
-            issued_at=records.utc_now_rfc3339(ms=self.ms_timestamps),
+            issued_at=issued_at or records.utc_now_rfc3339(ms=self.ms_timestamps),
         )
         receipt = records.sign_receipt(receipt, private_key, issuer_did)
         self.receipts.append(receipt)

@@ -16,6 +16,7 @@ POLICY = "2026-09-17.1"
 SPEC_01 = "continuity-receipt/0.1"
 SPEC_02 = "continuity-receipt/0.2"
 SPEC_03 = "continuity-receipt/0.3"
+SPEC_04 = "continuity-receipt/0.4"
 
 GATE_DID, GATE_KEY = keys.generate(keys.deterministic_seed("gate-1"))
 AGENT_DID, AGENT_KEY = keys.generate(keys.deterministic_seed("agent-1"))
@@ -126,13 +127,13 @@ def succession_body() -> dict:
 
 
 def offer_body(terms_hash: str | None = None, valid_until: str = "2030-01-01T00:00:00Z",
-               terms_ref=None) -> dict:
+               terms_ref=None, nonce: str = "nonce-offer-1") -> dict:
     body = {
         "offer_id": "offer-1",
         "offeree": COUNTERPARTY_DID,
         "terms_hash": terms_hash or digest("terms:recall-pilot-1"),
         "valid_until": valid_until,
-        "nonce": "nonce-offer-1",
+        "nonce": nonce,
     }
     if terms_ref is not None:
         body["terms_ref"] = terms_ref
@@ -145,6 +146,34 @@ def accept_body(offer_ref: str, terms_hash: str | None = None) -> dict:
         "offer_id": "offer-1",
         "terms_hash": terms_hash or digest("terms:recall-pilot-1"),
     }
+
+
+def accept_body_04(offer_ref: str, offeree: str = COUNTERPARTY_DID,
+                   terms_hash: str | None = None) -> dict:
+    """0.4 accept: the offeree is named in the body and signs the receipt."""
+    body = accept_body(offer_ref, terms_hash=terms_hash)
+    body["offeree"] = offeree
+    return body
+
+
+def bound(body: dict, accept_ref: str) -> dict:
+    bound_body = dict(body)
+    bound_body["agreement_ref"] = accept_ref
+    return bound_body
+
+
+def add_as(chain: TaskChain, record_type: str, kind: str, did: str, key, body: dict,
+           issued_at: str | None = None) -> dict:
+    return chain.add(record_type, kind, did, key, body, issued_at=issued_at)
+
+
+def add_bound(chain: TaskChain, record_type: str, body: dict, accept_ref: str,
+              issued_at: str | None = None) -> dict:
+    """Add a bound-stage record signed by the offeree, carrying agreement_ref."""
+    return chain.add(
+        record_type, "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        bound(body, accept_ref), issued_at=issued_at,
+    )
 
 
 def add(chain: TaskChain, record_type: str, body: dict) -> dict:
@@ -454,9 +483,279 @@ def main() -> int:
         note="0.3 redacted terms_ref disclosed selectively",
     )
 
+    # --- 0.4 additions: the accept carries the binding ----------------------
+    bound_chain = chain(SPEC_04)
+    add(bound_chain, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(bound_chain, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        bound_chain, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(bound_chain, "task.decision", decision_body(), accept_ref)
+    add_bound(bound_chain, "task.execution", execution_body(), accept_ref)
+    add_bound(bound_chain, "delivery.attestation", delivery_body(), accept_ref)
+    add_bound(bound_chain, "settlement", settlement_body(), accept_ref)
+    add_as(bound_chain, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17_agreement_bound.json", bound_chain.bundle())
+    record(
+        "17_agreement_bound.json",
+        "TRUSTED",
+        note="0.4 accept names the offeree; the binding is carried through decision→settlement",
+    )
+
+    wrong_offeree = chain(SPEC_04)
+    add(wrong_offeree, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(wrong_offeree, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        wrong_offeree, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt), offeree=GATE_DID),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(wrong_offeree, "task.decision", decision_body(), accept_ref)
+    add_as(wrong_offeree, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17b_offeree_mismatch.json", wrong_offeree.bundle())
+    record(
+        "17b_offeree_mismatch.json",
+        "UNTRUSTED",
+        "offeree_mismatch",
+        note="0.4 accept names an offeree that is not the signer or the offer's offeree",
+    )
+
+    wrong_signer = chain(SPEC_04)
+    add(wrong_signer, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(wrong_signer, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        wrong_signer, "agreement.accept", "gate", GATE_DID, GATE_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(wrong_signer, "task.decision", decision_body(), accept_ref)
+    add_as(wrong_signer, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17c_accept_wrong_signer.json", wrong_signer.bundle())
+    record(
+        "17c_accept_wrong_signer.json",
+        "UNTRUSTED",
+        "offeree_mismatch",
+        note="0.4 accept signed by someone other than the named offeree",
+    )
+
+    early_accept = chain(SPEC_04)
+    add(early_accept, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add_as(
+        early_accept, "agreement.offer", "gate", GATE_DID, GATE_KEY, offer_body(),
+        issued_at="2026-09-23T10:00:00Z",
+    )
+    accept_receipt = add_as(
+        early_accept, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)), issued_at="2026-09-23T09:00:00Z",
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(early_accept, "task.decision", decision_body(), accept_ref, issued_at="2026-09-23T11:00:00Z")
+    add_as(
+        early_accept, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        termination_body(), issued_at="2026-09-23T11:30:00Z",
+    )
+    write("17d_accept_before_offer.json", early_accept.bundle())
+    record(
+        "17d_accept_before_offer.json",
+        "UNTRUSTED",
+        "accept_before_offer",
+        note="0.4 accept issued before the offer it references",
+    )
+
+    early_bound = chain(SPEC_04)
+    add(early_bound, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add_as(
+        early_bound, "agreement.offer", "gate", GATE_DID, GATE_KEY, offer_body(),
+        issued_at="2026-09-23T10:00:00Z",
+    )
+    accept_receipt = add_as(
+        early_bound, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)), issued_at="2026-09-23T12:00:00Z",
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(early_bound, "task.decision", decision_body(), accept_ref, issued_at="2026-09-23T11:00:00Z")
+    add_as(
+        early_bound, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        termination_body(), issued_at="2026-09-23T12:30:00Z",
+    )
+    write("17e_bound_before_accept.json", early_bound.bundle())
+    record(
+        "17e_bound_before_accept.json",
+        "UNTRUSTED",
+        "agreement_before_accept",
+        note="0.4 bound receipt issued before the accept it references",
+    )
+
+    wrong_issuer = chain(SPEC_04)
+    add(wrong_issuer, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(wrong_issuer, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        wrong_issuer, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_as(wrong_issuer, "task.decision", "gate", GATE_DID, GATE_KEY, bound(decision_body(), accept_ref))
+    add_as(wrong_issuer, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17f_bound_wrong_issuer.json", wrong_issuer.bundle())
+    record(
+        "17f_bound_wrong_issuer.json",
+        "UNTRUSTED",
+        "agreement_issuer_mismatch",
+        note="0.4 bound receipt signed by someone other than the offeree",
+    )
+
+    absent_agreement = chain(SPEC_04)
+    add(absent_agreement, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(absent_agreement, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        absent_agreement, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    add_bound(absent_agreement, "task.decision", decision_body(), digest("agreement:absent"))
+    add_as(absent_agreement, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17g_missing_agreement.json", absent_agreement.bundle())
+    record(
+        "17g_missing_agreement.json",
+        "INSUFFICIENT_EVIDENCE",
+        note="0.4 agreement_ref points at an accept absent from the bundle",
+    )
+
+    unreferenced = chain(SPEC_04)
+    add(unreferenced, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(unreferenced, "agreement.offer", offer_body())
+    add_as(
+        unreferenced, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    add_as(unreferenced, "task.decision", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, decision_body())
+    add_as(unreferenced, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17h_agreement_unreferenced.json", unreferenced.bundle())
+    record(
+        "17h_agreement_unreferenced.json",
+        "PROVISIONAL",
+        note="0.4 accept present but no bound receipt carries its ref",
+    )
+
+    skipped_ref = chain(SPEC_04)
+    add(skipped_ref, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(skipped_ref, "agreement.offer", offer_body())
+    accept_receipt = add_as(
+        skipped_ref, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(offer_receipt)),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(skipped_ref, "task.decision", decision_body(), accept_ref)
+    add_as(skipped_ref, "task.execution", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, execution_body())
+    add_as(skipped_ref, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17i_missing_agreement_ref.json", skipped_ref.bundle())
+    record(
+        "17i_missing_agreement_ref.json",
+        "PROVISIONAL",
+        note="0.4 offeree receipt after the accept carries no agreement_ref",
+    )
+
+    duplicate_offers = chain(SPEC_04)
+    add(duplicate_offers, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(duplicate_offers, "agreement.offer", offer_body(nonce="nonce-1"))
+    second_offer = add(duplicate_offers, "agreement.offer", offer_body(nonce="nonce-2"))
+    accept_receipt = add_as(
+        duplicate_offers, "agreement.accept", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY,
+        accept_body_04(receipt_digest(second_offer)),
+    )
+    accept_ref = receipt_digest(accept_receipt)
+    add_bound(duplicate_offers, "task.decision", decision_body(), accept_ref)
+    add_as(duplicate_offers, "task.termination", "agent", COUNTERPARTY_DID, COUNTERPARTY_KEY, termination_body())
+    write("17j_duplicate_offer_ids.json", duplicate_offers.bundle())
+    record(
+        "17j_duplicate_offer_ids.json",
+        "TRUSTED",
+        note="0.4 two offers share offer_id; the accept binds by digest",
+    )
+
+    # --- compatibility: non-0.4 envelopes ignore agreement_ref --------------
+    legacy_ref = chain(SPEC_03)
+    add(legacy_ref, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    offer_receipt = add(legacy_ref, "agreement.offer", offer_body())
+    add(legacy_ref, "agreement.accept", accept_body(receipt_digest(offer_receipt)))
+    legacy_decision = decision_body()
+    legacy_decision["agreement_ref"] = digest("agreement:absent")
+    add(legacy_ref, "task.decision", legacy_decision)
+    add(legacy_ref, "task.execution", execution_body())
+    add(legacy_ref, "task.termination", termination_body())
+    write("18_legacy_agreement_ref_ignored.json", legacy_ref.bundle())
+    record(
+        "18_legacy_agreement_ref_ignored.json",
+        "TRUSTED",
+        note="0.3 envelope: agreement_ref is an ignored additional member (mixed-version rule)",
+    )
+
+    # --- coverage: core negative rules with dedicated vectors ---------------
+    policy_gap = chain(SPEC_03)
+    add(policy_gap, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    mismatched_decision = decision_body()
+    mismatched_decision["policy_version"] = "2026-09-17.2"
+    add(policy_gap, "task.decision", mismatched_decision)
+    add(policy_gap, "task.execution", execution_body())
+    add(policy_gap, "task.termination", termination_body())
+    write("19_policy_mismatch.json", policy_gap.bundle())
+    record(
+        "19_policy_mismatch.json",
+        "UNTRUSTED",
+        "policy_mismatch",
+        note="decision policy_version differs from the pass policy_version",
+    )
+
+    required_redaction = chain(SPEC_03)
+    add(required_redaction, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(required_redaction, "task.decision", decision_body())
+    add(required_redaction, "task.execution", execution_body())
+    required_termination = termination_body()
+    required_termination["reason"] = {
+        "redacted": True,
+        "commit": commit_field(keys.random_salt_hex(), "completed"),
+    }
+    add(required_redaction, "task.termination", required_termination)
+    write("20_redacted_required.json", required_redaction.bundle())
+    record(
+        "20_redacted_required.json",
+        "UNTRUSTED",
+        "redacted_required",
+        note="required field (task.termination.reason) redacted at issuance",
+        schema_valid=False,
+    )
+
+    commit_gap = chain(SPEC_03)
+    add(commit_gap, "session.pass.created", pass_body(spend_cap={"minor": 1000, "currency": "USD"}))
+    add(commit_gap, "task.decision", decision_body())
+    add(commit_gap, "task.execution", execution_body())
+    commit_salt = keys.random_salt_hex()
+    committed_value = ["quality-ok"]
+    add(
+        commit_gap,
+        "delivery.attestation",
+        delivery_body(
+            {"quality_flags": {"redacted": True, "commit": commit_field(commit_salt, committed_value)}}
+        ),
+    )
+    add(commit_gap, "settlement", settlement_body())
+    add(commit_gap, "task.termination", termination_body())
+    commit_bundle = commit_gap.bundle()
+    commit_bundle["disclosure_map"] = {
+        "receipts[3].body.quality_flags": {"salt": commit_salt, "value": ["quality-other"]}
+    }
+    write("21_commit_mismatch.json", commit_bundle)
+    record(
+        "21_commit_mismatch.json",
+        "UNTRUSTED",
+        "commit_mismatch",
+        note="disclosure value does not match the signed commitment",
+    )
+
     # --- indexes ------------------------------------------------------------
     (VECTORS / "manifest.json").write_text(
-        json.dumps({"spec": SPEC_03, "vectors": rows}, indent=2) + "\n", encoding="utf-8"
+        json.dumps({"spec": SPEC_04, "vectors": rows}, indent=2) + "\n", encoding="utf-8"
     )
 
     index_lines = [

@@ -58,14 +58,14 @@ continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
 continuity-receipt-verify vectors/07_redacted_no_disclosure.json
 ```
 
-The 20 vectors in [`vectors/`](vectors/) cover the happy path, tampering,
+The 40 vectors in [`vectors/`](vectors/) cover the happy path, tampering,
 missing termination, redaction with and without disclosure, erasure, anchor
 failures, succession, attestations, and revocation semantics.
 
 ## Honest gaps
 
-- Revocation is a documented v0 gap; succession semantics are early.
-- Anchoring defaults are not yet public (policy in [`ANCHORING.md`](ANCHORING.md)).
+- Revocation distribution is static-list tooling with per-statement signatures; succession multi-signatures remain deferred (`SPEC.md` §11).
+- Anchoring policy is public ([`ANCHORING.md`](ANCHORING.md)); proof verification ships as the companion tool.
 - The format versions independently of any product; it is not endorsed by the
   W3C CG or IETF, and no adoption is claimed.
 

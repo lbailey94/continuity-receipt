@@ -1,5 +1,5 @@
 {
-  "spec": "continuity-receipt/0.3",
+  "spec": "continuity-receipt/0.4",
   "vectors": [
     {
       "file": "01_happy_minimal.json",
@@ -207,6 +207,118 @@
       "expected_code": null,
       "require_anchor": false,
       "note": "0.3 redacted terms_ref disclosed selectively",
+      "schema_valid": true
+    },
+    {
+      "file": "17_agreement_bound.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.4 accept names the offeree; the binding is carried through decision\u2192settlement",
+      "schema_valid": true
+    },
+    {
+      "file": "17b_offeree_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "offeree_mismatch",
+      "require_anchor": false,
+      "note": "0.4 accept names an offeree that is not the signer or the offer's offeree",
+      "schema_valid": true
+    },
+    {
+      "file": "17c_accept_wrong_signer.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "offeree_mismatch",
+      "require_anchor": false,
+      "note": "0.4 accept signed by someone other than the named offeree",
+      "schema_valid": true
+    },
+    {
+      "file": "17d_accept_before_offer.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "accept_before_offer",
+      "require_anchor": false,
+      "note": "0.4 accept issued before the offer it references",
+      "schema_valid": true
+    },
+    {
+      "file": "17e_bound_before_accept.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "agreement_before_accept",
+      "require_anchor": false,
+      "note": "0.4 bound receipt issued before the accept it references",
+      "schema_valid": true
+    },
+    {
+      "file": "17f_bound_wrong_issuer.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "agreement_issuer_mismatch",
+      "require_anchor": false,
+      "note": "0.4 bound receipt signed by someone other than the offeree",
+      "schema_valid": true
+    },
+    {
+      "file": "17g_missing_agreement.json",
+      "expected_verdict": "INSUFFICIENT_EVIDENCE",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.4 agreement_ref points at an accept absent from the bundle",
+      "schema_valid": true
+    },
+    {
+      "file": "17h_agreement_unreferenced.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.4 accept present but no bound receipt carries its ref",
+      "schema_valid": true
+    },
+    {
+      "file": "17i_missing_agreement_ref.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.4 offeree receipt after the accept carries no agreement_ref",
+      "schema_valid": true
+    },
+    {
+      "file": "17j_duplicate_offer_ids.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.4 two offers share offer_id; the accept binds by digest",
+      "schema_valid": true
+    },
+    {
+      "file": "18_legacy_agreement_ref_ignored.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.3 envelope: agreement_ref is an ignored additional member (mixed-version rule)",
+      "schema_valid": true
+    },
+    {
+      "file": "19_policy_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "policy_mismatch",
+      "require_anchor": false,
+      "note": "decision policy_version differs from the pass policy_version",
+      "schema_valid": true
+    },
+    {
+      "file": "20_redacted_required.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "redacted_required",
+      "require_anchor": false,
+      "note": "required field (task.termination.reason) redacted at issuance",
+      "schema_valid": false
+    },
+    {
+      "file": "21_commit_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "commit_mismatch",
+      "require_anchor": false,
+      "note": "disclosure value does not match the signed commitment",
       "schema_valid": true
     }
   ]

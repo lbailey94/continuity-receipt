@@ -15,10 +15,11 @@ use serde_json::{Map, Value};
 use crate::canon::{canonical_bytes, commit_field, sha256_prefixed, CanonError};
 use crate::didkey;
 
-pub const SUPPORTED_SPECS: [&str; 3] = [
+pub const SUPPORTED_SPECS: [&str; 4] = [
     "continuity-receipt/0.1",
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
+    "continuity-receipt/0.4",
 ];
 pub const RECORD_TYPES: [&str; 9] = [
     "session.pass.created",
@@ -34,6 +35,13 @@ pub const RECORD_TYPES: [&str; 9] = [
 
 const ANCHOR_TYPES: [&str; 3] = ["opentimestamps", "public-chain", "custom"];
 const PROVENANCE_PREFIXES: [&str; 2] = ["sha256:", "merkle-sha256:"];
+/// 0.4: record types an `agreement.accept` binds.
+const BOUND_TYPES: [&str; 4] = [
+    "task.decision",
+    "task.execution",
+    "delivery.attestation",
+    "settlement",
+];
 
 const PASS_FIELDS: [&str; 7] = [
     "gate_id",
@@ -65,8 +73,13 @@ const SETTLEMENT_FIELDS: [&str; 5] = [
 const SUCCESSION_FIELDS: [&str; 4] = ["from_authority", "to_authority", "effective_at", "reason"];
 const OFFER_FIELDS: [&str; 5] = ["offer_id", "offeree", "terms_hash", "valid_until", "nonce"];
 const ACCEPT_FIELDS: [&str; 3] = ["offer_ref", "offer_id", "terms_hash"];
+/// 0.4: the accept names the offeree (mirrors `REQUIRED_FIELDS_04`).
+const ACCEPT_FIELDS_04: [&str; 4] = ["offer_ref", "offer_id", "terms_hash", "offeree"];
 
-fn required_fields(record_type: &str) -> Option<&'static [&'static str]> {
+fn required_fields(record_type: &str, spec: Option<&str>) -> Option<&'static [&'static str]> {
+    if spec == Some("continuity-receipt/0.4") && record_type == "agreement.accept" {
+        return Some(&ACCEPT_FIELDS_04);
+    }
     match record_type {
         "session.pass.created" => Some(&PASS_FIELDS),
         "task.decision" => Some(&DECISION_FIELDS),
@@ -166,8 +179,13 @@ impl VerifyResult {
 
     /// Result carrying a single `malformed` error (used for unparseable input).
     pub fn malformed(detail: impl Into<String>) -> Self {
+        Self::coded("malformed", detail)
+    }
+
+    /// A result carrying a single error with the given code (CLI input guards).
+    pub fn coded(code: &str, detail: impl Into<String>) -> Self {
         let mut result = Self::default();
-        fatal(&mut result, "malformed", detail.into(), None);
+        fatal(&mut result, code, detail.into(), None);
         result
     }
 }
@@ -192,6 +210,79 @@ fn spec_supported(value: Option<&Value>) -> bool {
         .unwrap_or(false)
 }
 
+/// Iterative depth probe so hostile nesting cannot exhaust the stack
+/// (mirrors Python `_depth_exceeded`).
+fn depth_exceeded(value: &Value, limit: usize) -> bool {
+    let mut stack = vec![(value, 1usize)];
+    while let Some((current, depth)) = stack.pop() {
+        if depth > limit {
+            return true;
+        }
+        match current {
+            Value::Object(map) => stack.extend(map.values().map(|item| (item, depth + 1))),
+            Value::Array(items) => stack.extend(items.iter().map(|item| (item, depth + 1))),
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Whole-shape validation before any semantic check (mirrors Python
+/// `_check_shape`): structural violations are recorded up front so every
+/// later pass can rely on shape.
+fn check_shape(result: &mut VerifyResult, bundle_object: &Map<String, Value>, receipts: &[Value]) {
+    for (index, receipt) in receipts.iter().enumerate() {
+        let Some(record) = receipt.as_object() else {
+            fatal(
+                result,
+                "malformed",
+                format!("receipt {index} is not an object"),
+                None,
+            );
+            continue;
+        };
+        let receipt_id = record.get("receipt_id").filter(|value| value.is_string());
+        if !record.get("body").map(Value::is_object).unwrap_or(false) {
+            fatal(result, "malformed", "body is not an object", receipt_id);
+        }
+        if !record.get("issuer").map(Value::is_object).unwrap_or(false) {
+            fatal(result, "malformed", "issuer is not an object", receipt_id);
+        }
+    }
+    if let Some(anchors) = bundle_object.get("anchors") {
+        if !anchors.is_null() && !anchors.is_array() {
+            fatal(result, "malformed", "anchors is not a list", None);
+        } else if let Some(items) = anchors.as_array() {
+            for anchor in items {
+                if !anchor.is_object() {
+                    fatal(result, "anchor_invalid", "anchor entry is not an object", None);
+                }
+            }
+        }
+    }
+    if let Some(revocations) = bundle_object.get("revocations") {
+        if !revocations.is_null() && !revocations.is_array() {
+            fatal(result, "bad_revocation", "revocations must be a list", None);
+        } else if let Some(items) = revocations.as_array() {
+            for statement in items {
+                if !statement.is_object() {
+                    fatal(
+                        result,
+                        "bad_revocation",
+                        "revocation statements must be objects",
+                        None,
+                    );
+                }
+            }
+        }
+    }
+    if let Some(disclosure) = bundle_object.get("disclosure_map") {
+        if !disclosure.is_null() && !disclosure.is_object() {
+            fatal(result, "malformed", "disclosure_map is not an object", None);
+        }
+    }
+}
+
 /// Verify a parsed bundle (Python `verify_bundle`).
 pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
     let mut result = VerifyResult::default();
@@ -200,6 +291,17 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
         fatal(&mut result, "malformed", "bundle is not an object", None);
         return result;
     };
+
+    const MAX_NESTING_DEPTH: usize = 64;
+    if depth_exceeded(bundle, MAX_NESTING_DEPTH) {
+        fatal(
+            &mut result,
+            "nesting_too_deep",
+            format!("bundle nesting exceeds depth {MAX_NESTING_DEPTH}"),
+            None,
+        );
+        return result;
+    }
 
     if !spec_supported(bundle_object.get("spec")) {
         fatal(
@@ -220,6 +322,17 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
         return result;
     };
 
+    const MAX_RECEIPTS: usize = 10_000;
+    if receipts.len() > MAX_RECEIPTS {
+        fatal(
+            &mut result,
+            "too_many_receipts",
+            format!("{} receipts exceeds limit {MAX_RECEIPTS}", receipts.len()),
+            None,
+        );
+        return result;
+    }
+
     // Missing and explicit-null compare equal here, as Python's dict.get does.
     let task_id = bundle_object
         .get("task_id")
@@ -227,14 +340,10 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
     let mut expected_prev: Option<String> = None;
     let mut type_by_seq: BTreeMap<usize, String> = BTreeMap::new();
 
+    check_shape(&mut result, bundle_object, receipts);
+
     for (index, receipt) in receipts.iter().enumerate() {
         let Some(record) = receipt.as_object() else {
-            fatal(
-                &mut result,
-                "malformed",
-                format!("receipt {index} is not an object"),
-                None,
-            );
             continue;
         };
         let receipt_id = record.get("receipt_id");
@@ -269,19 +378,14 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
         type_by_seq.insert(index, record_type.to_string());
 
         let Some(body) = record.get("body").and_then(Value::as_object) else {
-            fatal(
-                &mut result,
-                "malformed",
-                "body is not an object",
-                receipt_id,
-            );
             continue;
         };
-        let missing: Vec<&str> = required_fields(record_type)
-            .unwrap_or(&[])
-            .iter()
-            .copied()
-            .filter(|name| !body.contains_key(*name))
+        let missing: Vec<&str> =
+            required_fields(record_type, record.get("spec").and_then(Value::as_str))
+                .unwrap_or(&[])
+                .iter()
+                .copied()
+                .filter(|name| !body.contains_key(*name))
             .collect();
         if !missing.is_empty() {
             let listed = missing
@@ -435,17 +539,19 @@ fn check_cross_record(
         );
         return;
     }
-    let pass_body = pass_receipts[0].get("body").and_then(Value::as_object);
-    let policy_version = pass_body.and_then(|body| body.get("policy_version"));
+    let Some(pass_body) = pass_receipts[0].get("body").and_then(Value::as_object) else {
+        return;
+    };
+    let policy_version = pass_body.get("policy_version");
 
     for receipt in receipts.iter().filter_map(Value::as_object) {
         if receipt.get("type").and_then(Value::as_str) != Some("task.decision") {
             continue;
         }
-        let decision_policy = receipt
-            .get("body")
-            .and_then(Value::as_object)
-            .and_then(|body| body.get("policy_version"));
+        let Some(decision_body) = receipt.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        let decision_policy = decision_body.get("policy_version");
         if decision_policy != policy_version {
             fatal(
                 result,
@@ -460,9 +566,16 @@ fn check_cross_record(
         }
     }
 
-    let spend_cap = pass_body
-        .and_then(|body| body.get("spend_cap"))
-        .filter(|value| !value.is_null());
+    let mut spend_cap = pass_body.get("spend_cap").filter(|value| !value.is_null());
+    if spend_cap.is_some() && !spend_cap.map(Value::is_object).unwrap_or(false) {
+        fatal(
+            result,
+            "malformed",
+            "pass spend_cap is not an object",
+            pass_receipts[0].get("receipt_id"),
+        );
+        spend_cap = None;
+    }
     let settlement_indexes: Vec<usize> = type_by_seq
         .iter()
         .filter(|(_, record_type)| record_type.as_str() == "settlement")
@@ -478,8 +591,19 @@ fn check_cross_record(
         let Some(settlement) = receipts.get(index).and_then(Value::as_object) else {
             continue;
         };
-        let body = settlement.get("body").and_then(Value::as_object);
-        let amount = body.and_then(|body| body.get("amount"));
+        let Some(body) = settlement.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        let amount = body.get("amount");
+        if amount.is_some() && !amount.map(Value::is_object).unwrap_or(false) {
+            fatal(
+                result,
+                "malformed",
+                "settlement amount is not an object",
+                settlement.get("receipt_id"),
+            );
+            continue;
+        }
         if let Some(cap) = spend_cap {
             let cap_object = cap.as_object();
             let amount_object = amount.and_then(Value::as_object);
@@ -490,7 +614,15 @@ fn check_cross_record(
             } else {
                 match (minor_units(amount_object), minor_units(cap_object)) {
                     (Some(settled), Some(limit)) => settled > limit,
-                    _ => true, // fail closed where Python would raise
+                    _ => {
+                        fatal(
+                            result,
+                            "malformed",
+                            "settlement amount is not numeric",
+                            settlement.get("receipt_id"),
+                        );
+                        false
+                    }
                 }
             };
             if exceeded {
@@ -508,7 +640,7 @@ fn check_cross_record(
                 );
             }
         }
-        if py_truthy(body.and_then(|body| body.get("gated_on_delivery"))) {
+        if py_truthy(body.get("gated_on_delivery")) {
             let gated_late =
                 delivery_indexes.is_empty() || delivery_indexes.iter().min().copied() > Some(index);
             if gated_late {
@@ -544,27 +676,50 @@ fn check_cross_record(
 /// `offer_expired`.
 fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
     let mut offers: BTreeMap<String, &Map<String, Value>> = BTreeMap::new();
+    let mut accepts: BTreeMap<String, &Map<String, Value>> = BTreeMap::new();
     for receipt in receipts.iter().filter_map(Value::as_object) {
-        if receipt.get("type").and_then(Value::as_str) != Some("agreement.offer") {
-            continue;
-        }
-        if let Ok(digest) = receipt_digest(receipt) {
-            offers.insert(digest, receipt);
+        match receipt.get("type").and_then(Value::as_str) {
+            Some("agreement.offer") => {
+                if let Ok(digest) = receipt_digest(receipt) {
+                    offers.insert(digest, receipt);
+                }
+            }
+            Some("agreement.accept") => {
+                if let Ok(digest) = receipt_digest(receipt) {
+                    accepts.insert(digest, receipt);
+                }
+            }
+            _ => {}
         }
     }
 
+    for accept in accepts.values() {
+        check_accept(result, accept, &offers);
+    }
+
+    let mut referenced: BTreeSet<String> = BTreeSet::new();
     for receipt in receipts.iter().filter_map(Value::as_object) {
-        if receipt.get("type").and_then(Value::as_str) != Some("agreement.accept") {
+        let Some(record_type) = receipt.get("type").and_then(Value::as_str) else {
+            continue;
+        };
+        if !BOUND_TYPES.contains(&record_type) {
             continue;
         }
-        let body = receipt.get("body").and_then(Value::as_object);
-        let offer = body
-            .and_then(|body| body.get("offer_ref"))
-            .and_then(Value::as_str)
-            .and_then(|reference| offers.get(reference));
-        let Some(offer) = offer else {
+        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+            continue;
+        }
+        let Some(body) = receipt.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        let Some(reference) = body.get("agreement_ref").filter(|value| !value.is_null()) else {
+            continue;
+        };
+        let accept = reference
+            .as_str()
+            .and_then(|reference| accepts.get(reference));
+        let Some(accept) = accept else {
             result.insufficient_reasons.push(format!(
-                "missing_offer:{}",
+                "missing_agreement:{}",
                 receipt
                     .get("receipt_id")
                     .and_then(Value::as_str)
@@ -572,51 +727,244 @@ fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
             ));
             continue;
         };
-        let offer_body = offer.get("body").and_then(Value::as_object);
-        let valid_until = offer_body.and_then(|body| body.get("valid_until"));
-        if !validate_timestamp(valid_until) {
-            fatal(
-                result,
-                "malformed",
-                format!(
-                    "offer valid_until not RFC 3339 UTC: {}",
-                    py_repr(valid_until)
-                ),
-                offer.get("receipt_id"),
-            );
+        referenced.insert(reference.as_str().unwrap_or("").to_string());
+        let Some(accept_body) = accept.get("body").and_then(Value::as_object) else {
             continue;
-        }
-        let same_offer_id = body.and_then(|body| body.get("offer_id"))
-            == offer_body.and_then(|body| body.get("offer_id"));
-        let same_terms = body.and_then(|body| body.get("terms_hash"))
-            == offer_body.and_then(|body| body.get("terms_hash"));
-        if !same_offer_id || !same_terms {
-            fatal(
-                result,
-                "offer_mismatch",
-                "accept does not match the referenced offer",
-                receipt.get("receipt_id"),
-            );
-            continue;
-        }
-        let issued_at = receipt
+        };
+        let accept_issued = accept
             .get("issued_at")
             .and_then(Value::as_str)
             .and_then(parse_timestamp);
-        let valid_until = valid_until
+        let bound_issued = receipt
+            .get("issued_at")
             .and_then(Value::as_str)
             .and_then(parse_timestamp);
-        if let (Some(issued_at), Some(valid_until)) = (issued_at, valid_until) {
-            if issued_at > valid_until {
+        if let (Some(accept_issued), Some(bound_issued)) = (accept_issued, bound_issued) {
+            if bound_issued < accept_issued {
                 fatal(
                     result,
-                    "offer_expired",
+                    "agreement_before_accept",
                     format!(
-                        "accept issued after offer valid_until {}",
-                        py_repr(offer_body.and_then(|body| body.get("valid_until")))
+                        "bound receipt issued before its accept {}",
+                        py_repr(accept.get("receipt_id"))
                     ),
                     receipt.get("receipt_id"),
                 );
+            }
+        }
+        let issuer_id = receipt
+            .get("issuer")
+            .and_then(Value::as_object)
+            .and_then(|issuer| issuer.get("id"))
+            .and_then(Value::as_str);
+        if let Some(offeree) = accept_body.get("offeree").and_then(Value::as_str) {
+            if issuer_id != Some(offeree) {
+                fatal(
+                    result,
+                    "agreement_issuer_mismatch",
+                    format!("bound receipt issuer {issuer_id:?} is not the offeree"),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
+    }
+
+    check_agreement_completeness(result, receipts, &accepts, &referenced);
+}
+
+/// 0.3 offer resolution plus the 0.4 offeree and chronology rules.
+fn check_accept(
+    result: &mut VerifyResult,
+    receipt: &Map<String, Value>,
+    offers: &BTreeMap<String, &Map<String, Value>>,
+) {
+    let Some(body) = receipt.get("body").and_then(Value::as_object) else {
+        return;
+    };
+    let offer = body
+        .get("offer_ref")
+        .and_then(Value::as_str)
+        .and_then(|reference| offers.get(reference));
+    let Some(offer) = offer else {
+        result.insufficient_reasons.push(format!(
+            "missing_offer:{}",
+            receipt
+                .get("receipt_id")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+        ));
+        return;
+    };
+    let Some(offer_body) = offer.get("body").and_then(Value::as_object) else {
+        return;
+    };
+    let valid_until = offer_body.get("valid_until");
+    if !validate_timestamp(valid_until) {
+        fatal(
+            result,
+            "malformed",
+            format!(
+                "offer valid_until not RFC 3339 UTC: {}",
+                py_repr(valid_until)
+            ),
+            offer.get("receipt_id"),
+        );
+        return;
+    }
+    let same_offer_id = body.get("offer_id") == offer_body.get("offer_id");
+    let same_terms = body.get("terms_hash") == offer_body.get("terms_hash");
+    if !same_offer_id || !same_terms {
+        fatal(
+            result,
+            "offer_mismatch",
+            "accept does not match the referenced offer",
+            receipt.get("receipt_id"),
+        );
+        return;
+    }
+    let accept_issued = receipt
+        .get("issued_at")
+        .and_then(Value::as_str)
+        .and_then(parse_timestamp);
+    let valid_until_at = valid_until.and_then(Value::as_str).and_then(parse_timestamp);
+    if let (Some(accept_issued), Some(valid_until_at)) = (accept_issued, valid_until_at) {
+        if accept_issued > valid_until_at {
+            fatal(
+                result,
+                "offer_expired",
+                format!(
+                    "accept issued after offer valid_until {}",
+                    py_repr(offer_body.get("valid_until"))
+                ),
+                receipt.get("receipt_id"),
+            );
+        }
+    }
+    if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+        return;
+    }
+    let offeree = body.get("offeree").and_then(Value::as_str);
+    let issuer_id = receipt
+        .get("issuer")
+        .and_then(Value::as_object)
+        .and_then(|issuer| issuer.get("id"))
+        .and_then(Value::as_str);
+    match offeree {
+        None | Some("") => fatal(
+            result,
+            "malformed",
+            format!("accept offeree is not a string: {}", py_repr(body.get("offeree"))),
+            receipt.get("receipt_id"),
+        ),
+        Some(offeree) => {
+            if issuer_id != Some(offeree)
+                || offer_body.get("offeree").and_then(Value::as_str) != Some(offeree)
+            {
+                fatal(
+                    result,
+                    "offeree_mismatch",
+                    format!(
+                        "accept offeree {offeree:?} does not match the signer {issuer_id:?} / offer"
+                    ),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
+    }
+    let offer_issued = offer
+        .get("issued_at")
+        .and_then(Value::as_str)
+        .and_then(parse_timestamp);
+    if let (Some(accept_issued), Some(offer_issued)) = (accept_issued, offer_issued) {
+        if accept_issued < offer_issued {
+            fatal(
+                result,
+                "accept_before_offer",
+                format!("accept issued before offer {}", py_repr(offer.get("receipt_id"))),
+                receipt.get("receipt_id"),
+            );
+        }
+    }
+}
+
+/// 0.4 completeness: unreferenced accepts, and offeree receipts that skip the ref.
+fn check_agreement_completeness(
+    result: &mut VerifyResult,
+    receipts: &[Value],
+    accepts: &BTreeMap<String, &Map<String, Value>>,
+    referenced: &BTreeSet<String>,
+) {
+    for (digest, accept) in accepts {
+        if accept.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.4")
+            && !referenced.contains(digest)
+        {
+            result.provisional_reasons.push(format!(
+                "agreement_unreferenced:{}",
+                accept
+                    .get("receipt_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+            ));
+        }
+    }
+    for receipt in receipts.iter().filter_map(Value::as_object) {
+        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+            continue;
+        }
+        let Some(record_type) = receipt.get("type").and_then(Value::as_str) else {
+            continue;
+        };
+        if !BOUND_TYPES.contains(&record_type) {
+            continue;
+        }
+        let Some(body) = receipt.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        let has_ref = body
+            .get("agreement_ref")
+            .map(|value| !value.is_null())
+            .unwrap_or(false);
+        if has_ref {
+            continue;
+        }
+        let issuer_id = receipt
+            .get("issuer")
+            .and_then(Value::as_object)
+            .and_then(|issuer| issuer.get("id"))
+            .and_then(Value::as_str);
+        let bound_issued = receipt
+            .get("issued_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let (Some(issuer_id), Some(bound_at)) = (issuer_id, bound_issued) else {
+            continue;
+        };
+        for accept in accepts.values() {
+            if accept.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+                continue;
+            }
+            let Some(accept_body) = accept.get("body").and_then(Value::as_object) else {
+                continue;
+            };
+            if accept_body.get("offeree").and_then(Value::as_str) != Some(issuer_id) {
+                continue;
+            }
+            let accept_issued = accept
+                .get("issued_at")
+                .and_then(Value::as_str)
+                .and_then(parse_timestamp);
+            let Some(accept_at) = accept_issued else {
+                continue;
+            };
+            if accept_at <= bound_at {
+                result.provisional_reasons.push(format!(
+                    "missing_agreement_ref:{}",
+                    receipt
+                        .get("receipt_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                ));
+                break;
             }
         }
     }
@@ -717,7 +1065,7 @@ pub(crate) fn required_field_for_path(path: &str, receipts: &[Value]) -> Option<
     let index: usize = index_text.parse().ok()?;
     let receipt = receipts.get(index).and_then(Value::as_object)?;
     let record_type = receipt.get("type").and_then(Value::as_str)?;
-    required_fields(record_type)
+    required_fields(record_type, receipt.get("spec").and_then(Value::as_str))
         .filter(|fields| fields.contains(&parts[2]))
         .map(|_| parts[2].to_string())
 }
@@ -879,9 +1227,11 @@ fn check_revocations(result: &mut VerifyResult, bundle: &Map<String, Value>, rec
         return;
     }
     let Some(statements) = raw.and_then(Value::as_array) else {
-        fatal(result, "bad_revocation", "revocations must be a list", None);
         return;
     };
+    if statements.iter().any(|statement| !statement.is_object()) {
+        return;
+    }
 
     let (revoked, statement_errors) = verify_revocation_statements(statements);
     result.errors.extend(statement_errors);
@@ -1021,23 +1371,20 @@ fn check_anchors(
         return;
     }
     let Some(anchor_list) = anchors.and_then(Value::as_array) else {
-        fatal(result, "anchor_invalid", "anchors must be a list", None);
-        result.summary.insert(
-            "anchors".to_string(),
-            Value::Array(vec![Value::String("hash-only".to_string())]),
-        );
         return;
     };
 
     let mut kinds: Vec<Value> = Vec::new();
     for anchor in anchor_list {
-        let anchor_object = anchor.as_object();
-        let target = anchor_object.and_then(|item| item.get("target"));
+        let Some(anchor_object) = anchor.as_object() else {
+            continue;
+        };
+        let target = anchor_object.get("target");
         let target_receipt = find_receipt_by_id(receipts, target);
         let bound = match (
             target_receipt,
             anchor_object
-                .and_then(|item| item.get("hash"))
+                .get("hash")
                 .and_then(Value::as_str),
         ) {
             (Some(receipt), Some(hash)) => receipt_digest(receipt)
@@ -1055,7 +1402,7 @@ fn check_anchors(
             continue;
         }
         let meta = anchor_object
-            .and_then(|item| item.get("anchor"))
+            .get("anchor")
             .filter(|value| !value.is_null());
         if let Some(meta) = meta {
             let anchor_type = meta.as_object().and_then(|item| item.get("type"));

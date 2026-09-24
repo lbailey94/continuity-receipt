@@ -1,6 +1,6 @@
 """Continuity Receipt reference implementation.
 
-Spec: SPEC.md (continuity-receipt/0.3; 0.1 and 0.2 remain supported)
+Spec: SPEC.md (continuity-receipt/0.4; 0.1-0.3 remain supported)
 Verification receipts (companion): VERIFICATION_RECEIPTS.md
 """
 
@@ -10,6 +10,7 @@ from .records import (
     RECORD_TYPES,
     REQUIRED_FIELDS,
     new_envelope,
+    required_fields,
     sign_receipt,
     validate_body,
 )
@@ -20,7 +21,7 @@ from .verification import (
 )
 from .verify import VerifyResult, verify_bundle
 
-SPEC_ID = "continuity-receipt/0.3"
+SPEC_ID = "continuity-receipt/0.4"
 
 __all__ = [
     "SPEC_ID",
@@ -33,6 +34,7 @@ __all__ = [
     "commit_field",
     "issue_verification_receipt",
     "new_envelope",
+    "required_fields",
     "sha256_prefixed",
     "sign_receipt",
     "validate_body",
