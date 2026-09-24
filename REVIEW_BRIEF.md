@@ -7,7 +7,8 @@ logistics.
 **0.4.0** (PyPI); Rust crate **0.4.0** (crates.io); hosted service verifier
 0.4.0 (live).
 **Repository:** <https://github.com/lbailey94/continuity-receipt> ·
-**Contact:** lbailey94@protonmail.com (subject: "verification review").
+**Contact:** lbailey94@protonmail.com (subject: "verification review") ·
+**First-round response:** `REVIEW_RESPONSE.md` (findings → fixes, hostile corpus).
 
 ## Why
 
