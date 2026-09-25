@@ -502,6 +502,8 @@
         },
         "sandbox_class": {
           "enum": [
+            "bwrap",
+            "landlock",
             "bwrap-landlock",
             "microvm-ch",
             "microvm-fc",

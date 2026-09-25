@@ -2,8 +2,10 @@
 
 ## 0.5 development candidate (unpublished)
 
-- [x] Local pass class and honest unconfined execution value implemented in
-  both verifier checkouts, schema 0.5, and separate signed candidate vectors.
+- [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,
+  legacy/combined `bwrap-landlock`, and honest unconfined `none`) implemented
+  in both verifiers, schema 0.5, and separate signed candidate vectors. Values
+  validate issuer claims only and do not prove runtime confinement.
 - [x] State commitment shape implemented with explicit validation and
   non-verification limits (see `SPEC_0.5_DRAFT.md`). The WhiteMagic karma-head
   bundle supplies the initial captured use case; vector 22 is modeled.

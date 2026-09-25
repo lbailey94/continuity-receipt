@@ -7,7 +7,7 @@ All 0.4 rules remain in force. A 0.5 receipt uses the same envelope, canonical v
 ## Local authority and execution
 
 - session.pass.created.mandala_class gains local. The historical field name stays on the wire for compatibility. Local means a local issuer created the pass; it does not claim Mandala gate enforcement. gate_id identifies the issuer or scope. The verifier checks the enum, signature, and existing cross-record rules, not whether the issuer enforced policy.
-- task.execution.sandbox_class gains none: the issuer claims no OS confinement for that execution. Application authorization may still apply. Other values remain bwrap-landlock, microvm-ch, and microvm-fc. The verifier checks the enum, not the sandbox's existence.
+- task.execution.sandbox_class accepts `bwrap`, `landlock`, `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none`. `bwrap` means the issuer claims execution through a Bubblewrap namespace runner; it does not imply Landlock. `landlock` means the issuer claims pure Landlock confinement without namespace isolation. `bwrap-landlock` remains the combined/legacy label for issuer claims that both mechanisms were used. `microvm-ch` and `microvm-fc` identify the corresponding microVM classes; `none` claims no OS confinement, though application authorization may still apply. These values describe issuer claims only: the verifier validates the enum and receipt shape, not the runner, mechanism, or runtime confinement.
 
 ## state.commitment
 
@@ -19,6 +19,6 @@ The first use case is WhiteMagic's captured karma-chain head bundle, which uses 
 
 ## Conformance and open design questions
 
-Schema 0.5, vectors 22–22g and 23/23b, and Python/Rust checks define this candidate. Positive vector 22 covers local, none, and state.commitment. Negatives cover unknown authority/sandbox values, bad count/head, and use of the new type by a 0.4 receipt. Agreement vectors 23 and 23b show a 0.5 accepted agreement carried through decision and execution, plus a missing execution reference that remains PROVISIONAL. Published 0.1–0.4 vector bytes remain frozen.
+Schema 0.5, vectors 22–22j and 23/23b, and Python/Rust checks define this candidate. Positive vectors 22, 22h, 22i, and 22j cover none, bwrap, landlock, and the legacy/combined bwrap-landlock label respectively; they test accepted labels and do not attest runtime behavior. Negatives cover unknown authority/sandbox values, bad count/head, and use of the new type by a 0.4 receipt. Agreement vectors 23 and 23b show a 0.5 accepted agreement carried through decision and execution, plus a missing execution reference that remains PROVISIONAL. Published 0.1–0.4 vector bytes remain frozen.
 
 Review the field name mandala_class, the meaning of scope, and whether chain-head and snapshot profiles need distinct required fields before release.
