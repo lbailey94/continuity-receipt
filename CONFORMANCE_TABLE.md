@@ -103,7 +103,8 @@ cargo test --manifest-path rust/Cargo.toml          # second implementation
 |---|---|---|---|---|---|
 | Local pass class is an allowed 0.5 value; unknown classes fail | `_check_05_body` | `check_05_body` | 22 | 22b | A local label is an issuer claim, not enforcement proof. |
 | No OS sandbox may be disclosed as `none`; unknown classes fail | `_check_05_body` | `check_05_body` | 22 | 22c | Actual confinement is not observed by the verifier. |
-| State commitment requires labels, unsigned 64-bit count, SHA-256 head, optional Merkle root | `_check_05_body` | `check_05_body` | 22 | 22d, 22e, 22g | The referenced state, count, head, and root are not recomputed. |
+| State commitment requires labels, count 0..2^53−1, SHA-256 head, optional Merkle root | `_check_05_body` | `check_05_body` | 22, 22n | 22d, 22e, 22g, 22m | JSON integer range follows interoperable exact-number limits; the referenced state, count, head, and root are not recomputed. |
+| Raw CLI JSON rejects duplicate object member names at every nesting depth | `strict_json.loads` in bundle and verification-receipt CLIs | `strict_json::from_str` in bundle and verification-receipt CLIs | ordinary unique-member inputs | Python and Rust CLI parser regression tests | Applies across supported specs and verification receipt v1; already-parsed programmatic objects cannot recover duplicates discarded upstream. |
 | `state.commitment` is only a 0.5 receipt type | `verify_bundle` | `verify_bundle` | 22 | 22f | Bundle envelopes may still mix earlier receipt specs. |
 | Agreement binding remains active on 0.5 receipts | `_check_agreements` | `check_agreements` | 23 | 23b (`missing_agreement_ref` → PROVISIONAL) | 23 carries the accepted agreement through decision and execution; 23b omits the execution reference. |
 

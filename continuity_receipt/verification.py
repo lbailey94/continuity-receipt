@@ -56,6 +56,7 @@ import sys
 from dataclasses import dataclass, field as dc_field
 
 from . import keys, records
+from . import strict_json
 from . import revocations as revocations_mod
 from ._version import __version__
 from .canon import canonical_bytes, sha256_prefixed
@@ -94,7 +95,7 @@ def _bundle_object(bundle) -> dict:
     if isinstance(bundle, dict):
         return bundle
     if isinstance(bundle, (bytes, bytearray, str)):
-        return json.loads(bundle)
+        return strict_json.loads(bundle)
     raise ValueError("bundle must be an object or JSON bytes")
 
 
@@ -339,8 +340,12 @@ def main(argv=None) -> int:
     )
     args = parser.parse_args(argv)
 
-    with open(args.receipt, "r", encoding="utf-8") as handle:
-        receipt = json.load(handle)
+    try:
+        with open(args.receipt, "r", encoding="utf-8") as handle:
+            receipt = strict_json.load(handle)
+    except (OSError, ValueError) as exc:
+        print(f"error: receipt is not valid JSON: {exc}", file=sys.stderr)
+        return 2
 
     if args.canonical:
         canonical = canonical_bytes({k: v for k, v in receipt.items() if k != "sig"})
@@ -368,7 +373,7 @@ def main(argv=None) -> int:
         with open(args.bundle, "rb") as handle:
             bundle = handle.read()
         try:
-            json.loads(bundle)
+            strict_json.loads(bundle)
         except ValueError as exc:
             print(f"error: --bundle is not valid JSON: {exc}", file=sys.stderr)
             return 2

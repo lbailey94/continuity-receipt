@@ -23,12 +23,12 @@ failures are loud and map to ``INSUFFICIENT_EVIDENCE`` at the CLI.
 
 from __future__ import annotations
 
-import json
 import urllib.error
 import urllib.parse
 import urllib.request
 
 from . import keys, records
+from .strict_json import loads as strict_json_loads
 from .canon import canonical_bytes
 
 MAX_DOCUMENT_BYTES = 1 << 20  # 1 MiB
@@ -82,7 +82,7 @@ def load_statements(source: str, timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
     """Load and shape-check a revocation list document; returns statements."""
     data = _read_source(source, timeout)
     try:
-        document = json.loads(data.decode("utf-8"))
+        document = strict_json_loads(data.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as exc:
         raise RevocationError(
             "bad_revocations_document", f"{source} is not valid JSON: {exc}"

@@ -131,8 +131,8 @@ fn check_05_body(
             if !body.get("scope").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
                 bad.push("scope must be nonempty text");
             }
-            if !body.get("count").and_then(Value::as_u64).is_some() {
-                bad.push("count must be an unsigned 64-bit integer");
+            if !body.get("count").and_then(Value::as_u64).is_some_and(|count| count <= 9_007_199_254_740_991) {
+                bad.push("count must be an exact JSON integer from 0 through 2^53-1");
             }
             if !prefixed_hex(body.get("head_digest"), "sha256:") {
                 bad.push("head_digest must be a sha256 digest");

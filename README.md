@@ -50,6 +50,7 @@ VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
 ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 candidate example
 REVIEW_BRIEF.md            independent review scope (open invitation)
 REVIEW_NOTES_05.md         candidate self-review, findings and open release gates
+INTEGRATION_READINESS.md    exact-candidate gate for producer and verifier integration
 REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not

@@ -142,6 +142,22 @@ fn malformed_bundles_fail_closed_without_panicking() {
 }
 
 #[test]
+fn verifier_clis_reject_duplicate_json_members() {
+    let path = std::env::temp_dir().join(format!("continuity-receipt-duplicate-{}.json", std::process::id()));
+    fs::write(&path, r#"{"spec":"continuity-receipt/0.4","nested":{"x":1,"x":2},"receipts":[]}"#).expect("write input");
+    let bundle = std::process::Command::new(env!("CARGO_BIN_EXE_continuity-receipt-verify"))
+        .arg(&path).output().expect("run bundle verifier");
+    assert!(!bundle.status.success());
+    assert!(String::from_utf8_lossy(&bundle.stdout).contains("malformed"));
+
+    let verification = std::process::Command::new(env!("CARGO_BIN_EXE_continuity-receipt-verify-receipt"))
+        .arg(&path).output().expect("run verification-receipt verifier");
+    assert!(!verification.status.success());
+    assert!(String::from_utf8_lossy(&verification.stderr).contains("duplicate JSON object member"));
+    let _ = fs::remove_file(path);
+}
+
+#[test]
 fn canonicalization_pins_the_subset() {
     use continuity_receipt::canon::{canonical_bytes, commit_field};
 

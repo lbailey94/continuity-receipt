@@ -840,7 +840,7 @@
         "count": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 18446744073709551615
+          "maximum": 9007199254740991
         },
         "head_digest": {
           "$ref": "#/$defs/hash"

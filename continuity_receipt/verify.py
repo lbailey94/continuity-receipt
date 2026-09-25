@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass, field as dc_field
 
 from . import agreements, keys, records
+from . import strict_json
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
 from .revocations import merge_statements, verify_statements
@@ -253,8 +254,8 @@ def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
             _fatal(result, "malformed", "state_kind must be nonempty text", rid)
         if not isinstance(body.get("scope"), str) or not body["scope"]:
             _fatal(result, "malformed", "scope must be nonempty text", rid)
-        if isinstance(body.get("count"), bool) or not isinstance(body.get("count"), int) or not 0 <= body["count"] <= 2**64 - 1:
-            _fatal(result, "malformed", "count must be an unsigned 64-bit integer", rid)
+        if isinstance(body.get("count"), bool) or not isinstance(body.get("count"), int) or not 0 <= body["count"] <= 2**53 - 1:
+            _fatal(result, "malformed", "count must be an exact JSON integer from 0 through 2^53-1", rid)
         if not isinstance(body.get("head_digest"), str) or not digest.fullmatch(body["head_digest"]):
             _fatal(result, "malformed", "head_digest must be a sha256 digest", rid)
         root = body.get("merkle_root")
@@ -826,7 +827,7 @@ def main(argv=None) -> int:
         return 1
     try:
         with open(args.bundle, "r", encoding="utf-8") as handle:
-            bundle = json.load(handle)
+            bundle = strict_json.load(handle)
     except RecursionError:
         print(
             json.dumps(

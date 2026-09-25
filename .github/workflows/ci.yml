@@ -100,6 +100,8 @@ jobs:
           cargo build --manifest-path rust/Cargo.toml
           python3 tools/differential_vectors.py
           python3 tools/differential_vectors.py --manifest vectors/manifest-0.5.json
+      - name: Local 0.5 producer integration probe
+        run: python3 tools/local_integration_probe.py
       - name: Differential check (Python vs Rust selective disclosure)
         run: python3 tools/differential_disclose.py
       - name: Differential check (Python vs Rust OpenTimestamps anchors)

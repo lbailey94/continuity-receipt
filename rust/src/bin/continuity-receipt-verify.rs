@@ -6,6 +6,7 @@
 use std::process::ExitCode;
 
 use continuity_receipt::verify::{verify_bundle, VerifyResult};
+use continuity_receipt::strict_json;
 use serde_json::Value;
 
 const USAGE: &str = "usage: continuity-receipt-verify <bundle.json> [--require-anchor]";
@@ -62,11 +63,13 @@ fn main() -> ExitCode {
         }
     };
 
-    let bundle: Value = match serde_json::from_str(&text) {
+    let bundle: Value = match strict_json::from_str(&text) {
         Ok(bundle) => bundle,
         Err(error) => {
             let message = error.to_string();
-            let code = if message.contains("recursion limit exceeded") {
+            let code = if message.contains("recursion limit exceeded")
+                || message.contains("JSON nesting exceeds parser limit")
+            {
                 "nesting_too_deep"
             } else {
                 "malformed"

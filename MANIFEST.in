@@ -7,6 +7,7 @@ include VERIFY_IN_5_MIN.md
 include ADOPTER_GUIDE.md
 include REVIEW_BRIEF.md
 include REVIEW_NOTES_05.md
+include INTEGRATION_READINESS.md
 include ANCHORING.md
 include REVOCATION_DISTRIBUTION.md
 include CONFORMANCE.md

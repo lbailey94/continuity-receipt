@@ -138,6 +138,7 @@ class TestRevocationLists(unittest.TestCase):
             tmp_path = Path(tmp)
             cases = {
                 "not-json.json": "{",
+                "duplicate-members.json": '{"kind":"continuity-receipt-revocations","version":1,"version":1,"statements":[]}',
                 "wrong-kind.json": json.dumps(
                     {"kind": "other", "version": 1, "statements": []}
                 ),

@@ -78,8 +78,24 @@
       "expected_verdict": "UNTRUSTED",
       "expected_code": "malformed",
       "require_anchor": false,
-      "note": "0.5 refuses a count outside unsigned 64-bit range",
+      "note": "0.5 refuses a count outside unsigned 64-bit storage range",
       "schema_valid": false
+    },
+    {
+      "file": "22m_count_unsafe_json_integer.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a count above the exact interoperable JSON integer range",
+      "schema_valid": false
+    },
+    {
+      "file": "22n_count_safe_integer_limit.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the largest exact interoperable JSON integer count",
+      "schema_valid": true
     },
     {
       "file": "22e_bad_head_digest.json",

@@ -1,5 +1,8 @@
 """Verify every vector against its expected verdict (vectors/manifest.json)."""
 import json
+import contextlib
+import io
+import tempfile
 import sys
 import unittest
 from pathlib import Path
@@ -44,6 +47,23 @@ class TestVectors(unittest.TestCase):
 
 
 class TestPrimitives(unittest.TestCase):
+    def test_raw_json_rejects_duplicate_members_and_cli_inputs(self):
+        from continuity_receipt import strict_json, verify
+        from continuity_receipt import verification
+
+        self.assertEqual(strict_json.loads('{"a":1,"nested":{"b":2}}')["a"], 1)
+        with self.assertRaisesRegex(ValueError, "duplicate JSON object member"):
+            strict_json.loads('{"nested":{"b":1,"b":2}}')
+        with tempfile.TemporaryDirectory() as directory:
+            duplicate_bundle = Path(directory) / "bundle.json"
+            duplicate_bundle.write_text('{"spec":"continuity-receipt/0.4","spec":"continuity-receipt/0.4","receipts":[]}', encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(verify.main([str(duplicate_bundle)]), 1)
+            duplicate_verification = Path(directory) / "verification.json"
+            duplicate_verification.write_text('{"kind":"x","nested":{"v":1,"v":2}}', encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(verification.main([str(duplicate_verification)]), 2)
+
     def test_canonical_determinism(self):
         from continuity_receipt.canon import canonical_bytes
 
