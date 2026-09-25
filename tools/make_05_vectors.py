@@ -16,9 +16,15 @@ OUT = ROOT / "vectors"
 DID, KEY = keys.generate(keys.deterministic_seed("local-05-vector-key"))
 SHA = "sha256:" + "1" * 64
 MERKLE = "merkle-sha256:" + "2" * 64
+RUNNER_PROFILE = {
+    "profile_id": "urn:mandala:runner-profile:bwrap-v1",
+    "executable_digest": "sha256:" + "3" * 64,
+    "invocation_digest": "sha256:" + "4" * 64,
+}
 
 
-def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC):
+def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC,
+         omit_runner_profile=False, bad_runner_profile=False, extra_runner_profile_field=False):
     counter = 0
     original = records.uuid7
 
@@ -49,11 +55,18 @@ def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC):
                                  "observed_sources_hash": SHA},
             "decision": "allow", "policy_version": "local-policy/1",
         }, 1)
-        add("task.execution", {
+        execution = {
             "tool_calls": [{"name": "snapshot", "args_hash": SHA, "result_hash": SHA}],
             "egress": [], "resources": {"cpu_ms": 0, "mem_peak_mb": 0, "disk_peak_mb": 0},
             "sandbox_class": sandbox,
-        }, 2)
+        }
+        if sandbox == "bwrap" and not omit_runner_profile:
+            execution["runner_profile"] = dict(RUNNER_PROFILE)
+        if bad_runner_profile:
+            execution["runner_profile"] = {**RUNNER_PROFILE, "invocation_digest": "sha256:BAD"}
+        if extra_runner_profile_field:
+            execution["runner_profile"] = {**RUNNER_PROFILE, "runtime_claim": "unverified"}
+        add("task.execution", execution, 2)
         add("state.commitment", {
             "state_kind": "chain-head", "scope": "local:test-store",
             "count": count, "head_digest": head, "merkle_root": MERKLE,
@@ -128,7 +141,13 @@ CASES = [
     ("22b_unknown_local_class.json", {"klass": "pretend-gate"}, "UNTRUSTED", "malformed", False,
      "0.5 refuses an unknown authority class"),
     ("22h_bwrap_sandbox.json", {"sandbox": "bwrap"}, "TRUSTED", None, True,
-     "0.5 accepts the Bubblewrap namespace claim without implying Landlock"),
+     "0.5 binds a Bubblewrap claim to a signed runner profile identity"),
+    ("22o_bwrap_missing_runner_profile.json", {"sandbox": "bwrap", "omit_runner_profile": True}, "UNTRUSTED", "malformed", False,
+     "0.5 refuses a Bubblewrap claim without a signed runner profile identity"),
+    ("22p_bwrap_bad_runner_profile_digest.json", {"sandbox": "bwrap", "bad_runner_profile": True}, "UNTRUSTED", "malformed", False,
+     "0.5 refuses a malformed runner executable or invocation digest"),
+    ("22q_runner_profile_extra_field.json", {"sandbox": "bwrap", "extra_runner_profile_field": True}, "UNTRUSTED", "malformed", False,
+     "0.5 requires the runner profile object to use exactly the specified fields"),
     ("22i_landlock_sandbox.json", {"sandbox": "landlock"}, "TRUSTED", None, True,
      "0.5 accepts the pure Landlock claim without implying namespaces"),
     ("22j_legacy_combined_sandbox.json", {"sandbox": "bwrap-landlock"}, "TRUSTED", None, True,

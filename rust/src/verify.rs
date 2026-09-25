@@ -123,6 +123,28 @@ fn check_05_body(
             if !matches!(body.get("sandbox_class").and_then(Value::as_str), Some("bwrap" | "landlock" | "bwrap-landlock" | "microvm-ch" | "microvm-fc" | "none")) {
                 bad.push("sandbox_class is unknown");
             }
+            let profile = body.get("runner_profile");
+            if body.get("sandbox_class").and_then(Value::as_str) == Some("bwrap") && profile.is_none() {
+                bad.push("bwrap execution requires runner_profile");
+            }
+            if let Some(profile) = profile {
+                let valid_digest = |value: Option<&str>| {
+                    value.is_some_and(|digest| {
+                        digest.strip_prefix("sha256:").is_some_and(|hex| {
+                            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                        })
+                    })
+                };
+                let valid = profile.as_object().is_some_and(|object| {
+                    object.len() == 3
+                        && object.get("profile_id").and_then(Value::as_str).is_some_and(|id| !id.is_empty())
+                        && valid_digest(object.get("executable_digest").and_then(Value::as_str))
+                        && valid_digest(object.get("invocation_digest").and_then(Value::as_str))
+                });
+                if !valid {
+                    bad.push("runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest");
+                }
+            }
         }
         "state.commitment" => {
             if !body.get("state_kind").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
