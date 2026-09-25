@@ -1,5 +1,5 @@
-//! Generated fuzz corpus: deterministic structural mutations of the frozen
-//! vectors (and synthetic malformed shapes) must never panic the verifier and
+//! Generated fuzz corpus: deterministic structural mutations of the published
+//! and candidate vectors (and synthetic malformed shapes) must never panic and
 //! must always produce a structured result with one of the four verdicts.
 //!
 //! The corpus is generated in-process from a fixed seed, so CI runs are
@@ -46,16 +46,29 @@ fn repo_root() -> PathBuf {
 
 fn vector_bundles() -> Vec<Value> {
     let vectors = repo_root().join("vectors");
-    let manifest_text = fs::read_to_string(vectors.join("manifest.json")).expect("manifest");
-    let manifest: Value = serde_json::from_str(&manifest_text).expect("manifest JSON");
-    manifest["vectors"]
-        .as_array()
-        .expect("vectors array")
+    ["manifest.json", "manifest-0.5.json"]
         .iter()
-        .filter_map(|entry| entry["file"].as_str())
+        .flat_map(|name| {
+            let text = fs::read_to_string(vectors.join(name)).expect("manifest");
+            let manifest: Value = serde_json::from_str(&text).expect("manifest JSON");
+            manifest["vectors"].as_array().expect("vectors array").clone()
+        })
+        .filter_map(|entry| entry["file"].as_str().map(str::to_owned))
         .filter_map(|file| fs::read_to_string(vectors.join(file)).ok())
         .filter_map(|text| serde_json::from_str(&text).ok())
         .collect()
+}
+
+fn vector_manifest_count() -> usize {
+    let vectors = repo_root().join("vectors");
+    ["manifest.json", "manifest-0.5.json"]
+        .iter()
+        .map(|name| {
+            let text = fs::read_to_string(vectors.join(name)).expect("manifest");
+            let manifest: Value = serde_json::from_str(&text).expect("manifest JSON");
+            manifest["vectors"].as_array().expect("vectors array").len()
+        })
+        .sum()
 }
 
 fn random_replacement(rng: &mut Rng) -> Value {
@@ -130,7 +143,11 @@ fn check_case(value: &Value, require_anchor: bool, label: &str) {
 #[test]
 fn generated_mutations_never_panic_and_stay_structured() {
     let bundles = vector_bundles();
-    assert_eq!(bundles.len(), 40, "all manifest vectors load");
+    assert_eq!(
+        bundles.len(),
+        vector_manifest_count(),
+        "published and candidate vectors load"
+    );
     let corpus_dir = std::env::var("CR_FUZZ_CORPUS_DIR").ok();
     if let Some(dir) = &corpus_dir {
         fs::create_dir_all(dir).expect("create corpus dir");

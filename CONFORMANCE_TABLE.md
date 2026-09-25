@@ -1,5 +1,9 @@
 # Conformance table — normative rule → implementation → vectors
 
+**Development candidate:** [SPEC_0.5_DRAFT.md](SPEC_0.5_DRAFT.md) adds a
+separate, unpublished 0.5 matrix below. The 0.4 table and its 40-vector
+manifest remain the frozen published review surface.
+
 **Status:** `continuity-receipt/0.4` (published 2026-09-24). This table is
 the audit surface: every normative rule maps
 to a check in both implementations and to vectors that exercise it. Where a
@@ -92,3 +96,17 @@ python3 tools/differential_verification_receipts.py # Python vs Rust, all receip
 python3 tools/hostile_input_probe.py --require-parity  # structured outcomes + parity
 cargo test --manifest-path rust/Cargo.toml          # second implementation
 ```
+
+## F. Spec 0.5 development candidate (unpublished)
+
+| Rule | Python | Rust | Positive | Negative | Limit |
+|---|---|---|---|---|---|
+| Local pass class is an allowed 0.5 value; unknown classes fail | `_check_05_body` | `check_05_body` | 22 | 22b | A local label is an issuer claim, not enforcement proof. |
+| No OS sandbox may be disclosed as `none`; unknown classes fail | `_check_05_body` | `check_05_body` | 22 | 22c | Actual confinement is not observed by the verifier. |
+| State commitment requires labels, count 0..2^53−1, SHA-256 head, optional Merkle root | `_check_05_body` | `check_05_body` | 22, 22n | 22d, 22e, 22g, 22m | JSON integer range follows interoperable exact-number limits; the referenced state, count, head, and root are not recomputed. |
+| Raw CLI JSON rejects duplicate object member names at every nesting depth | `strict_json.loads` in bundle and verification-receipt CLIs | `strict_json::from_str` in bundle and verification-receipt CLIs | ordinary unique-member inputs | Python and Rust CLI parser regression tests | Applies across supported specs and verification receipt v1; already-parsed programmatic objects cannot recover duplicates discarded upstream. |
+| `state.commitment` is only a 0.5 receipt type | `verify_bundle` | `verify_bundle` | 22 | 22f | Bundle envelopes may still mix earlier receipt specs. |
+| Agreement binding remains active on 0.5 receipts | `_check_agreements` | `check_agreements` | 23 | 23b (`missing_agreement_ref` → PROVISIONAL) | 23 carries the accepted agreement through decision and execution; 23b omits the execution reference. |
+
+The candidate corpus is `vectors/manifest-0.5.json`. The published
+`vectors/manifest.json` remains 40 cases for the hosted conformance referee.

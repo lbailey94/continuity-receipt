@@ -15,13 +15,14 @@ use serde_json::{Map, Value};
 use crate::canon::{canonical_bytes, commit_field, sha256_prefixed, CanonError};
 use crate::didkey;
 
-pub const SUPPORTED_SPECS: [&str; 4] = [
+pub const SUPPORTED_SPECS: [&str; 5] = [
     "continuity-receipt/0.1",
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
+    "continuity-receipt/0.5",
 ];
-pub const RECORD_TYPES: [&str; 9] = [
+pub const RECORD_TYPES: [&str; 10] = [
     "session.pass.created",
     "task.decision",
     "task.execution",
@@ -31,6 +32,7 @@ pub const RECORD_TYPES: [&str; 9] = [
     "authority.succession",
     "agreement.offer",
     "agreement.accept",
+    "state.commitment",
 ];
 
 const ANCHOR_TYPES: [&str; 3] = ["opentimestamps", "public-chain", "custom"];
@@ -75,9 +77,10 @@ const OFFER_FIELDS: [&str; 5] = ["offer_id", "offeree", "terms_hash", "valid_unt
 const ACCEPT_FIELDS: [&str; 3] = ["offer_ref", "offer_id", "terms_hash"];
 /// 0.4: the accept names the offeree (mirrors `REQUIRED_FIELDS_04`).
 const ACCEPT_FIELDS_04: [&str; 4] = ["offer_ref", "offer_id", "terms_hash", "offeree"];
+const COMMITMENT_FIELDS: [&str; 4] = ["state_kind", "scope", "count", "head_digest"];
 
 fn required_fields(record_type: &str, spec: Option<&str>) -> Option<&'static [&'static str]> {
-    if spec == Some("continuity-receipt/0.4") && record_type == "agreement.accept" {
+    if matches!(spec, Some("continuity-receipt/0.4" | "continuity-receipt/0.5")) && record_type == "agreement.accept" {
         return Some(&ACCEPT_FIELDS_04);
     }
     match record_type {
@@ -90,7 +93,58 @@ fn required_fields(record_type: &str, spec: Option<&str>) -> Option<&'static [&'
         "authority.succession" => Some(&SUCCESSION_FIELDS),
         "agreement.offer" => Some(&OFFER_FIELDS),
         "agreement.accept" => Some(&ACCEPT_FIELDS),
+        "state.commitment" if spec == Some("continuity-receipt/0.5") => Some(&COMMITMENT_FIELDS),
         _ => None,
+    }
+}
+
+fn prefixed_hex(value: Option<&Value>, prefix: &str) -> bool {
+    value.and_then(Value::as_str).is_some_and(|text| {
+        text.strip_prefix(prefix).is_some_and(|hex| {
+            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        })
+    })
+}
+
+fn check_05_body(
+    result: &mut VerifyResult,
+    record_type: &str,
+    body: &Map<String, Value>,
+    receipt_id: Option<&Value>,
+) {
+    let mut bad = Vec::new();
+    match record_type {
+        "session.pass.created" => {
+            if !matches!(body.get("mandala_class").and_then(Value::as_str), Some("gate-lite" | "gate-hard" | "local")) {
+                bad.push("mandala_class must be gate-lite, gate-hard, or local");
+            }
+        }
+        "task.execution" => {
+            if !matches!(body.get("sandbox_class").and_then(Value::as_str), Some("bwrap" | "landlock" | "bwrap-landlock" | "microvm-ch" | "microvm-fc" | "none")) {
+                bad.push("sandbox_class is unknown");
+            }
+        }
+        "state.commitment" => {
+            if !body.get("state_kind").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
+                bad.push("state_kind must be nonempty text");
+            }
+            if !body.get("scope").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
+                bad.push("scope must be nonempty text");
+            }
+            if !body.get("count").and_then(Value::as_u64).is_some_and(|count| count <= 9_007_199_254_740_991) {
+                bad.push("count must be an exact JSON integer from 0 through 2^53-1");
+            }
+            if !prefixed_hex(body.get("head_digest"), "sha256:") {
+                bad.push("head_digest must be a sha256 digest");
+            }
+            if body.get("merkle_root").is_some_and(|root| !root.is_null()) && !prefixed_hex(body.get("merkle_root"), "merkle-sha256:") {
+                bad.push("merkle_root must be a merkle-sha256 digest");
+            }
+        }
+        _ => {}
+    }
+    for detail in bad {
+        fatal(result, "malformed", detail, receipt_id);
     }
 }
 
@@ -366,7 +420,7 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
         }
 
         let record_type = record.get("type").and_then(Value::as_str);
-        let Some(record_type) = record_type.filter(|name| RECORD_TYPES.contains(name)) else {
+        let Some(record_type) = record_type.filter(|name| RECORD_TYPES.contains(name) && (*name != "state.commitment" || record.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.5"))) else {
             fatal(
                 &mut result,
                 "unknown_type",
@@ -399,6 +453,9 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
                 format!("missing body fields [{listed}]"),
                 receipt_id,
             );
+        }
+        if record.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.5") {
+            check_05_body(&mut result, record_type, body, receipt_id);
         }
 
         if !validate_timestamp(record.get("issued_at")) {
@@ -705,7 +762,7 @@ fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
         if !BOUND_TYPES.contains(&record_type) {
             continue;
         }
-        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+        if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5")) {
             continue;
         }
         let Some(body) = receipt.get("body").and_then(Value::as_object) else {
@@ -840,7 +897,7 @@ fn check_accept(
             );
         }
     }
-    if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+    if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5")) {
         return;
     }
     let offeree = body.get("offeree").and_then(Value::as_str);
@@ -895,7 +952,7 @@ fn check_agreement_completeness(
     referenced: &BTreeSet<String>,
 ) {
     for (digest, accept) in accepts {
-        if accept.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.4")
+        if matches!(accept.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5"))
             && !referenced.contains(digest)
         {
             result.provisional_reasons.push(format!(
@@ -908,7 +965,7 @@ fn check_agreement_completeness(
         }
     }
     for receipt in receipts.iter().filter_map(Value::as_object) {
-        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+        if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5")) {
             continue;
         }
         let Some(record_type) = receipt.get("type").and_then(Value::as_str) else {
@@ -940,7 +997,7 @@ fn check_agreement_completeness(
             continue;
         };
         for accept in accepts.values() {
-            if accept.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+            if !matches!(accept.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5")) {
                 continue;
             }
             let Some(accept_body) = accept.get("body").and_then(Value::as_object) else {

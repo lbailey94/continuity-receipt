@@ -2,8 +2,19 @@
   "kind": "continuity-receipt-verifier-capabilities",
   "version": 1,
   "implementation": "continuity-receipt (Python reference)",
-  "spec_versions": ["continuity-receipt/0.1", "continuity-receipt/0.2", "continuity-receipt/0.3", "continuity-receipt/0.4"],
-  "verdicts": ["TRUSTED", "PROVISIONAL", "INSUFFICIENT_EVIDENCE", "UNTRUSTED"],
+  "spec_versions": [
+    "continuity-receipt/0.1",
+    "continuity-receipt/0.2",
+    "continuity-receipt/0.3",
+    "continuity-receipt/0.4",
+    "continuity-receipt/0.5"
+  ],
+  "verdicts": [
+    "TRUSTED",
+    "PROVISIONAL",
+    "INSUFFICIENT_EVIDENCE",
+    "UNTRUSTED"
+  ],
   "checks": [
     "envelope_schema",
     "chain",
@@ -72,13 +83,21 @@
   },
   "anchors": {
     "bundle_binding": "digest",
-    "types": ["opentimestamps", "public-chain", "custom"],
+    "types": [
+      "opentimestamps",
+      "public-chain",
+      "custom"
+    ],
     "proof_verification": "companion",
     "companion_cli": "continuity-receipt-anchor",
-    "proof_formats": ["opentimestamps-detached"],
+    "proof_formats": [
+      "opentimestamps-detached"
+    ],
     "header_chain_validation": false,
     "litecoin_header_check": false,
-    "unsupported_ops": ["keccak256"]
+    "unsupported_ops": [
+      "keccak256"
+    ]
   },
   "cli": {
     "verify": "continuity-receipt-verify",

@@ -7,12 +7,13 @@ from datetime import datetime, timezone
 
 from . import keys
 
-SPEC_ID = "continuity-receipt/0.4"
+SPEC_ID = "continuity-receipt/0.5"
 SUPPORTED_SPECS = (
     "continuity-receipt/0.1",
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
+    "continuity-receipt/0.5",
 )
 
 RECORD_TYPES = (
@@ -25,6 +26,7 @@ RECORD_TYPES = (
     "authority.succession",
     "agreement.offer",
     "agreement.accept",
+    "state.commitment",
 )
 
 REQUIRED_FIELDS = {
@@ -52,6 +54,7 @@ REQUIRED_FIELDS = {
     "authority.succession": ("from_authority", "to_authority", "effective_at", "reason"),
     "agreement.offer": ("offer_id", "offeree", "terms_hash", "valid_until", "nonce"),
     "agreement.accept": ("offer_ref", "offer_id", "terms_hash"),
+    "state.commitment": ("state_kind", "scope", "count", "head_digest"),
 }
 
 # 0.4: the accept must name (and be signed by) the offeree — the binding is
@@ -63,8 +66,10 @@ REQUIRED_FIELDS_04 = {
 
 def required_fields(record_type: str, spec: str | None = None) -> tuple:
     """Required body fields for a record type under a given envelope spec."""
-    if spec == "continuity-receipt/0.4" and record_type in REQUIRED_FIELDS_04:
+    if spec in ("continuity-receipt/0.4", "continuity-receipt/0.5") and record_type in REQUIRED_FIELDS_04:
         return REQUIRED_FIELDS_04[record_type]
+    if record_type == "state.commitment" and spec != "continuity-receipt/0.5":
+        return ()
     return REQUIRED_FIELDS.get(record_type, ())
 
 # RFC 3339 UTC; fractional seconds optional (0.2 allows millisecond precision).
@@ -103,6 +108,8 @@ def parse_timestamp(value: str) -> datetime:
 def validate_body(record_type: str, body: dict, spec: str | None = None) -> None:
     if record_type not in REQUIRED_FIELDS:
         raise ValueError(f"unknown_type: {record_type}")
+    if record_type == "state.commitment" and spec != "continuity-receipt/0.5":
+        raise ValueError(f"unknown_type: {record_type} in {spec}")
     if not isinstance(body, dict):
         raise ValueError(f"malformed body for {record_type}: not an object")
     missing = [name for name in required_fields(record_type, spec) if name not in body]

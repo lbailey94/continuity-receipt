@@ -224,9 +224,10 @@ references is PROVISIONAL (linkage evidence missing).
   for 0.1 verification. The spec pins exact bytes so signatures are
   reproducible across languages.
 - Hash: SHA-256, lowercase hex with `sha256:` prefix.
-- Signatures: Ed25519 over canonical bytes; `did:key` (v0) with `did:web`
-  (hosted gates) accepted. Key rotation is a new `issuer.key` + re-sign; no
-  revocation list in v0 (documented gap).
+- Signatures: Ed25519 over canonical bytes; the reference verifiers resolve
+  Ed25519 `did:key` identities. `did:web` resolution is not implemented and
+  is not accepted by the reference verifiers. Key rotation is a new
+  `issuer.key` + re-sign; no revocation list in v0 (documented gap).
 - Multi-party receipts: delivery attestations and settlement may carry
   additional signatures under `body.counterparty.attestation`; the verifier
   reports which signatures it could check.

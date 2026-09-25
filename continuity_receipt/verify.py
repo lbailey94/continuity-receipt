@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass, field as dc_field
 
 from . import agreements, keys, records
+from . import strict_json
 from .bundle import receipt_digest
 from .canon import canonical_bytes, commit_field
 from .revocations import merge_statements, verify_statements
@@ -156,7 +157,7 @@ def verify_bundle(
         if receipt.get("task_id") != task_id:
             _fatal(result, "task_mismatch", "receipt task_id != bundle task_id", rid)
         record_type = receipt.get("type")
-        if record_type not in records.RECORD_TYPES:
+        if record_type not in records.RECORD_TYPES or (record_type == "state.commitment" and receipt.get("spec") != "continuity-receipt/0.5"):
             _fatal(result, "unknown_type", f"type={record_type!r}", rid)
             continue
         body = receipt.get("body")
@@ -169,6 +170,8 @@ def verify_bundle(
         ]
         if missing:
             _fatal(result, "malformed", f"missing body fields {missing}", rid)
+        if receipt.get("spec") == "continuity-receipt/0.5":
+            _check_05_body(result, record_type, body, rid)
 
         if not records.validate_timestamp(receipt.get("issued_at")):
             _fatal(result, "malformed", f"issued_at not RFC 3339 UTC: {receipt.get('issued_at')!r}", rid)
@@ -231,6 +234,33 @@ def verify_bundle(
     }
     result.summary = {**summary, **result.summary}
     return _finish(result)
+
+
+def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> None:
+    """Validate the 0.5 vocabulary without changing older receipt semantics."""
+    if record_type == "session.pass.created" and body.get("mandala_class") not in (
+        "gate-lite", "gate-hard", "local"
+    ):
+        _fatal(result, "malformed", "mandala_class must be gate-lite, gate-hard, or local", rid)
+    if record_type == "task.execution" and body.get("sandbox_class") not in (
+        "bwrap", "landlock", "bwrap-landlock", "microvm-ch", "microvm-fc", "none"
+    ):
+        _fatal(result, "malformed", "sandbox_class is unknown", rid)
+    if record_type == "state.commitment":
+        import re
+        digest = re.compile(r"^sha256:[0-9a-f]{64}$")
+        merkle = re.compile(r"^merkle-sha256:[0-9a-f]{64}$")
+        if not isinstance(body.get("state_kind"), str) or not body["state_kind"]:
+            _fatal(result, "malformed", "state_kind must be nonempty text", rid)
+        if not isinstance(body.get("scope"), str) or not body["scope"]:
+            _fatal(result, "malformed", "scope must be nonempty text", rid)
+        if isinstance(body.get("count"), bool) or not isinstance(body.get("count"), int) or not 0 <= body["count"] <= 2**53 - 1:
+            _fatal(result, "malformed", "count must be an exact JSON integer from 0 through 2^53-1", rid)
+        if not isinstance(body.get("head_digest"), str) or not digest.fullmatch(body["head_digest"]):
+            _fatal(result, "malformed", "head_digest must be a sha256 digest", rid)
+        root = body.get("merkle_root")
+        if root is not None and (not isinstance(root, str) or not merkle.fullmatch(root)):
+            _fatal(result, "malformed", "merkle_root must be a merkle-sha256 digest", rid)
 
 
 def _check_cross_record(result: VerifyResult, receipts: list) -> None:
@@ -360,7 +390,7 @@ def _check_agreements(result: VerifyResult, receipts: list) -> None:
     for receipt in receipts:
         if receipt.get("type") not in agreements.BOUND_TYPES:
             continue
-        if receipt.get("spec") != "continuity-receipt/0.4":
+        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
             continue
         body = receipt.get("body")
         if not isinstance(body, dict):
@@ -447,7 +477,7 @@ def _check_accept(result: VerifyResult, receipt: dict, offers: dict) -> None:
             f"accept issued after offer valid_until {valid_until}",
             receipt.get("receipt_id"),
         )
-    if receipt.get("spec") != "continuity-receipt/0.4":
+    if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
         return
     offeree = body.get("offeree")
     issuer = receipt.get("issuer")
@@ -485,12 +515,12 @@ def _check_agreement_completeness(
 ) -> None:
     """0.4: an accept nothing references, and offeree receipts that skip the ref."""
     for digest, accept in accepts.items():
-        if accept.get("spec") == "continuity-receipt/0.4" and digest not in referenced:
+        if accept.get("spec") in ("continuity-receipt/0.4", "continuity-receipt/0.5") and digest not in referenced:
             result.provisional_reasons.append(
                 f"agreement_unreferenced:{accept.get('receipt_id')}"
             )
     for receipt in receipts:
-        if receipt.get("spec") != "continuity-receipt/0.4":
+        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
             continue
         if receipt.get("type") not in agreements.BOUND_TYPES:
             continue
@@ -504,7 +534,7 @@ def _check_agreement_completeness(
             continue
         bound_at = records.parse_timestamp(bound_issued)
         for accept in accepts.values():
-            if accept.get("spec") != "continuity-receipt/0.4":
+            if accept.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
                 continue
             accept_body = accept.get("body")
             if not isinstance(accept_body, dict) or accept_body.get("offeree") != issuer_id:
@@ -797,7 +827,7 @@ def main(argv=None) -> int:
         return 1
     try:
         with open(args.bundle, "r", encoding="utf-8") as handle:
-            bundle = json.load(handle)
+            bundle = strict_json.load(handle)
     except RecursionError:
         print(
             json.dumps(

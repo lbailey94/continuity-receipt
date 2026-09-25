@@ -1,0 +1,133 @@
+{
+  "spec": "continuity-receipt/0.5",
+  "vectors": [
+    {
+      "file": "22_local_state_commitment.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 local authority, unconfined execution, and a signed state commitment",
+      "schema_valid": true
+    },
+    {
+      "file": "22b_unknown_local_class.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses an unknown authority class",
+      "schema_valid": false
+    },
+    {
+      "file": "22h_bwrap_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the Bubblewrap namespace claim without implying Landlock",
+      "schema_valid": true
+    },
+    {
+      "file": "22i_landlock_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the pure Landlock claim without implying namespaces",
+      "schema_valid": true
+    },
+    {
+      "file": "22j_legacy_combined_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 retains the legacy combined sandbox claim",
+      "schema_valid": true
+    },
+    {
+      "file": "22c_unknown_sandbox.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses an unknown sandbox class",
+      "schema_valid": false
+    },
+    {
+      "file": "22k_empty_sandbox.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses an empty sandbox class",
+      "schema_valid": false
+    },
+    {
+      "file": "22l_non_string_sandbox.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a non-string sandbox class",
+      "schema_valid": false
+    },
+    {
+      "file": "22d_bad_state_count.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a negative state count",
+      "schema_valid": false
+    },
+    {
+      "file": "22g_count_overflow.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a count outside unsigned 64-bit storage range",
+      "schema_valid": false
+    },
+    {
+      "file": "22m_count_unsafe_json_integer.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a count above the exact interoperable JSON integer range",
+      "schema_valid": false
+    },
+    {
+      "file": "22n_count_safe_integer_limit.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the largest exact interoperable JSON integer count",
+      "schema_valid": true
+    },
+    {
+      "file": "22e_bad_head_digest.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a malformed state digest",
+      "schema_valid": false
+    },
+    {
+      "file": "22f_legacy_state_type.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "unknown_type",
+      "require_anchor": false,
+      "note": "0.4 records cannot use the new state.commitment type",
+      "schema_valid": false
+    },
+    {
+      "file": "23_agreement_binding_carried.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 resolves the accepted agreement and carries its binding through decision and execution",
+      "schema_valid": true
+    },
+    {
+      "file": "23b_missing_carried_agreement_ref.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 keeps agreement completeness active when execution omits the accepted agreement reference",
+      "schema_valid": true
+    }
+  ]
+}

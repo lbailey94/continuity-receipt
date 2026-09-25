@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 0.5 development candidate
+
+Local authority and unconfined execution values, a state-commitment record,
+schema 0.5, a separate candidate vector corpus, and an adopter guide are in
+the checkout. Python is versioned 0.5.0a0 and Rust 0.5.0-alpha.0. This is
+not a tag, package publication, hosted rollout, or claim of runtime adoption.
+Published 0.1–0.4 fixtures and the 40-vector conformance manifest remain
+unchanged. The 0.4.0 GitHub Release now documents the signed tag and frozen
+package blemishes.
+
+
 ## 0.4.0 — 2026-09-24
 
 Spec 0.4 and tooling 0.4.0: the offer → accept binding is carried through the

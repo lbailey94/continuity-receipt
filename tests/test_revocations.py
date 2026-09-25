@@ -19,6 +19,7 @@ from continuity_receipt.verify import main as verify_main
 from continuity_receipt.verify import verify_bundle
 
 TASK_ID = "urn:uuid:11111111-1111-7111-8111-111111111111"
+SPEC = "continuity-receipt/0.4"  # historical test body uses a legacy class label
 BODY = {
     "gate_id": "gate-revocation-tests",
     "mandala_class": "containment",
@@ -40,7 +41,7 @@ TERMINATION_BODY = {
 def make_bundle(issued_at: str, did: str, key) -> dict:
     """A minimal valid chain: pass created + termination (cross-record rule)."""
     first = records.new_envelope(
-        TASK_ID, "agent", did, "session.pass.created", 0, None, BODY, issued_at=issued_at
+        TASK_ID, "agent", did, "session.pass.created", 0, None, BODY, spec=SPEC, issued_at=issued_at
     )
     first = records.sign_receipt(first, key, did)
     second = records.new_envelope(
@@ -51,10 +52,11 @@ def make_bundle(issued_at: str, did: str, key) -> dict:
         1,
         receipt_digest(first),
         TERMINATION_BODY,
+        spec=SPEC,
         issued_at=issued_at,
     )
     second = records.sign_receipt(second, key, did)
-    return {"spec": records.SPEC_ID, "task_id": TASK_ID, "receipts": [first, second]}
+    return {"spec": SPEC, "task_id": TASK_ID, "receipts": [first, second]}
 
 
 def make_statement(did: str, key, revoked_at: str, reason: str | None = None) -> dict:
@@ -136,6 +138,7 @@ class TestRevocationLists(unittest.TestCase):
             tmp_path = Path(tmp)
             cases = {
                 "not-json.json": "{",
+                "duplicate-members.json": '{"kind":"continuity-receipt-revocations","version":1,"version":1,"statements":[]}',
                 "wrong-kind.json": json.dumps(
                     {"kind": "other", "version": 1, "statements": []}
                 ),

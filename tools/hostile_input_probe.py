@@ -124,9 +124,9 @@ def documented_cases() -> list[tuple[str, object]]:
     return cases
 
 
-def mutation_cases(full: bool, sample: int) -> list[tuple[str, object]]:
+def mutation_cases(full: bool, sample: int, vector_manifest: Path | None = None) -> list[tuple[str, object]]:
     candidates: list[tuple[str, str, tuple, object]] = []
-    manifest = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((vector_manifest or VECTORS / "manifest.json").read_text(encoding="utf-8"))
     for entry in manifest["vectors"]:
         base = load(entry["file"])
         for path in leaf_paths(base):
@@ -233,6 +233,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="hostile_input_probe")
     parser.add_argument("--full", action="store_true", help="exhaustive leaf mutations (slow)")
     parser.add_argument("--sample", type=int, default=200, help="mutation sample size (default 200)")
+    parser.add_argument("--vector-manifest", type=Path, default=VECTORS / "manifest.json",
+                        help="vector corpus to mutate (default: published 0.4 manifest)")
     parser.add_argument(
         "--manifest-out",
         metavar="PATH",
@@ -250,6 +252,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.manifest_out:
+        if args.vector_manifest.resolve() != (VECTORS / "manifest.json").resolve():
+            parser.error("--manifest-out is restricted to the published vector manifest")
         return write_hostile_manifest(args.manifest_out, args.full, args.sample)
 
     rust_bin = None
@@ -264,7 +268,7 @@ def main(argv=None) -> int:
             )
             return 2
 
-    cases = documented_cases() + mutation_cases(args.full, args.sample)
+    cases = documented_cases() + mutation_cases(args.full, args.sample, args.vector_manifest)
     failures: list[dict] = []
     outcomes_by_case: dict[str, dict[str, tuple[str, tuple[str, ...]]]] = {}
     ran = 0
