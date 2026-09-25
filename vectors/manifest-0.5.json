@@ -56,6 +56,22 @@
       "require_anchor": false,
       "note": "0.4 records cannot use the new state.commitment type",
       "schema_valid": false
+    },
+    {
+      "file": "23_agreement_binding_carried.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 resolves the accepted agreement and carries its binding through decision and execution",
+      "schema_valid": true
+    },
+    {
+      "file": "23b_missing_carried_agreement_ref.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 keeps agreement completeness active when execution omits the accepted agreement reference",
+      "schema_valid": true
     }
   ]
 }

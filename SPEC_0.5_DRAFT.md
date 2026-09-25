@@ -19,6 +19,6 @@ The first use case is WhiteMagic's captured karma-chain head bundle, which uses 
 
 ## Conformance and open design questions
 
-Schema 0.5, vectors 22–22g, and Python/Rust checks define this candidate. Positive vector 22 covers local, none, and state.commitment. Negatives cover unknown authority/sandbox values, bad count/head, and use of the new type by a 0.4 receipt. Published 0.1–0.4 vector bytes remain frozen.
+Schema 0.5, vectors 22–22g and 23/23b, and Python/Rust checks define this candidate. Positive vector 22 covers local, none, and state.commitment. Negatives cover unknown authority/sandbox values, bad count/head, and use of the new type by a 0.4 receipt. Agreement vectors 23 and 23b show a 0.5 accepted agreement carried through decision and execution, plus a missing execution reference that remains PROVISIONAL. Published 0.1–0.4 vector bytes remain frozen.
 
 Review the field name mandala_class, the meaning of scope, and whether chain-head and snapshot profiles need distinct required fields before release.

@@ -59,6 +59,18 @@ fn vector_bundles() -> Vec<Value> {
         .collect()
 }
 
+fn vector_manifest_count() -> usize {
+    let vectors = repo_root().join("vectors");
+    ["manifest.json", "manifest-0.5.json"]
+        .iter()
+        .map(|name| {
+            let text = fs::read_to_string(vectors.join(name)).expect("manifest");
+            let manifest: Value = serde_json::from_str(&text).expect("manifest JSON");
+            manifest["vectors"].as_array().expect("vectors array").len()
+        })
+        .sum()
+}
+
 fn random_replacement(rng: &mut Rng) -> Value {
     match rng.below(11) {
         0 => Value::Null,
@@ -131,7 +143,11 @@ fn check_case(value: &Value, require_anchor: bool, label: &str) {
 #[test]
 fn generated_mutations_never_panic_and_stay_structured() {
     let bundles = vector_bundles();
-    assert_eq!(bundles.len(), 47, "published and candidate vectors load");
+    assert_eq!(
+        bundles.len(),
+        vector_manifest_count(),
+        "published and candidate vectors load"
+    );
     let corpus_dir = std::env::var("CR_FUZZ_CORPUS_DIR").ok();
     if let Some(dir) = &corpus_dir {
         fs::create_dir_all(dir).expect("create corpus dir");

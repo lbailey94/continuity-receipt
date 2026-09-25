@@ -11,9 +11,16 @@ hostile probe returned 308 cases / 616 runs with zero failures and zero parity
 mismatches; the candidate probe returned 108 cases / 216 runs with the same
 outcome. These are sampled and generated checks, not exhaustive proof.
 
-- The 40 published bundle vectors and 21 verification-receipt vectors remain in their original manifests. Candidate vectors 22–22g live in a separate 0.5 manifest.
+- The 40 published bundle vectors and 21 verification-receipt vectors remained in their original manifests. Candidate vectors 22–22g lived in a separate 0.5 manifest at this review point.
 - Python and Rust implement the same 0.5 enum and state-commitment shape checks. A pre-0.5 receipt carrying state.commitment fails as unknown_type; 0.5 agreement binding remains active.
 - The file-snapshot example hashes bytes it actually reads, discloses no OS confinement, and signs a local pass. A consumer must recompute the supplied file and mandate digests; the verifier does not do that external observation.
+
+## Follow-up on 2026-09-25
+
+- The previously identified need for a dedicated 0.5 carried-agreement wire vector is closed by vectors 23 and 23b. Vector 23 is TRUSTED with the accepted agreement reference carried through decision and execution; vector 23b omits the execution reference and is PROVISIONAL.
+- The focused follow-up ran 21 Python tests across `tests.test_agreements`, `tests.test_vectors`, and `tests.test_schema`; all passed. Python/Rust differential verification matched 9/9 cases from `vectors/manifest-0.5.json`.
+- Independent follow-up reran all 85 Python tests, the Rust test suite, and the published bundle and verification-receipt differentials (40/40 and 21/21); all passed after the Rust fuzz corpus test was updated to derive its vector total from the manifests.
+- These checks do not change the historical 2026-09-24 scope/check counts above and do not constitute full candidate release qualification or independent adopter evidence.
 
 ## Findings and disposition
 
@@ -26,6 +33,5 @@ outcome. These are sampled and generated checks, not exhaustive proof.
 
 - Obtain an actual producer-emitted chain-head or snapshot case from a second project or runtime; vector 22 is modeled and the file-snapshot script is a small reference producer, not independent adoption.
 - Decide whether the historical mandala_class name and generic scope/state_kind labels are acceptable long-term. The local value avoids a false gate claim, but the field name remains product-specific.
-- Add a dedicated 0.5 wire vector for carried agreement binding. A Python unit regression exists; published 0.4 vectors exercise the old version only.
 - Have a reviewer independent of this implementation challenge state-commitment semantics, mixed-version handling, integer/canonicalization parity, issuer-key lifecycle, and whether any proof claim exceeds what the verifier observes.
 - Freeze a candidate commit, run the exact full battery and package checks, then separately decide tag, PyPI/crates.io publication, hosted rollout, and downstream-site wording. None of these follows automatically from this development branch.

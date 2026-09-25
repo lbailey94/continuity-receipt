@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from continuity_receipt import keys, records, verify_bundle  # noqa: E402
+from continuity_receipt.agreements import accept_body, bind_body, offer_body  # noqa: E402
 from continuity_receipt.bundle import TaskChain, receipt_digest  # noqa: E402
 
 SPEC = "continuity-receipt/0.5"
@@ -66,6 +67,61 @@ def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC):
         records.uuid7 = original
 
 
+def make_agreement_binding(label, *, omit_execution_ref=False):
+    """Emit a 0.5 carried binding case across decision and execution."""
+    counter = 0
+    original = records.uuid7
+
+    def next_uuid():
+        nonlocal counter
+        counter += 1
+        return uuid.uuid5(uuid.NAMESPACE_URL, f"continuity-receipt/0.5/{label}/{counter}")
+
+    records.uuid7 = next_uuid
+    try:
+        gate_did, gate_key = keys.generate(keys.deterministic_seed("local-05-agreement-gate"))
+        agent_did, agent_key = keys.generate(keys.deterministic_seed("local-05-agreement-agent"))
+        chain = TaskChain(task_id="urn:uuid:" + str(uuid.uuid5(uuid.NAMESPACE_URL, f"continuity-receipt/0.5/{label}")), spec=SPEC)
+        when = "2026-09-24T18:00:00Z"
+        chain.add("session.pass.created", "gate", gate_did, gate_key, {
+            "gate_id": "local:agreement-test", "mandala_class": "local",
+            "quotas": {"cpu_ms": 0, "mem_mb": 0, "disk_mb": 0, "wall_ms": 0},
+            "expires_at": "2026-09-25T18:00:00Z", "policy_version": "local-policy/1",
+            "mandate_ref": SHA, "agent_id": agent_did,
+        }, issued_at=when)
+        terms = {"service": "local snapshot", "calls": 1, "price_minor": 0, "currency": "USD"}
+        offer = chain.add("agreement.offer", "gate", gate_did, gate_key,
+                          offer_body("local-snapshot-05", agent_did, terms, "2030-01-01T00:00:00Z", "local-05-nonce"),
+                          issued_at=when)
+        accept = chain.add("agreement.accept", "agent", agent_did, agent_key, accept_body(offer), issued_at=when)
+        agreement_ref = receipt_digest(accept)
+        decision = {
+            "action": "local.snapshot", "action_args_hash": SHA,
+            "model": {"provider": "local", "id": "none"},
+            "input_provenance": {"policy_id": "local-policy/1", "allowed_sources": ["local"], "observed_sources_hash": SHA},
+            "decision": "allow", "policy_version": "local-policy/1",
+        }
+        chain.add("task.decision", "agent", agent_did, agent_key, bind_body(decision, accept), issued_at=when)
+        execution = {
+            "tool_calls": [{"name": "snapshot", "args_hash": SHA, "result_hash": SHA}],
+            "egress": [], "resources": {"cpu_ms": 0, "mem_peak_mb": 0, "disk_peak_mb": 0},
+            "sandbox_class": "none",
+        }
+        if not omit_execution_ref:
+            execution["agreement_ref"] = agreement_ref
+        chain.add("task.execution", "agent", agent_did, agent_key, execution, issued_at=when)
+        chain.add("state.commitment", "agent", agent_did, agent_key, {
+            "state_kind": "chain-head", "scope": "local:agreement-test", "count": 3,
+            "head_digest": SHA, "merkle_root": MERKLE,
+        }, issued_at=when)
+        chain.add("task.termination", "agent", agent_did, agent_key, {
+            "reason": "completed", "limits_at_stop": {}, "remaining": {},
+        }, issued_at=when)
+        return chain.bundle()
+    finally:
+        records.uuid7 = original
+
+
 CASES = [
     ("22_local_state_commitment.json", {}, "TRUSTED", None, True,
      "0.5 local authority, unconfined execution, and a signed state commitment"),
@@ -81,6 +137,10 @@ CASES = [
      "0.5 refuses a malformed state digest"),
     ("22f_legacy_state_type.json", {"legacy_state": True}, "UNTRUSTED", "unknown_type", False,
      "0.4 records cannot use the new state.commitment type"),
+    ("23_agreement_binding_carried.json", {"agreement_binding": True}, "TRUSTED", None, True,
+     "0.5 resolves the accepted agreement and carries its binding through decision and execution"),
+    ("23b_missing_carried_agreement_ref.json", {"agreement_binding": True, "omit_execution_ref": True}, "PROVISIONAL", None, True,
+     "0.5 keeps agreement completeness active when execution omits the accepted agreement reference"),
 ]
 
 
@@ -90,7 +150,9 @@ def main():
     manifest["spec"] = SPEC
     rows = [row for row in manifest["vectors"] if row["file"] not in {case[0] for case in CASES}]
     for filename, options, verdict, code, schema_valid, note in CASES:
-        if options.get("legacy_state"):
+        if options.get("agreement_binding"):
+            bundle = make_agreement_binding(filename, omit_execution_ref=options.get("omit_execution_ref", False))
+        elif options.get("legacy_state"):
             bundle = make(filename)
             state = bundle["receipts"][3]
             state["spec"] = "continuity-receipt/0.4"

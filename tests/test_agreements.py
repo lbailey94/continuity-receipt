@@ -131,6 +131,24 @@ class TestAgreement04(unittest.TestCase):
         unbound.add("task.termination", "agent", AGENT_DID, AGENT_KEY, termination_body())
         self.assertEqual(verify_bundle(unbound.bundle()).verdict, "PROVISIONAL")
 
+    def test_05_wire_vectors_cover_carried_binding(self):
+        vectors = ROOT / "vectors"
+        bound = json.loads((vectors / "23_agreement_binding_carried.json").read_text())
+        result = verify_bundle(bound)
+        self.assertEqual(result.verdict, "TRUSTED", result.errors)
+        accept = next(r for r in bound["receipts"] if r["type"] == "agreement.accept")
+        from continuity_receipt.bundle import receipt_digest
+        accepted_ref = receipt_digest(accept)
+        for record_type in ("task.decision", "task.execution"):
+            receipt = next(r for r in bound["receipts"] if r["type"] == record_type)
+            self.assertEqual(receipt["spec"], "continuity-receipt/0.5")
+            self.assertEqual(receipt["body"]["agreement_ref"], accepted_ref)
+
+        missing = json.loads((vectors / "23b_missing_carried_agreement_ref.json").read_text())
+        result = verify_bundle(missing)
+        self.assertEqual(result.verdict, "PROVISIONAL", result.errors)
+        self.assertTrue(any("missing_agreement_ref:" in reason for reason in result.provisional_reasons))
+
     def test_unbound_offeree_stage_is_provisional(self):
         chain, _offer, _accept = self.bound_chain()
         chain.add("task.decision", "agent", AGENT_DID, AGENT_KEY, decision_body())

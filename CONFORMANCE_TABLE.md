@@ -105,7 +105,7 @@ cargo test --manifest-path rust/Cargo.toml          # second implementation
 | No OS sandbox may be disclosed as `none`; unknown classes fail | `_check_05_body` | `check_05_body` | 22 | 22c | Actual confinement is not observed by the verifier. |
 | State commitment requires labels, unsigned 64-bit count, SHA-256 head, optional Merkle root | `_check_05_body` | `check_05_body` | 22 | 22d, 22e, 22g | The referenced state, count, head, and root are not recomputed. |
 | `state.commitment` is only a 0.5 receipt type | `verify_bundle` | `verify_bundle` | 22 | 22f | Bundle envelopes may still mix earlier receipt specs. |
-| Agreement binding remains active on 0.5 receipts | `_check_agreements` | `check_agreements` | unit `test_binding_remains_enforced_in_05` | same unit, unbound path | Freeze should still add a 0.5 wire vector. |
+| Agreement binding remains active on 0.5 receipts | `_check_agreements` | `check_agreements` | 23 | 23b (`missing_agreement_ref` → PROVISIONAL) | 23 carries the accepted agreement through decision and execution; 23b omits the execution reference. |
 
 The candidate corpus is `vectors/manifest-0.5.json`. The published
 `vectors/manifest.json` remains 40 cases for the hosted conformance referee.
