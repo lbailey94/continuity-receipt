@@ -114,6 +114,23 @@ class TestAgreement04(unittest.TestCase):
         result = verify_bundle(chain.bundle())
         self.assertEqual(result.verdict, "TRUSTED", result.errors)
 
+    def test_binding_remains_enforced_in_05(self):
+        chain = base_chain("continuity-receipt/0.5")
+        offer = chain.add("agreement.offer", "gate", GATE_DID, GATE_KEY,
+                          offer_body("offer-05", AGENT_DID, TERMS, "2030-01-01T00:00:00Z", "n-05"))
+        accept = chain.add("agreement.accept", "agent", AGENT_DID, AGENT_KEY, accept_body(offer))
+        chain.add("task.decision", "agent", AGENT_DID, AGENT_KEY,
+                  bind_body(decision_body(), accept))
+        chain.add("task.termination", "agent", AGENT_DID, AGENT_KEY, termination_body())
+        self.assertEqual(verify_bundle(chain.bundle()).verdict, "TRUSTED")
+        unbound = base_chain("continuity-receipt/0.5")
+        offer = unbound.add("agreement.offer", "gate", GATE_DID, GATE_KEY,
+                            offer_body("offer-05", AGENT_DID, TERMS, "2030-01-01T00:00:00Z", "n-05"))
+        unbound.add("agreement.accept", "agent", AGENT_DID, AGENT_KEY, accept_body(offer))
+        unbound.add("task.decision", "agent", AGENT_DID, AGENT_KEY, decision_body())
+        unbound.add("task.termination", "agent", AGENT_DID, AGENT_KEY, termination_body())
+        self.assertEqual(verify_bundle(unbound.bundle()).verdict, "PROVISIONAL")
+
     def test_unbound_offeree_stage_is_provisional(self):
         chain, _offer, _accept = self.bound_chain()
         chain.add("task.decision", "agent", AGENT_DID, AGENT_KEY, decision_body())

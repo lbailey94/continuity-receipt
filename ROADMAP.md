@@ -1,5 +1,19 @@
 # Roadmap
 
+## 0.5 development candidate (unpublished)
+
+- [x] Local pass class and honest unconfined execution value implemented in
+  both verifier checkouts, schema 0.5, and separate signed candidate vectors.
+- [x] State commitment shape implemented with explicit validation and
+  non-verification limits (see `SPEC_0.5_DRAFT.md`). The WhiteMagic karma-head
+  bundle supplies the initial captured use case; vector 22 is modeled.
+- [x] Adopter guide and file-snapshot producer example distinguish verification,
+  local issuance, runtime capture, and independent corroboration.
+- [ ] Capture a second independent producer use case, resolve the candidate
+  design questions, obtain adversarial review, then freeze/publish a 0.5
+  release. The hosted referee and published 0.4.0 packages are unchanged.
+
+
 **Current release:** spec `continuity-receipt/0.4` (2026-09-24; Python tooling
 0.4.0 on PyPI, Rust crate 0.4.0 on crates.io). Spec `0.1`–`0.3` remain
 supported.

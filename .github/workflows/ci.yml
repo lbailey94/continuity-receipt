@@ -99,6 +99,7 @@ jobs:
         run: |
           cargo build --manifest-path rust/Cargo.toml
           python3 tools/differential_vectors.py
+          python3 tools/differential_vectors.py --manifest vectors/manifest-0.5.json
       - name: Differential check (Python vs Rust selective disclosure)
         run: python3 tools/differential_disclose.py
       - name: Differential check (Python vs Rust OpenTimestamps anchors)
@@ -106,4 +107,6 @@ jobs:
       - name: Differential check (Python vs Rust verification receipts)
         run: python3 tools/differential_verification_receipts.py
       - name: Hostile-input probe (both implementations, structured outcomes + parity)
-        run: python3 tools/hostile_input_probe.py --sample 300 --require-parity
+        run: |
+          python3 tools/hostile_input_probe.py --sample 300 --require-parity
+          python3 tools/hostile_input_probe.py --vector-manifest vectors/manifest-0.5.json --sample 100 --require-parity

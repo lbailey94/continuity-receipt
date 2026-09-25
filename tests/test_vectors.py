@@ -12,6 +12,7 @@ from continuity_receipt.bundle import TaskChain, receipt_digest  # noqa: E402
 
 VECTORS = ROOT / "vectors"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
+MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.5.json").read_text(encoding="utf-8"))["vectors"]
 
 
 class TestVectors(unittest.TestCase):
@@ -94,7 +95,8 @@ class TestPrimitives(unittest.TestCase):
         self.assertIn("continuity-receipt/0.2", records.SUPPORTED_SPECS)
         self.assertIn("continuity-receipt/0.3", records.SUPPORTED_SPECS)
         self.assertIn("continuity-receipt/0.4", records.SUPPORTED_SPECS)
-        self.assertEqual(records.SPEC_ID, "continuity-receipt/0.4")
+        self.assertIn("continuity-receipt/0.5", records.SUPPORTED_SPECS)
+        self.assertEqual(records.SPEC_ID, "continuity-receipt/0.5")
 
 
 if __name__ == "__main__":

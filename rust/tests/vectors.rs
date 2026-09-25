@@ -29,7 +29,7 @@ fn all_vectors_match_manifest() {
     let entries = manifest["vectors"]
         .as_array()
         .expect("manifest has a vectors array");
-    assert_eq!(entries.len(), 40, "manifest vector count");
+    assert_eq!(entries.len(), 40, "published manifest stays frozen");
 
     for entry in entries {
         let file = entry["file"].as_str().expect("vector file name");
@@ -57,6 +57,18 @@ fn all_vectors_match_manifest() {
                 "{file}: expected error {code}, got {:?}",
                 result.codes()
             );
+        }
+    }
+
+    let candidate = read_json(&vectors.join("manifest-0.5.json"));
+    for entry in candidate["vectors"].as_array().expect("candidate vectors") {
+        let file = entry["file"].as_str().expect("vector file name");
+        let expected = entry["expected_verdict"].as_str().expect("verdict");
+        let bundle = read_json(&vectors.join(file));
+        let result = verify_bundle(&bundle, false);
+        assert_eq!(result.verdict(), expected, "candidate {file}: {:?}", result.errors);
+        if let Some(code) = entry["expected_code"].as_str() {
+            assert!(result.codes().contains(&code), "candidate {file}: {:?}", result.codes());
         }
     }
 }

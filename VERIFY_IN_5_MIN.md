@@ -7,7 +7,7 @@ call — and that key is free and instant.
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt
+pip install continuity-receipt==0.4.0
 ```
 
 ## 1. Verify a bundle offline (30 seconds)

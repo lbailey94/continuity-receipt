@@ -6,16 +6,21 @@
 remain supported (open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
+**Checkout development:** [SPEC_0.5_DRAFT.md](SPEC_0.5_DRAFT.md) describes an
+unpublished candidate for local execution and state commitments. The
+published packages and hosted verifier remain at 0.4.0; use signed tag
+`v0.4.0` for the frozen release surface.
+
 **Version matrix** — the spec and the two implementations version
 independently:
 
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
-| Python reference + CLIs | **0.4.0** (PyPI, 2026-09-24) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.4.0** (crates.io, 2026-09-24) | `cargo install continuity-receipt` |
+| Python reference + CLIs | **0.4.0** published; 0.5.0a0 checkout candidate | `pip install continuity-receipt==0.4.0` |
+| Rust verifier + CLIs | **0.4.0** published; 0.5.0-alpha.0 checkout candidate | `cargo install continuity-receipt --version 0.4.0` |
 
-The install commands resolve to the latest published release (0.4.0).
+The pinned install commands resolve to the published release (0.4.0).
 
 Both implementations support spec 0.4 (the offer/accept binding carried
 through the chain) with identical verdicts and codes over the full vector set.
@@ -42,7 +47,9 @@ SPEC.md                    the v0.4 specification (normative; 0.1-0.3 supported)
 VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
+ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 candidate example
 REVIEW_BRIEF.md            independent review scope (open invitation)
+REVIEW_NOTES_05.md         candidate self-review, findings and open release gates
 REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not
@@ -53,6 +60,7 @@ ROADMAP.md                 what lands in 0.4 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
 vectors/                   40 bundle vectors + 21 verification-receipt vectors
+vectors/manifest-0.5.json  separate, unpublished candidate corpus
 tools/make_vectors.py      regenerates the vectors (fresh ids/timestamps; published fixtures stay frozen)
 tools/hostile_input_probe.py  malformed-input corpus, structured outcomes + parity
 tests/                     conformance suite (vectors, schema, primitives)
@@ -63,7 +71,7 @@ tests/                     conformance suite (vectors, schema, primitives)
 ```bash
 # from PyPI (0.4.0) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt
+pip install continuity-receipt==0.4.0
 continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
 continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
 continuity-receipt-verify-receipt vectors/verification/01_valid.json \
@@ -106,7 +114,7 @@ receipt valid), unknown member. Schema:
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, release candidate) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (release candidate) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, published) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (published) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 40 bundle vectors and CI diffs it against the Python reference
