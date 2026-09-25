@@ -18,11 +18,51 @@
       "schema_valid": false
     },
     {
+      "file": "22h_bwrap_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the Bubblewrap namespace claim without implying Landlock",
+      "schema_valid": true
+    },
+    {
+      "file": "22i_landlock_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 accepts the pure Landlock claim without implying namespaces",
+      "schema_valid": true
+    },
+    {
+      "file": "22j_legacy_combined_sandbox.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 retains the legacy combined sandbox claim",
+      "schema_valid": true
+    },
+    {
       "file": "22c_unknown_sandbox.json",
       "expected_verdict": "UNTRUSTED",
       "expected_code": "malformed",
       "require_anchor": false,
       "note": "0.5 refuses an unknown sandbox class",
+      "schema_valid": false
+    },
+    {
+      "file": "22k_empty_sandbox.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses an empty sandbox class",
+      "schema_valid": false
+    },
+    {
+      "file": "22l_non_string_sandbox.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a non-string sandbox class",
       "schema_valid": false
     },
     {

@@ -242,7 +242,7 @@ def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
     ):
         _fatal(result, "malformed", "mandala_class must be gate-lite, gate-hard, or local", rid)
     if record_type == "task.execution" and body.get("sandbox_class") not in (
-        "bwrap-landlock", "microvm-ch", "microvm-fc", "none"
+        "bwrap", "landlock", "bwrap-landlock", "microvm-ch", "microvm-fc", "none"
     ):
         _fatal(result, "malformed", "sandbox_class is unknown", rid)
     if record_type == "state.commitment":

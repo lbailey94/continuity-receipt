@@ -120,7 +120,7 @@ fn check_05_body(
             }
         }
         "task.execution" => {
-            if !matches!(body.get("sandbox_class").and_then(Value::as_str), Some("bwrap-landlock" | "microvm-ch" | "microvm-fc" | "none")) {
+            if !matches!(body.get("sandbox_class").and_then(Value::as_str), Some("bwrap" | "landlock" | "bwrap-landlock" | "microvm-ch" | "microvm-fc" | "none")) {
                 bad.push("sandbox_class is unknown");
             }
         }
