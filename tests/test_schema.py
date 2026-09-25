@@ -58,6 +58,18 @@ class TestSchema(unittest.TestCase):
             validator = validator_for(bundle)
             self.assertTrue(list(validator.iter_errors(bundle)), f"{entry['file']} should fail schema")
 
+    @unittest.skipIf(jsonschema is None, "jsonschema not installed")
+    def test_bwrap_profile_requirement_is_scoped_to_spec_05(self):
+        bundle = json.loads((VECTORS / "02_happy_full.json").read_text(encoding="utf-8"))
+        bundle["spec"] = "continuity-receipt/0.4"
+        for receipt in bundle["receipts"]:
+            receipt["spec"] = "continuity-receipt/0.4"
+            if receipt.get("type") == "task.execution":
+                receipt["body"]["sandbox_class"] = "bwrap"
+                receipt["body"].pop("runner_profile", None)
+        validator = validator_for(bundle)
+        self.assertEqual(list(validator.iter_errors(bundle)), [])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
