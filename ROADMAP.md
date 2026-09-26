@@ -148,6 +148,7 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 
 ## 0.4+ / open questions
 
+- Delegation / representation-session profile candidate — design input captured in `DESIGN_NOTE_REPRESENTATION_SESSION.md` (from Pass 19, 2026-09-26); demand-gated: reuse `agreement.offer`/`agreement.accept` and mandate_ref binding if an adopter appears.
 - Selective disclosure beyond per-field salts (evaluate; do not adopt by default — simplicity is a feature).
 - Formal specification of canonicalization + verification (small enough to verify mechanically).
 - Interop profiles with SAIHM and memorywire once their normative text stabilizes; adapter implementations.
