@@ -5,6 +5,7 @@ Verdicts: TRUSTED | PROVISIONAL | INSUFFICIENT_EVIDENCE | UNTRUSTED
 """
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass, field as dc_field
 
@@ -246,8 +247,22 @@ def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
         "bwrap", "landlock", "bwrap-landlock", "microvm-ch", "microvm-fc", "none"
     ):
         _fatal(result, "malformed", "sandbox_class is unknown", rid)
+    if record_type == "task.execution":
+        profile = body.get("runner_profile")
+        if body.get("sandbox_class") == "bwrap" and "runner_profile" not in body:
+            _fatal(result, "malformed", "bwrap execution requires runner_profile", rid)
+        if "runner_profile" in body:
+            digest = re.compile(r"^sha256:[0-9a-f]{64}$")
+            if (not isinstance(profile, dict)
+                    or set(profile) != {"profile_id", "executable_digest", "invocation_digest"}
+                    or not isinstance(profile.get("profile_id"), str)
+                    or not profile["profile_id"]
+                    or not isinstance(profile.get("executable_digest"), str)
+                    or not digest.fullmatch(profile["executable_digest"])
+                    or not isinstance(profile.get("invocation_digest"), str)
+                    or not digest.fullmatch(profile["invocation_digest"])):
+                _fatal(result, "malformed", "runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest", rid)
     if record_type == "state.commitment":
-        import re
         digest = re.compile(r"^sha256:[0-9a-f]{64}$")
         merkle = re.compile(r"^merkle-sha256:[0-9a-f]{64}$")
         if not isinstance(body.get("state_kind"), str) or not body["state_kind"]:

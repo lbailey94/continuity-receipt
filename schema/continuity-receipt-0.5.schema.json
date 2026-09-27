@@ -188,6 +188,43 @@
         {
           "if": {
             "properties": {
+              "spec": { "const": "continuity-receipt/0.5" },
+              "type": { "const": "task.execution" }
+            },
+            "required": ["spec", "type"]
+          },
+          "then": {
+            "properties": {
+              "body": {
+                "allOf": [
+                  {
+                    "if": { "required": ["runner_profile"] },
+                    "then": {
+                      "properties": {
+                        "runner_profile": { "$ref": "#/$defs/runner_profile" }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": { "sandbox_class": { "const": "bwrap" } },
+                      "required": ["sandbox_class"]
+                    },
+                    "then": {
+                      "properties": {
+                        "runner_profile": { "$ref": "#/$defs/runner_profile" }
+                      },
+                      "required": ["runner_profile"]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
               "type": {
                 "const": "session.pass.created"
               }
@@ -521,6 +558,16 @@
         }
       },
       "additionalProperties": true
+    },
+    "runner_profile": {
+      "type": "object",
+      "required": ["profile_id", "executable_digest", "invocation_digest"],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "executable_digest": { "$ref": "#/$defs/hash" },
+        "invocation_digest": { "$ref": "#/$defs/hash" }
+      },
+      "additionalProperties": false
     },
     "body_delivery": {
       "type": "object",

@@ -22,8 +22,32 @@
       "expected_verdict": "TRUSTED",
       "expected_code": null,
       "require_anchor": false,
-      "note": "0.5 accepts the Bubblewrap namespace claim without implying Landlock",
+      "note": "0.5 binds a Bubblewrap claim to a signed runner profile identity",
       "schema_valid": true
+    },
+    {
+      "file": "22o_bwrap_missing_runner_profile.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a Bubblewrap claim without a signed runner profile identity",
+      "schema_valid": false
+    },
+    {
+      "file": "22p_bwrap_bad_runner_profile_digest.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses a malformed runner executable or invocation digest",
+      "schema_valid": false
+    },
+    {
+      "file": "22q_runner_profile_extra_field.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 requires the runner profile object to use exactly the specified fields",
+      "schema_valid": false
     },
     {
       "file": "22i_landlock_sandbox.json",
