@@ -16,6 +16,7 @@ from continuity_receipt.bundle import TaskChain, receipt_digest  # noqa: E402
 VECTORS = ROOT / "vectors"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
 MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.5.json").read_text(encoding="utf-8"))["vectors"]
+MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.6.json").read_text(encoding="utf-8"))["vectors"]
 
 
 class TestVectors(unittest.TestCase):

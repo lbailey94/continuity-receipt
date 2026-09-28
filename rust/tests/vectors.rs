@@ -71,6 +71,18 @@ fn all_vectors_match_manifest() {
             assert!(result.codes().contains(&code), "candidate {file}: {:?}", result.codes());
         }
     }
+
+    let candidate = read_json(&vectors.join("manifest-0.6.json"));
+    for entry in candidate["vectors"].as_array().expect("candidate vectors") {
+        let file = entry["file"].as_str().expect("vector file name");
+        let expected = entry["expected_verdict"].as_str().expect("verdict");
+        let bundle = read_json(&vectors.join(file));
+        let result = verify_bundle(&bundle, false);
+        assert_eq!(result.verdict(), expected, "candidate {file}: {:?}", result.errors);
+        if let Some(code) = entry["expected_code"].as_str() {
+            assert!(result.codes().contains(&code), "candidate {file}: {:?}", result.codes());
+        }
+    }
 }
 
 #[test]

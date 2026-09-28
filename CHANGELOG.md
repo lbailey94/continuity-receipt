@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 0.6 development candidate
+
+An authority record: `authority.grant` (principal, agent, scope, window,
+`review_policy` validated as shape) plus `authority_ref` on bound records,
+with shape-only verifier rules — `missing_authority` (insufficient),
+`authority_before_grant`, `authority_agent_mismatch`, `authority_expired`,
+and `authority_unreferenced` (provisional). Schema 0.6, vectors 24–24j,
+Python and Rust prerelease builds accept 0.1–0.6. Not a tag, package
+publication, hosted rollout, or adoption claim. The 0.5 candidate is
+unchanged; both remain behind the external review gate in `ROADMAP.md`.
+
 ## Unreleased — 0.5 development candidate
 
 Local authority and unconfined execution values, a state-commitment record,

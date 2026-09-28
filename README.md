@@ -7,7 +7,9 @@ remain supported (open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
 **Checkout development:** [SPEC_0.5_DRAFT.md](SPEC_0.5_DRAFT.md) describes an
-unpublished candidate for local execution and state commitments. The
+unpublished candidate for local execution and state commitments;
+[SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
+candidate (`authority.grant`) on top. The
 published packages and hosted verifier remain at 0.4.0; use signed tag
 `v0.4.0` for the frozen release surface.
 
@@ -17,8 +19,8 @@ independently:
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
-| Python reference + CLIs | **0.4.0** published; 0.5.0a0 checkout candidate | `pip install continuity-receipt==0.4.0` |
-| Rust verifier + CLIs | **0.4.0** published; 0.5.0-alpha.0 checkout candidate | `cargo install continuity-receipt --version 0.4.0` |
+| Python reference + CLIs | **0.4.0** published; 0.5.0a0 / 0.6.0a0 checkout candidates | `pip install continuity-receipt==0.4.0` |
+| Rust verifier + CLIs | **0.4.0** published; 0.5.0 / 0.6.0-alpha checkout candidates | `cargo install continuity-receipt --version 0.4.0` |
 
 The pinned install commands resolve to the published release (0.4.0).
 
@@ -62,6 +64,7 @@ continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
 vectors/                   40 bundle vectors + 21 verification-receipt vectors
 vectors/manifest-0.5.json  separate, unpublished candidate corpus
+vectors/manifest-0.6.json  authority candidate corpus (additive over 0.5)
 tools/make_vectors.py      regenerates the vectors (fresh ids/timestamps; published fixtures stay frozen)
 tools/hostile_input_probe.py  malformed-input corpus, structured outcomes + parity
 tests/                     conformance suite (vectors, schema, primitives)

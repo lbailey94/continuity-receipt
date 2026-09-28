@@ -1,0 +1,172 @@
+{
+  "spec": "continuity-receipt/0.6",
+  "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+  "receipts": [
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:6b755f66-e137-55f1-9db4-1f3472d9e9b6",
+      "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+      "issued_at": "2026-09-28T18:00:00Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "session.pass.created",
+      "seq": 0,
+      "prev": null,
+      "body": {
+        "gate_id": "local:authority-test",
+        "mandala_class": "local",
+        "quotas": {
+          "cpu_ms": 0,
+          "mem_mb": 0,
+          "disk_mb": 0,
+          "wall_ms": 0
+        },
+        "expires_at": "2026-09-29T18:00:00Z",
+        "policy_version": "authority-policy/1",
+        "mandate_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "agent_id": "local-agent"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "8WfyGLs0vbFvazYu36k4VrRRk2C1COvrA8cw2IXSKwbqYFOT86foRFUCSct8xc0yH0ercBHHVrcQ7Zdf52AmBw"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:f0b9c35e-9b74-59cc-875f-0f66d950bcdb",
+      "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+      "issued_at": "2026-09-28T18:00:01Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "authority.grant",
+      "seq": 1,
+      "prev": "sha256:979bcb8ddddf24a3d7078f2b3a8c0465d17ccbf52036c0751d8dbafedee73b7a",
+      "body": {
+        "grant_id": "urn:uuid:00000000-0000-7000-8000-000000000024",
+        "principal": {
+          "id": "did:web:lab.example",
+          "assurance": "verified"
+        },
+        "agent": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "scope": [
+          "memory.read",
+          "receipts.emit"
+        ],
+        "granted_at": "2026-09-28T18:00:01Z",
+        "review_policy": "none",
+        "constraints": {
+          "memory.read": {
+            "max_rows": 100
+          }
+        },
+        "policy_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "gate_ref": "urn:local:gate-pass:0001",
+        "expires_at": "2026-09-29T18:00:00Z"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "qf4SK-S1PkqOa0Nzb3l9kOHs5ClAryB1kgBUadAHCShyojB2jMKLNfoeNsdROWeuNfuDo7SRnAEuZm14W-gzDw"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:180bda0e-64a2-529c-a65f-6c389483e875",
+      "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+      "issued_at": "2026-09-28T18:00:02Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.decision",
+      "seq": 2,
+      "prev": "sha256:eb84986619b650a5aacf07a7f60514cdd58b28d6d9bdfbbb6d291127a2f76ffa",
+      "body": {
+        "action": "authority.test",
+        "action_args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "model": {
+          "provider": "local",
+          "id": "none"
+        },
+        "input_provenance": {
+          "policy_id": "authority-policy/1",
+          "allowed_sources": [
+            "local"
+          ],
+          "observed_sources_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "decision": "allow",
+        "policy_version": "authority-policy/1",
+        "authority_ref": "sha256:eb84986619b650a5aacf07a7f60514cdd58b28d6d9bdfbbb6d291127a2f76ffa"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "TMjYZLSmq2qSRgEUMagj7BQgg7AW9l1LcdVwu7QI3VsFvwo6jAjetdffys9hLPzE15v2oSGOmns8iGJYDaxfAg"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:e5f9e046-0c5e-5278-8343-2d1d0bd9bc10",
+      "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+      "issued_at": "2026-09-28T18:00:03Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.execution",
+      "seq": 3,
+      "prev": "sha256:01feb8ca5bcf0bb5cf8cdce51a2cd537257fbe7342b18e006a38d60a88339013",
+      "body": {
+        "tool_calls": [
+          {
+            "name": "read",
+            "args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "result_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "egress": [],
+        "resources": {
+          "cpu_ms": 0,
+          "mem_peak_mb": 0,
+          "disk_peak_mb": 0
+        },
+        "sandbox_class": "none",
+        "authority_ref": "sha256:eb84986619b650a5aacf07a7f60514cdd58b28d6d9bdfbbb6d291127a2f76ffa"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "WGYGBwziI4mxLvCAhYeIPlYu8TUOB3_uTPb_MfMGyHkC_ugoDclXm9NL_uozq-122Qsk-T6ue8VTsyAEVbv_CA"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:f7fb6223-fd58-5e50-b8be-87c3ea1885c2",
+      "task_id": "urn:uuid:d95c5c23-0464-58de-bfb8-47ddb347bd96",
+      "issued_at": "2026-09-28T18:00:04Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.termination",
+      "seq": 4,
+      "prev": "sha256:b336c4475c2329be98212a1e5d471db42b8dd89a746e843307207f88b8127e91",
+      "body": {
+        "reason": "completed",
+        "limits_at_stop": {},
+        "remaining": {}
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "Kp1GgtxQJAuKOxz-q8bXWGiZ5MCvTM9z-Yn2tNxpF8i5sepAuGNyI2RB_MmaCgWLbC13ABwlTgMm0SeNpd5nBQ"
+      }
+    }
+  ]
+}

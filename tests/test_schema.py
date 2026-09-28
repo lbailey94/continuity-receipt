@@ -16,12 +16,14 @@ VECTORS = ROOT / "vectors"
 SCHEMA_DIR = ROOT / "schema"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
 MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.5.json").read_text(encoding="utf-8"))["vectors"]
+MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.6.json").read_text(encoding="utf-8"))["vectors"]
 SCHEMA_FOR_SPEC = {
     "continuity-receipt/0.1": "continuity-receipt-0.2.schema.json",
     "continuity-receipt/0.2": "continuity-receipt-0.2.schema.json",
     "continuity-receipt/0.3": "continuity-receipt-0.3.schema.json",
     "continuity-receipt/0.4": "continuity-receipt-0.4.schema.json",
     "continuity-receipt/0.5": "continuity-receipt-0.5.schema.json",
+    "continuity-receipt/0.6": "continuity-receipt-0.6.schema.json",
 }
 
 

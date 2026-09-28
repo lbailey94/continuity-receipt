@@ -14,6 +14,7 @@ SUPPORTED_SPECS = (
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
     "continuity-receipt/0.5",
+    "continuity-receipt/0.6",
 )
 
 RECORD_TYPES = (
@@ -27,6 +28,7 @@ RECORD_TYPES = (
     "agreement.offer",
     "agreement.accept",
     "state.commitment",
+    "authority.grant",
 )
 
 REQUIRED_FIELDS = {
@@ -55,6 +57,7 @@ REQUIRED_FIELDS = {
     "agreement.offer": ("offer_id", "offeree", "terms_hash", "valid_until", "nonce"),
     "agreement.accept": ("offer_ref", "offer_id", "terms_hash"),
     "state.commitment": ("state_kind", "scope", "count", "head_digest"),
+    "authority.grant": ("grant_id", "principal", "agent", "scope", "granted_at"),
 }
 
 # 0.4: the accept must name (and be signed by) the offeree — the binding is
@@ -66,9 +69,11 @@ REQUIRED_FIELDS_04 = {
 
 def required_fields(record_type: str, spec: str | None = None) -> tuple:
     """Required body fields for a record type under a given envelope spec."""
-    if spec in ("continuity-receipt/0.4", "continuity-receipt/0.5") and record_type in REQUIRED_FIELDS_04:
+    if spec in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6") and record_type in REQUIRED_FIELDS_04:
         return REQUIRED_FIELDS_04[record_type]
-    if record_type == "state.commitment" and spec != "continuity-receipt/0.5":
+    if record_type == "state.commitment" and spec not in ("continuity-receipt/0.5", "continuity-receipt/0.6"):
+        return ()
+    if record_type == "authority.grant" and spec != "continuity-receipt/0.6":
         return ()
     return REQUIRED_FIELDS.get(record_type, ())
 
@@ -108,7 +113,9 @@ def parse_timestamp(value: str) -> datetime:
 def validate_body(record_type: str, body: dict, spec: str | None = None) -> None:
     if record_type not in REQUIRED_FIELDS:
         raise ValueError(f"unknown_type: {record_type}")
-    if record_type == "state.commitment" and spec != "continuity-receipt/0.5":
+    if record_type == "state.commitment" and spec not in ("continuity-receipt/0.5", "continuity-receipt/0.6"):
+        raise ValueError(f"unknown_type: {record_type} in {spec}")
+    if record_type == "authority.grant" and spec != "continuity-receipt/0.6":
         raise ValueError(f"unknown_type: {record_type} in {spec}")
     if not isinstance(body, dict):
         raise ValueError(f"malformed body for {record_type}: not an object")

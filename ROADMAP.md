@@ -1,5 +1,15 @@
 # Roadmap
 
+## 0.6 development candidate (unpublished)
+
+- [x] `authority.grant` shape and `authority_ref` binding implemented in both
+  verifiers, schema 0.6, and a separate candidate vector corpus (24–24j).
+  Verifier rules are shape/signature/reference only; identity, scope, and
+  policy enforcement are explicitly out of scope.
+- [ ] `review.record` shape and `review_policy` enforcement design.
+- [ ] External review of the 0.5 + 0.6 stack, then freeze/publish (the 0.5
+  gate below stays authoritative).
+
 ## 0.5 development candidate (unpublished)
 
 - [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,

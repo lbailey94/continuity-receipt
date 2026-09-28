@@ -46,7 +46,7 @@ fn repo_root() -> PathBuf {
 
 fn vector_bundles() -> Vec<Value> {
     let vectors = repo_root().join("vectors");
-    ["manifest.json", "manifest-0.5.json"]
+    ["manifest.json", "manifest-0.5.json", "manifest-0.6.json"]
         .iter()
         .flat_map(|name| {
             let text = fs::read_to_string(vectors.join(name)).expect("manifest");
@@ -61,7 +61,7 @@ fn vector_bundles() -> Vec<Value> {
 
 fn vector_manifest_count() -> usize {
     let vectors = repo_root().join("vectors");
-    ["manifest.json", "manifest-0.5.json"]
+    ["manifest.json", "manifest-0.5.json", "manifest-0.6.json"]
         .iter()
         .map(|name| {
             let text = fs::read_to_string(vectors.join(name)).expect("manifest");

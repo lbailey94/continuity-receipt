@@ -7,7 +7,8 @@
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
-    "continuity-receipt/0.5"
+    "continuity-receipt/0.5",
+    "continuity-receipt/0.6"
   ],
   "verdicts": [
     "TRUSTED",
@@ -22,6 +23,7 @@
     "counterparty_attestations",
     "cross_record",
     "agreement_binding",
+    "authority_binding",
     "revocations",
     "anchors",
     "redactions_erasure"
@@ -50,6 +52,9 @@
     "accept_before_offer",
     "agreement_before_accept",
     "agreement_issuer_mismatch",
+    "authority_before_grant",
+    "authority_agent_mismatch",
+    "authority_expired",
     "too_many_receipts",
     "nesting_too_deep",
     "bundle_too_large"
@@ -58,12 +63,14 @@
     "anchor_missing",
     "redacted_without_disclosure:<path>",
     "agreement_unreferenced:<path>",
-    "missing_agreement_ref:<path>"
+    "missing_agreement_ref:<path>",
+    "authority_unreferenced:<path>"
   ],
   "insufficient_reasons": [
     "erased_content:<path>",
     "missing_offer:<receipt_id>",
-    "missing_agreement:<receipt_id>"
+    "missing_agreement:<receipt_id>",
+    "missing_authority:<receipt_id>"
   ],
   "revocation_lists": {
     "supported": true,

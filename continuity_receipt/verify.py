@@ -158,7 +158,11 @@ def verify_bundle(
         if receipt.get("task_id") != task_id:
             _fatal(result, "task_mismatch", "receipt task_id != bundle task_id", rid)
         record_type = receipt.get("type")
-        if record_type not in records.RECORD_TYPES or (record_type == "state.commitment" and receipt.get("spec") != "continuity-receipt/0.5"):
+        if record_type not in records.RECORD_TYPES or (
+            record_type == "state.commitment" and receipt.get("spec") not in ("continuity-receipt/0.5", "continuity-receipt/0.6")
+        ) or (
+            record_type == "authority.grant" and receipt.get("spec") != "continuity-receipt/0.6"
+        ):
             _fatal(result, "unknown_type", f"type={record_type!r}", rid)
             continue
         body = receipt.get("body")
@@ -171,8 +175,10 @@ def verify_bundle(
         ]
         if missing:
             _fatal(result, "malformed", f"missing body fields {missing}", rid)
-        if receipt.get("spec") == "continuity-receipt/0.5":
+        if receipt.get("spec") in ("continuity-receipt/0.5", "continuity-receipt/0.6"):
             _check_05_body(result, record_type, body, rid)
+        if receipt.get("spec") == "continuity-receipt/0.6":
+            _check_06_body(result, record_type, body, rid)
 
         if not records.validate_timestamp(receipt.get("issued_at")):
             _fatal(result, "malformed", f"issued_at not RFC 3339 UTC: {receipt.get('issued_at')!r}", rid)
@@ -213,6 +219,7 @@ def verify_bundle(
         disclosure_map = None
     _check_cross_record(result, well_formed)
     _check_agreements(result, well_formed)
+    _check_authority(result, well_formed)
     _check_redactions(result, well_formed, disclosure_map or {})
     _check_attestations(result, well_formed)
     _check_provenance(result, well_formed)
@@ -276,6 +283,51 @@ def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
         root = body.get("merkle_root")
         if root is not None and (not isinstance(root, str) or not merkle.fullmatch(root)):
             _fatal(result, "malformed", "merkle_root must be a merkle-sha256 digest", rid)
+
+
+def _check_06_body(result: VerifyResult, record_type: str, body: dict, rid) -> None:
+    """Validate the 0.6 authority vocabulary (shape only; no identity claims)."""
+    if record_type != "authority.grant":
+        return
+    digest = re.compile(r"^sha256:[0-9a-f]{64}$")
+    if not isinstance(body.get("grant_id"), str) or not body["grant_id"]:
+        _fatal(result, "malformed", "grant_id must be nonempty text", rid)
+    principal = body.get("principal")
+    if (
+        not isinstance(principal, dict)
+        or not isinstance(principal.get("id"), str)
+        or not principal["id"]
+        or principal.get("assurance") not in ("self_asserted", "issuer_verified")
+    ):
+        _fatal(result, "malformed", "principal must name an id and an assurance of self_asserted or issuer_verified", rid)
+    if not isinstance(body.get("agent"), str) or not body["agent"]:
+        _fatal(result, "malformed", "agent must be a nonempty identifier", rid)
+    scope = body.get("scope")
+    if (
+        not isinstance(scope, list)
+        or not scope
+        or any(not isinstance(item, str) or not item for item in scope)
+    ):
+        _fatal(result, "malformed", "scope must be a nonempty list of nonempty strings", rid)
+    granted = body.get("granted_at")
+    if not records.validate_timestamp(granted):
+        _fatal(result, "malformed", "granted_at must be an RFC 3339 UTC timestamp", rid)
+    expires = body.get("expires_at")
+    if expires is not None:
+        if not records.validate_timestamp(expires):
+            _fatal(result, "malformed", "expires_at must be an RFC 3339 UTC timestamp", rid)
+        elif records.validate_timestamp(granted) and records.parse_timestamp(expires) <= records.parse_timestamp(granted):
+            _fatal(result, "malformed", "expires_at must follow granted_at", rid)
+    if body.get("review_policy") is not None and body["review_policy"] not in ("none", "flagged", "full"):
+        _fatal(result, "malformed", "review_policy must be none, flagged, or full", rid)
+    if body.get("constraints") is not None and not isinstance(body["constraints"], dict):
+        _fatal(result, "malformed", "constraints must be an object", rid)
+    policy_ref = body.get("policy_ref")
+    if policy_ref is not None and (not isinstance(policy_ref, str) or not digest.fullmatch(policy_ref)):
+        _fatal(result, "malformed", "policy_ref must be a sha256 digest", rid)
+    gate_ref = body.get("gate_ref")
+    if gate_ref is not None and (not isinstance(gate_ref, str) or not gate_ref):
+        _fatal(result, "malformed", "gate_ref must be nonempty text", rid)
 
 
 def _check_cross_record(result: VerifyResult, receipts: list) -> None:
@@ -405,7 +457,7 @@ def _check_agreements(result: VerifyResult, receipts: list) -> None:
     for receipt in receipts:
         if receipt.get("type") not in agreements.BOUND_TYPES:
             continue
-        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
+        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6"):
             continue
         body = receipt.get("body")
         if not isinstance(body, dict):
@@ -450,6 +502,103 @@ def _check_agreements(result: VerifyResult, receipts: list) -> None:
     _check_agreement_completeness(result, receipts, accepts, referenced)
 
 
+def _check_authority(result: VerifyResult, receipts: list) -> None:
+    """0.6 authority binding (shape only — identity is never resolved):
+
+    - A `authority.grant` receipt defines a scoped authority. Its `principal`
+      is an opaque identifier with a self-declared assurance; the verifier
+      checks shape and signatures, not who the principal is.
+    - A 0.6 bound record (`BOUND_TYPES`) carrying `authority_ref` must resolve
+      to a grant in the bundle (absent → `missing_authority`), must not
+      predate it (`authority_before_grant`), must be signed by the grant's
+      `agent` (`authority_agent_mismatch`), and must fall inside the grant
+      window (`authority_expired`).
+    - A grant nothing references is `authority_unreferenced` — PROVISIONAL.
+    - `scope` and `constraints` are labels, not enforcement: consumers compare
+      them out-of-band (same posture as the state.commitment `scope` label).
+    """
+    grants: dict = {}
+    for r in receipts:
+        if r.get("type") != "authority.grant":
+            continue
+        digest = _try_digest(r)
+        if digest is not None:
+            grants[digest] = r
+
+    referenced: set = set()
+    for receipt in receipts:
+        if receipt.get("type") not in agreements.BOUND_TYPES:
+            continue
+        if receipt.get("spec") != "continuity-receipt/0.6":
+            continue
+        body = receipt.get("body")
+        if not isinstance(body, dict):
+            continue
+        ref = body.get("authority_ref")
+        if ref is None:
+            continue
+        grant = grants.get(ref) if isinstance(ref, str) else None
+        if grant is None:
+            result.insufficient_reasons.append(
+                f"missing_authority:{receipt.get('receipt_id')}"
+            )
+            continue
+        referenced.add(ref)
+        grant_body = grant.get("body")
+        if not isinstance(grant_body, dict):
+            continue
+        grant_issued = grant.get("issued_at")
+        bound_issued = receipt.get("issued_at")
+        # authority is effective from the later of when it was granted and
+        # when the grant receipt was signed
+        effective = grant_issued
+        granted_at = grant_body.get("granted_at")
+        if records.validate_timestamp(granted_at) and (
+            not records.validate_timestamp(effective)
+            or records.parse_timestamp(granted_at) > records.parse_timestamp(effective)
+        ):
+            effective = granted_at
+        if (
+            records.validate_timestamp(effective)
+            and records.validate_timestamp(bound_issued)
+            and records.parse_timestamp(bound_issued) < records.parse_timestamp(effective)
+        ):
+            _fatal(
+                result,
+                "authority_before_grant",
+                f"bound receipt issued before its authority grant {grant.get('receipt_id')}",
+                receipt.get("receipt_id"),
+            )
+        issuer = receipt.get("issuer")
+        issuer_id = issuer.get("id") if isinstance(issuer, dict) else None
+        agent = grant_body.get("agent")
+        if isinstance(agent, str) and issuer_id != agent:
+            _fatal(
+                result,
+                "authority_agent_mismatch",
+                f"bound receipt issuer {issuer_id!r} is not the grant's agent",
+                receipt.get("receipt_id"),
+            )
+        expires = grant_body.get("expires_at")
+        if (
+            records.validate_timestamp(expires)
+            and records.validate_timestamp(bound_issued)
+            and records.parse_timestamp(bound_issued) > records.parse_timestamp(expires)
+        ):
+            _fatal(
+                result,
+                "authority_expired",
+                f"bound receipt issued after the authority window {expires}",
+                receipt.get("receipt_id"),
+            )
+
+    for digest, grant in grants.items():
+        if digest not in referenced:
+            result.provisional_reasons.append(
+                f"authority_unreferenced:{grant.get('receipt_id')}"
+            )
+
+
 def _check_accept(result: VerifyResult, receipt: dict, offers: dict) -> None:
     body = receipt.get("body")
     if not isinstance(body, dict):
@@ -492,7 +641,7 @@ def _check_accept(result: VerifyResult, receipt: dict, offers: dict) -> None:
             f"accept issued after offer valid_until {valid_until}",
             receipt.get("receipt_id"),
         )
-    if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
+    if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6"):
         return
     offeree = body.get("offeree")
     issuer = receipt.get("issuer")
@@ -530,12 +679,12 @@ def _check_agreement_completeness(
 ) -> None:
     """0.4: an accept nothing references, and offeree receipts that skip the ref."""
     for digest, accept in accepts.items():
-        if accept.get("spec") in ("continuity-receipt/0.4", "continuity-receipt/0.5") and digest not in referenced:
+        if accept.get("spec") in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6") and digest not in referenced:
             result.provisional_reasons.append(
                 f"agreement_unreferenced:{accept.get('receipt_id')}"
             )
     for receipt in receipts:
-        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
+        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6"):
             continue
         if receipt.get("type") not in agreements.BOUND_TYPES:
             continue
@@ -549,7 +698,7 @@ def _check_agreement_completeness(
             continue
         bound_at = records.parse_timestamp(bound_issued)
         for accept in accepts.values():
-            if accept.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5"):
+            if accept.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6"):
                 continue
             accept_body = accept.get("body")
             if not isinstance(accept_body, dict) or accept_body.get("offeree") != issuer_id:
