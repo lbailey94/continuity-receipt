@@ -18,9 +18,20 @@ independent implementation in this repository (probe run 2026-09-28):
 - tamper case (actor.user alice→mallory): signature rejected, chain link
   broken — pass
 
-Meaning: their published bytes are reproducible by an outside implementation,
-including their non-JCS canonical order. It does not mean either format can
-consume the other's objects (see §5).
+ACTA probe (`tools/interop_acta_probe.py`, 2026-09-28 — 7/7 pass):
+independent sign/verify of a minimal `protectmcp:decision` envelope per
+`draft-farley-acta-signed-receipts-02` (JCS payload, EdDSA hex signature,
+`issuer_id == kid`), the §2.2 `action_ref` formula (deterministic under
+member reordering), and asqav §5.3 commitment-mode chain links
+(`previousReceiptHash = SHA-256(JCS(prev payload))`, recomputable and broken
+by tampering). Recorded honestly: the probe does not provide legal-entity
+`issuer_id`, mandatory RFC3161/OTS anchors, `policy_digest`, or retention
+floors — the compliance profile's remaining requirements.
+
+Meaning: their published bytes and procedures are reproducible by an outside
+implementation, including their non-JCS canonical order (sahu) and the JCS
+signing-input scope (ACTA/asqav). It does not mean either format can consume
+the other's objects (see §5).
 
 ## 2. Field mapping — draft-sahu ↔ continuity-receipt
 
@@ -95,11 +106,9 @@ compatibility we have not tested.
 
 ## 6. Next probes
 
-- **ACTA envelope probe:** construct a minimal ACTA-shaped receipt, sign with
-  JCS signing-input, and verify with our tooling (shape + signature), then
-  document the fields asqav requires that we cannot yet supply honestly.
-- **sahu negative corpus:** their draft specifies determinate failure
-  positions; add two negative probes (broken link, unknown-signature) to the
-  interop script.
-- Once B1 lands: re-run both probes plus an authority-aware projection note
-  (CR receipt → sahu/ACTA views, lossy fields documented).
+- ~~**ACTA envelope probe**~~ — done 2026-09-28 (`tools/interop_acta_probe.py`,
+  7/7); remaining asqav field requirements documented above.
+- **sahu negative corpus:** add two negative probes (broken link,
+  unknown-signature) to the interop script.
+- Once B1 (authority) lands: re-run both probes plus an authority-aware
+  projection note (CR receipt → sahu/ACTA views, lossy fields documented).
