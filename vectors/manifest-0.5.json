@@ -130,6 +130,22 @@
       "schema_valid": false
     },
     {
+      "file": "22r_empty_scope.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.5 refuses an empty state-commitment scope label",
+      "schema_valid": false
+    },
+    {
+      "file": "22s_file_snapshot_state_kind.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.5 models a second state_kind on the same commitment shape",
+      "schema_valid": true
+    },
+    {
       "file": "22f_legacy_state_type.json",
       "expected_verdict": "UNTRUSTED",
       "expected_code": "unknown_type",

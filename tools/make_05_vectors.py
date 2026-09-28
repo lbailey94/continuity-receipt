@@ -24,6 +24,7 @@ RUNNER_PROFILE = {
 
 
 def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC,
+         state_kind="chain-head", scope="local:test-store",
          omit_runner_profile=False, bad_runner_profile=False, extra_runner_profile_field=False):
     counter = 0
     original = records.uuid7
@@ -68,7 +69,7 @@ def make(label, *, klass="local", sandbox="none", count=3, head=SHA, spec=SPEC,
             execution["runner_profile"] = {**RUNNER_PROFILE, "runtime_claim": "unverified"}
         add("task.execution", execution, 2)
         add("state.commitment", {
-            "state_kind": "chain-head", "scope": "local:test-store",
+            "state_kind": state_kind, "scope": scope,
             "count": count, "head_digest": head, "merkle_root": MERKLE,
         }, 3)
         add("task.termination", {
@@ -168,6 +169,10 @@ CASES = [
      "0.5 accepts the largest exact interoperable JSON integer count"),
     ("22e_bad_head_digest.json", {"head": "unverified"}, "UNTRUSTED", "malformed", False,
      "0.5 refuses a malformed state digest"),
+    ("22r_empty_scope.json", {"scope": ""}, "UNTRUSTED", "malformed", False,
+     "0.5 refuses an empty state-commitment scope label"),
+    ("22s_file_snapshot_state_kind.json", {"state_kind": "file-snapshot"}, "TRUSTED", None, True,
+     "0.5 models a second state_kind on the same commitment shape"),
     ("22f_legacy_state_type.json", {"legacy_state": True}, "UNTRUSTED", "unknown_type", False,
      "0.4 records cannot use the new state.commitment type"),
     ("23_agreement_binding_carried.json", {"agreement_binding": True}, "TRUSTED", None, True,

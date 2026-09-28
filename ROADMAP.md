@@ -11,9 +11,15 @@
   bundle supplies the initial captured use case; vector 22 is modeled.
 - [x] Adopter guide and file-snapshot producer example distinguish verification,
   local issuance, runtime capture, and independent corroboration.
-- [ ] Capture a second independent producer use case, resolve the candidate
-  design questions, obtain adversarial review, then freeze/publish a 0.5
-  release. The hosted referee and published 0.4.0 packages are unchanged.
+- [x] Capture a second producer use case — MandalaOS gate-lite emits
+  `state.commitment` after `task.execution` (`codex/gate-lite-05-profile`
+  `cb0f721`; example `examples/02_gate_lite_state_commitment`). Same-host
+  capture on the unpublished candidate; independent adoption remains open.
+- [x] Resolve the candidate design questions D1–D4 (2026-09-28; vectors 22r,
+  22s; `REVIEW_NOTES_05.md` §Design resolves).
+- [ ] Obtain adversarial review (internal review receipt filed 2026-09-28;
+  external review pending), then freeze/publish a 0.5 release. The hosted
+  referee and published 0.4.0 packages are unchanged.
 
 
 **Current release:** spec `continuity-receipt/0.4` (2026-09-24; Python tooling
