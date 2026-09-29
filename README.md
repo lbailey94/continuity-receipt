@@ -19,14 +19,14 @@ independently:
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
-| Python reference + CLIs | **0.4.0** published; 0.5.0a0 / 0.6.0a0 checkout candidates | `pip install continuity-receipt==0.4.0` |
+| Python reference + CLIs | **0.4.1** published; 0.5.0a0 / 0.6.0a0 checkout candidates | `pip install continuity-receipt==0.4.1` |
 | Rust verifier + CLIs | **0.4.0** published; 0.5.0 / 0.6.0-alpha checkout candidates | `cargo install continuity-receipt --version 0.4.0` |
 
-The pinned install commands resolve to the published release (0.4.0).
+The pinned install commands resolve to the published release (0.4.1 on PyPI).
 
 Both implementations support spec 0.4 (the offer/accept binding carried
 through the chain) with identical verdicts and codes over the full vector set.
-Verify the version you have with `continuity-receipt-verify --help` (Python or
+Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python or
 Rust).
 
 A Continuity Receipt is a signed, hash-chained record of one governed task:
@@ -74,10 +74,12 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.4.0) — clone the repo for the vectors
+# from PyPI (0.4.1) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt==0.4.0
-continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
+pip install continuity-receipt==0.4.1
+continuity-verify vectors/02_happy_full.json            # TRUSTED
+continuity-consumer vectors/02_happy_full.json --profile conservative # ACCEPT
+continuity-receipt-verify vectors/02_happy_full.json    # compat alias
 continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
 continuity-receipt-verify-receipt vectors/verification/01_valid.json \
   --bundle vectors/verification/bundle.json
@@ -90,6 +92,27 @@ python3 -m continuity_receipt.verify vectors/02_happy_full.json
 # run the conformance suite (vectors + schema + primitives)
 python3 -m unittest discover -s tests -v
 ```
+
+## ERC-8004 Validation (On-Chain Agent Trust on Base)
+
+Any governed task bundle can be validated against ERC-8004 validation standards via the live WhiteMagic trust oracle at `api.whitemagic.dev`:
+
+```bash
+# Validate bundle and receive an EIP-712 typed oracle attestation for Base smart contracts
+curl -s -X POST https://api.whitemagic.dev/erc8004/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Payment-Tx: <tx_hash_or_cdp_envelope>" \
+  -d '{
+    "task_id": "task_2026_0929_alpha",
+    "task_type": "governed_task_bundle",
+    "task_hash": "sha256:...",
+    "bundle": { ... }
+  }'
+```
+
+- **Verdict → Decision:** Bundles with `TRUSTED` verdict emit `{"decision": "ACCEPT", "attestation": { "domain": { "chainId": 8453, ... }, "types": { ... }, "message": { ... }, "signature": "0x..." }}`.
+- **Oracle Signer:** Signed by WhiteMagic trusted validator (`did:key:z6MkmKSa...` / `0x915Ff24dE2882f0EaA728bFE1e80953a99e3a6a1`).
+- **x402 Micropayments:** Gated via HTTP 402 challenge ($0.01 USDC on Base to `0x213b6bB4B32c5f9F7e8d7950E6A02187f59d5757`).
 
 ## Test vectors
 
