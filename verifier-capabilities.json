@@ -107,7 +107,9 @@
     ]
   },
   "cli": {
-    "verify": "continuity-receipt-verify",
+    "verify": "continuity-verify",
+    "consumer": "continuity-consumer",
+    "receipt_verify": "continuity-receipt-verify",
     "disclose": "continuity-receipt-disclose",
     "anchor": "continuity-receipt-anchor",
     "verify_receipt": "continuity-receipt-verify-receipt"

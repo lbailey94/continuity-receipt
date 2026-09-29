@@ -50,7 +50,8 @@ VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
 ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 candidate example
-REVIEW_BRIEF.md            independent review scope (open invitation)
+REVIEW_BRIEF.md            frozen v0.4 independent-review scope
+REVIEW_BRIEF_05.md         prepared v0.5 candidate review brief (external report pending)
 REVIEW_NOTES_05.md         candidate self-review, findings and open release gates
 INTEGRATION_READINESS.md    exact-candidate gate for producer and verifier integration
 REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)

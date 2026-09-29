@@ -17,7 +17,6 @@ import datetime as dt
 import hashlib
 import html
 import json
-import shutil
 import stat
 import sys
 from pathlib import Path
@@ -26,18 +25,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from continuity_receipt import verify_bundle  # noqa: E402
+from continuity_receipt.verify import MAX_BUNDLE_BYTES  # noqa: E402
+from continuity_receipt.strict_json import loads as strict_json_loads  # noqa: E402
 
 VERIFY_SH = """#!/bin/sh
 # Offline verification of this evidence pack. No network access required.
-# Requires any continuity-receipt implementation >= 0.3.3:
-#   pip install continuity-receipt     (or)     cargo add continuity-receipt
+# Verify pack file hashes before invoking a receipt verifier.
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
+python3 "$DIR/verify_pack.py"
 if command -v continuity-receipt-verify >/dev/null 2>&1; then
   exec continuity-receipt-verify "$DIR/bundle.json"
 fi
 if python3 -c "import continuity_receipt" >/dev/null 2>&1; then
-  exec python3 -c "import sys; from continuity_receipt.verify import main; sys.exit(main(['$DIR/bundle.json']))"
+  exec python3 -m continuity_receipt.verify "$DIR/bundle.json"
 fi
 echo "No continuity-receipt verifier found. Install with: pip install continuity-receipt" >&2
 exit 2
@@ -47,12 +48,21 @@ README = """Evidence pack — continuity receipts
 =====================================
 
 Files
-  bundle.json       the receipt chain(s), exactly as issued (canonical JSON)
+  bundle.json       byte-identical copy of the supplied receipt bundle
   manifest.json     SHA-256 digests of every file in this pack
   verify.sh         run this: it re-verifies the bundle offline
   certificate.html  a human-readable result (open in any browser)
 
-Verify (needs any continuity-receipt implementation >= 0.3.3):
+Verifier requirements depend on the bundle spec:
+
+  * continuity-receipt/0.1 through /0.4: published Python or Rust verifier
+    0.4.0 (or newer compatible release).
+  * /0.5 and /0.6: development prerelease/source build that explicitly
+    supports that draft spec. Published 0.4.0 packages do not support them.
+
+Before verification, verify.sh checks every file listed in manifest.json.
+The manifest itself is an unsigned integrity index; obtain its digest through
+a trusted channel if you need to authenticate the pack as a whole.
 
   sh verify.sh
   # or explicitly:
@@ -62,16 +72,53 @@ Verify (needs any continuity-receipt implementation >= 0.3.3):
 What a TRUSTED verdict means
   - every receipt signature verifies against its issuer key
   - the chain links, chronology, and binding rules hold
-  - where the spec requires it, anchors/revocations were checked
+  - any embedded anchor metadata passed the bundle verifier's checks; this
+    does not verify detached timestamp proofs. Use the anchor tool with the
+    required proof and independently trusted header or timestamp source.
+  - revocation statements included in the bundle were checked under the
+    applicable verifier rules; an omitted or stale external revocation source
+    is outside this pack's evidence
 
 What it does NOT mean
   - that the statements inside the receipts are true; issuer honesty is out
     of scope by design
   - that nothing was omitted before signing; only the recorded chain is
     covered
-  - that we (the pack exporter) verified anything beyond running the
-    reference verifier; check manifest.json to confirm the bundle bytes
+  - that the pack manifest was signed or obtained through a trusted channel
 """
+
+PACK_VERIFIER = r'''#!/usr/bin/env python3
+"""Check evidence-pack file hashes before running a receipt verifier."""
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+root = Path(__file__).resolve().parent
+def unique_members(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise SystemExit(f"invalid pack manifest: duplicate member {key!r}")
+        result[key] = value
+    return result
+
+manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"), object_pairs_hook=unique_members)
+files = manifest.get("files")
+expected_names = {"bundle.json", "verify.sh", "verify_pack.py", "README.txt", "certificate.html"}
+if not isinstance(files, dict) or set(files) != expected_names:
+    raise SystemExit("invalid pack manifest: files map must contain the exact evidence-pack file set")
+for name, expected in files.items():
+    path = Path(name)
+    if path.name != name or path.is_absolute():
+        raise SystemExit(f"invalid pack manifest path: {name!r}")
+    actual = hashlib.sha256((root / path).read_bytes()).hexdigest()
+    if actual != expected:
+        raise SystemExit(f"pack hash mismatch: {name}")
+if manifest.get("bundle_sha256") != files.get("bundle.json"):
+    raise SystemExit("invalid pack manifest: bundle digest mismatch")
+print("Evidence pack file hashes: OK (manifest is unsigned)")
+'''
 
 
 def sha256_file(path: Path) -> str:
@@ -116,11 +163,11 @@ def certificate_html(bundle: dict, result: dict, label: str, created: str) -> st
 <ul>{error_items}</ul>
 <h2>Verify this yourself (offline)</h2>
 <p>Run <code>sh verify.sh</code> in this folder, or<br>
-<code>continuity-receipt-verify bundle.json</code> with any continuity-receipt implementation &ge; 0.3.3.</p>
+<code>continuity-receipt-verify bundle.json</code> with an implementation supporting this bundle's exact spec version.</p>
 <p class="note">A valid result proves integrity and authorship of the recorded
 claims — not that the claims are true; issuer honesty is out of scope by
-design. Check <code>manifest.json</code> to confirm the bundle bytes are the
-ones this certificate was generated from.</p>
+design. <code>verify.sh</code> checks pack file hashes before verification;
+the manifest is not signed.</p>
 </main></body></html>
 """
 
@@ -136,7 +183,21 @@ def main(argv=None) -> int:
     if not bundle_path.is_file():
         print(f"error: bundle not found: {bundle_path}", file=sys.stderr)
         return 2
-    bundle = json.loads(bundle_path.read_bytes())
+    try:
+        raw = bundle_path.read_bytes()
+        if len(raw) > MAX_BUNDLE_BYTES:
+            print(
+                f"error: bundle exceeds verifier input limit ({len(raw)} bytes > {MAX_BUNDLE_BYTES})",
+                file=sys.stderr,
+            )
+            return 2
+        bundle = strict_json_loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
+        print(f"error: malformed bundle JSON: {exc}", file=sys.stderr)
+        return 2
+    if not isinstance(bundle, dict):
+        print("error: malformed bundle JSON: top-level value must be an object", file=sys.stderr)
+        return 2
     result = verify_bundle(bundle).as_dict()
 
     out = Path(args.out) if args.out else bundle_path.with_suffix(bundle_path.suffix + ".pack")
@@ -144,15 +205,16 @@ def main(argv=None) -> int:
     created = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
     label = args.label or bundle_path.name
 
-    shutil.copyfile(bundle_path, out / "bundle.json")
+    (out / "bundle.json").write_bytes(raw)
     (out / "verify.sh").write_text(VERIFY_SH)
     (out / "verify.sh").chmod((out / "verify.sh").stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     (out / "README.txt").write_text(README)
+    (out / "verify_pack.py").write_text(PACK_VERIFIER)
     (out / "certificate.html").write_text(certificate_html(bundle, result, label, created))
 
     files = {
         name: sha256_file(out / name)
-        for name in ("bundle.json", "verify.sh", "README.txt", "certificate.html")
+        for name in ("bundle.json", "verify.sh", "README.txt", "verify_pack.py", "certificate.html")
     }
     manifest = {
         "kind": "continuity-receipt-evidence-pack/1",
@@ -160,9 +222,16 @@ def main(argv=None) -> int:
         "label": label,
         "bundle_sha256": files["bundle.json"],
         "verdict": result.get("verdict"),
+        "spec": bundle.get("spec"),
+        "verifier_requirement": (
+            "published Python/Rust 0.4.0 or compatible" if bundle.get("spec") in {
+                "continuity-receipt/0.1", "continuity-receipt/0.2",
+                "continuity-receipt/0.3", "continuity-receipt/0.4",
+            } else "development build explicitly supporting " + str(bundle.get("spec"))
+        ),
         "summary": result.get("summary"),
         "files": files,
-        "note": "verify with any continuity-receipt implementation >= 0.3.3; issuer honesty out of scope",
+        "note": "verify with an implementation supporting the bundle spec; manifest is unsigned; issuer honesty out of scope",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 

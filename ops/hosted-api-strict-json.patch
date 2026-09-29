@@ -1,0 +1,112 @@
+--- a/receipt-api.py
++++ b/receipt-api.py
+@@ -86,6 +86,21 @@
+ CORPUS: dict | None = None
+ 
+ 
++def _unique_json_members(pairs):
++    """Reject ambiguous object members before converting request JSON to dicts."""
++    result = {}
++    for key, value in pairs:
++        if key in result:
++            raise ValueError(f"duplicate JSON object member: {key!r}")
++        result[key] = value
++    return result
++
++
++def _request_json(raw: bytes):
++    """Accept UTF-8 JSON only, including at nested bundle input boundaries."""
++    return json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_json_members)
++
++
+ def signing_identity():
+     """Load (or lazily create) the service signing key; returns (did, private)."""
+     if SIGNING_KEY_PATH.exists():
+@@ -679,8 +694,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         if not isinstance(document, dict):
+@@ -792,8 +807,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         require_anchor = "require_anchor=1" in self.path
+@@ -862,8 +877,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         if not isinstance(document, dict):
+@@ -880,8 +895,8 @@
+                 self._send(400, {"error": f"bundle_bytes_b64 is not valid base64: {error}"})
+                 return
+             try:
+-                bundle = json.loads(bundle_bytes)
+-            except ValueError as error:
++                bundle = _request_json(bundle_bytes)
++            except (ValueError, RecursionError) as error:
+                 self._send(400, {"error": f"bundle_bytes_b64 is not JSON: {error}"})
+                 return
+         revocations = document.get("revocations") if isinstance(document.get("revocations"), list) else None
+@@ -894,8 +909,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         result = self._anchor_result(document)
+@@ -935,8 +950,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         if not isinstance(document, dict) or not isinstance(document.get("digest"), str):
+@@ -976,8 +991,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         if CORPUS is None:
+@@ -1004,8 +1019,8 @@
+         if raw is None:
+             return
+         try:
+-            document = json.loads(raw)
+-        except ValueError as error:
++            document = _request_json(raw)
++        except (ValueError, RecursionError) as error:
+             self._send(400, {"error": f"invalid JSON: {error}"})
+             return
+         if not isinstance(document, dict):

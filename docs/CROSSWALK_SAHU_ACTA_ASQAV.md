@@ -1,114 +1,87 @@
-# Crosswalk: continuity-receipt ↔ IETF agent-receipt work
+# Crosswalk: continuity-receipt and agent-receipt work
 
-**Status:** informational, 2026-09-28. Not normative; not an endorsement or
-adoption claim by any draft's authors. Drafts are works in progress and may
-change. Companion interop probe: `tools/interop_sahu_vectors.py` (passing).
+**Status:** informational, 2026-09-28. Not normative and not an endorsement
+or adoption claim by any draft's authors. Internet-Drafts may change. This
+mapping reads [ACTA -03](https://datatracker.ietf.org/doc/html/draft-farley-acta-signed-receipts-03),
+[asqav -09](https://datatracker.ietf.org/doc/html/draft-marques-asqav-compliance-receipts-09),
+and [WIMSE AIMS -00](https://datatracker.ietf.org/doc/html/draft-ietf-wimse-aims-00).
 
-## 1. Interop result (independent reproduction)
+## 1. Existing interoperability probes and their limits
 
-We reproduced `draft-sahu-agent-action-receipts-00` Appendix A with an
-independent implementation in this repository (probe run 2026-09-28):
+`tools/interop_sahu_vectors.py` independently reproduces
+`draft-sahu-agent-action-receipts-00` Appendix A (probe run 2026-09-28):
+the seed-derived public key, signatures, transmitted-octet `prev_hash`,
+canonical bytes, and tamper failure all match the published examples.
 
-- seed `01×32` derives the published public key — pass
-- Ed25519 verifies over their canonical bytes for vectors 1 and 2 — pass
-- SHA-256 of vector 1's serialized line equals vector 2's `prev_hash`
-  (`18a2a7…`) — pass (their chain link digests transmitted octets)
-- our canonical reconstruction is byte-identical to both published canonical
-  sequences — pass
-- tamper case (actor.user alice→mallory): signature rejected, chain link
-  broken — pass
+`tools/interop_acta_probe.py` reports 7/7 checks from 2026-09-28. It was
+written against ACTA -02 and asqav -07, not ACTA -03 or asqav -09. It checks a
+minimal `protectmcp:decision` envelope, `action_ref`, and an asqav
+commitment-mode link. Its result is evidence only for those pinned
+constructions and revisions; current-revision conformance has not been
+tested. Refresh fixtures and expected outputs before making a newer claim.
 
-ACTA probe (`tools/interop_acta_probe.py`, 2026-09-28 — 7/7 pass):
-independent sign/verify of a minimal `protectmcp:decision` envelope per
-`draft-farley-acta-signed-receipts-02` (JCS payload, EdDSA hex signature,
-`issuer_id == kid`), the §2.2 `action_ref` formula (deterministic under
-member reordering), and asqav §5.3 commitment-mode chain links
-(`previousReceiptHash = SHA-256(JCS(prev payload))`, recomputable and broken
-by tampering). Recorded honestly: the probe does not provide legal-entity
-`issuer_id`, mandatory RFC3161/OTS anchors, `policy_digest`, or retention
-floors — the compliance profile's remaining requirements.
-
-Meaning: their published bytes and procedures are reproducible by an outside
-implementation, including their non-JCS canonical order (sahu) and the JCS
-signing-input scope (ACTA/asqav). It does not mean either format can consume
-the other's objects (see §5).
-
-## 2. Field mapping — draft-sahu ↔ continuity-receipt
+## 2. Field mapping — sahu -00
 
 | sahu | continuity-receipt | note |
 |---|---|---|
-| `step_id` | receipt `id` | both are per-record identifiers |
-| `action_id` | receipt type / body type (e.g. `task.execution`, `delivery.attestation`) | theirs is flat and namespaced; ours is a typed record with per-type fields |
-| `params` | body fields (per type) | both bounded; ours is typed, theirs is free-form with sorting rules |
-| `success` | per-type outcome (e.g. execution outcome) | present where our record type defines it |
-| `ts_ms` | `issued_at` | format differs (ms epoch vs RFC 3339) |
-| `actor{agent,user}` | issuer (did:key/did:web) + 0.5 `gate_id`/authority labels | **gap:** we do not carry a user/principal field; see §4 |
-| `prev_hash` | `prev` | same concept; **different digest scope** — theirs: transmitted octets incl. signature; ours: JCS bytes excluding `sig` (their §6 vs our SPEC §4/§5) |
-| `public_key` | did:key resolution (`did:key:z6Mk…`) | theirs inlines raw base16; ours resolves identity documents |
-| `signature` | `sig` | both Ed25519; encoding differs (base16 vs base64url/JCS-signed bytes) |
-| (no equivalent) | `agreements` (offer/accept binding), `disclosures`, revocations, anchors, verification receipts | our chain-level semantics have no sahu counterpart |
+| `step_id` | receipt `id` | per-record identifiers |
+| `action_id` | receipt type / body type | their flat namespaced action versus our typed records |
+| `params` | body fields | different schemas and sorting rules |
+| `success` | per-type outcome | present where our record type defines it |
+| `ts_ms` | `issued_at` | milliseconds epoch versus RFC 3339 |
+| `actor{agent,user}` | issuer plus optional 0.5/0.6 assertion fields | CR does not establish a user/principal identity |
+| `prev_hash` | `prev` | different digest scopes and wire formats |
+| `public_key` | did:key resolution | inline base16 versus DID resolution |
+| `signature` | `sig` | both support Ed25519; encoding and signed bytes differ |
+| (no equivalent) | agreements, disclosures, revocations, anchors, verification receipts | CR-specific chain semantics |
 
-**Assessment:** sahu is a lean per-action log; CR is a per-task chain with
-agreement, disclosure, and verification semantics. Their canonicalization is
-deliberately not JCS and their chain binds signatures transitively at the
-octet level — a robust choice we do not need to adopt (our signing-input
-scope plus signature verification achieves the same end; see §5).
+The formats are not object-compatible. sahu links transmitted octets including
+the signature; CR links its specified canonical receipt view.
 
-## 3. Field mapping — ACTA / asqav compliance profile ↔ continuity-receipt
+## 3. Field mapping — ACTA -03 and asqav -09
 
-`draft-farley-acta-signed-receipts` + `draft-marques-asqav-compliance-receipts-07`:
-
-| ACTA/asqav | continuity-receipt | note |
+| ACTA/asqav concept | continuity-receipt | current assessment |
 |---|---|---|
-| `type` (`protectmcp:decision`…) | receipt type | vocabulary differs; theirs is decision-oriented |
-| `issued_at` | `issued_at` | alignment; asqav adds freshness window (reject >300s future) — adoptable check |
-| `issuer_id` (LEI/EIN/CIK/DID, = `kid`) | issuer did | **gap:** we do not bind a legal entity |
-| `payload_digest` (REQUIRED) | per-type content digests | we carry digests where the type defines them; asqav requires one always |
-| `action_ref` (REQUIRED) | receipt id / digest fields | join-key concept |
-| `sandbox_state` (enabled/disabled/unavailable) | 0.5 `sandbox_class` (bwrap/landlock/microvm-*/none) + `runner_profile` | **we are richer**; theirs is compliance-shaped, ours is claim-honest with digests |
-| `iteration_id` | task/session identifiers | alignment |
-| `previousReceiptHash` (JCS signing-input scope) | `prev` (JCS sans sig) | **same scope philosophy** — strong alignment |
-| `signature{alg,kid,sig}`, EdDSA/ES256/ML-DSA | Ed25519 only | algorithm agility is a gap (asqav lists ML-DSA-65) |
-| anchors REQUIRED (RFC3161 or OTS, 7-day OTS bound), `witness_policy` N-of-M | anchors optional; OTS recommended; hosted anchor store; OTS + RFC3161 already run nightly in our pipeline | **adopt:** status vocabulary, upgrade bound, quorum, anchor metadata |
-| retention floors per regime | not specified | gap (compliance work) |
-| Audit Pack (receipts + commitments + keys + anchor metadata + regime map) | bundles + verification receipts; no audit-pack export | **adopt:** pack export (plan C1) |
-| multi-jurisdiction bindings (EU AI Act 12/26, DORA 17, NIST, CO, TX, NYDFS, HIPAA, SEC 17a-4, CIRCIA) | none | gap (plan F2, gated on demand validation) |
-| capture topologies (SDK, proxy, browser, eBPF, MCP proxy, telemetry) | dispatch hook, MCP gateway, CLI | document ours in their vocabulary (plan D2) |
+| `type` / namespaced decision types | receipt type | vocabularies differ |
+| `issued_at` | `issued_at` | similar timestamp role; asqav distinguishes freshness, anchoring, and retention checks |
+| `issuer_id` bound to `kid` | issuer DID | CR does not bind a legal entity or external organization identity |
+| `payload_digest` and `action_ref` | per-type digests / receipt identifiers | no universal CR equivalent for every action-context construction |
+| `sandbox_state` | 0.5 sandbox class and runner profile | signed producer assertions do not prove sandbox operation |
+| `previousReceiptHash` | `prev` | both use canonical signing-input style, but digest construction and envelopes differ; no wire compatibility claim |
+| signature algorithm identifier | Ed25519 | ACTA -03 describes EdDSA and additional algorithms; CR remains Ed25519-only |
+| optional anchors; policy-selected required evidence axes | optional CR anchors | asqav -09 allows absent or empty `anchors`; absence is not valid evidence, and whether it blocks full verification depends on the selected profile and relying-party policy |
+| anchor upgrade bound | CR anchor workflow | asqav -09 sets a seven-day OTS bound when the selected policy requires the upgrade; it is not an unconditional requirement for every receipt |
+| evidence retention | no general CR retention policy | asqav -09 ties retention to applicable record-specific requirements; it rejects invented uniform numeric floors, including a generic five-year DORA default and six-year Texas deny-record floor |
+| audit pack, trust metadata, retained evidence | evidence-pack exporter | CR exporter now checks listed local pack hashes before verification; manifest is unsigned and does not provide the broader asqav audit-pack profile |
+| verification axes and policy-selected verdict | CR verdict | concepts overlap, but semantics and reporting models differ |
 
-## 4. Gaps we will close (mapped to the implementation plan)
+These drafts describe distinct projects. The table is a design comparison, not
+a claim that CR implements ACTA/asqav or satisfies a legal regime. In
+particular, absence of anchors may be acceptable under one relying-party policy
+and insufficient under another.
 
-1. **Authority/principal** (plan B1): optional signed authority block —
-   accountable entity (DID, optional LEI/EIN), mandate reference (scope,
-   constraints, expiry), review gate. Sourced honestly from Mandala
-   gate-lite passes; verifier checks shape/signature/reference-resolution
-   only. This closes the biggest semantic gap (ActionReceipt and asqav both).
-2. **Policy/action digests** (B1): require (where meaningful) `policy_ref`
-   and `action_ref` digests so a verifier can resolve the policy artefact.
-3. **Anchoring discipline** (B3): `anchored|pending|failed`, bounded upgrade
-   window, dual-anchor metadata, optional witness quorum; surface in
-   verification receipts.
-4. **Audit/Dispute Pack** (C1/C2): export receipts + chain commitments +
-   keys + anchor proofs + verifier output + human-readable certificate.
-5. **Compliance profile** (F2, gated): Art. 12/26 + DORA mapping, retention
-   notes — only after validation conversations.
+## 4. WIMSE AIMS -00 relationship
 
-## 5. Why we keep JCS and the signing-input chain scope
+[AIMS -00](https://datatracker.ietf.org/doc/html/draft-ietf-wimse-aims-00)
+frames agents as workloads and discusses stable workload identifiers,
+credentials bound to identifiers, credential provisioning, authentication,
+authorization, delegated user/system context, and monitoring/remediation. It
+recommends composing established WIMSE, SPIFFE, and OAuth mechanisms rather
+than defining a new agent-authentication protocol. CR can record signed
+assertions and event links, but does not provision workload credentials,
+authenticate an agent to a tool, decide authorization, or independently
+establish principal delegation. See `SPEC_0.6_DRAFT.md` for the narrower
+authority assertion and a proposed future consumer profile.
 
-sahu digests transmitted octets to avoid depending on canonicalization
-agreement; ACTA/asqav and CR both sign the JCS signing input. Our choice is
-deliberate: JCS is a published RFC with a conformance corpus we already
-exercise (40 frozen vectors), disclosure/redaction mutate the transmitted
-form of bodies without breaking signatures, and our chain scope matches
-asqav's — so chain-compatibility with the compliance profile is structural,
-while sahu's construction is verifiable but object-incompatible. The probes
-in §1 and the next one (ACTA envelope) are the evidence; we will not claim
-compatibility we have not tested.
+## 5. Open design and probe work
 
-## 6. Next probes
-
-- ~~**ACTA envelope probe**~~ — done 2026-09-28 (`tools/interop_acta_probe.py`,
-  7/7); remaining asqav field requirements documented above.
-- **sahu negative corpus:** add two negative probes (broken link,
-  unknown-signature) to the interop script.
-- Once B1 (authority) lands: re-run both probes plus an authority-aware
-  projection note (CR receipt → sahu/ACTA views, lossy fields documented).
+- Refresh `tools/interop_acta_probe.py` against exact ACTA -03 and asqav -09
+  inputs; preserve its current revision label and results as historical probe
+  evidence.
+- Add a WIMSE AIMS mapping only as documentation of identity/authentication/
+  authorization boundaries; do not imply CR substitutes for those systems.
+- Evaluate policy-selected anchor reporting and audit-pack completeness as
+  adoption needs arise. Do not add universal legal retention claims.
+- Continue testing actual byte constructions separately from semantic
+  compatibility; a matching signing primitive does not establish format
+  interoperability.
