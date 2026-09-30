@@ -9,6 +9,7 @@
 use std::process::ExitCode;
 
 use continuity_receipt::canon::canonical_bytes;
+use continuity_receipt::strict_json;
 use continuity_receipt::verification::{receipt_digest, verify_verification_receipt};
 use serde_json::{json, Value};
 
@@ -160,7 +161,7 @@ fn main() -> ExitCode {
 
 fn read_json(path: &str) -> Result<Value, String> {
     let text = std::fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?;
-    serde_json::from_str(&text).map_err(|error| format!("{path} is not valid JSON: {error}"))
+    strict_json::from_str(&text).map_err(|error| format!("{path} is not valid JSON: {error}"))
 }
 
 /// Local revocation document loader (mirrors `revocations.load_statements`).
@@ -170,7 +171,7 @@ fn load_revocations(path: &str) -> Result<Vec<Value>, &'static str> {
         return Err("revocations_too_large");
     }
     let text = std::fs::read_to_string(path).map_err(|_| "revocations_unreachable")?;
-    let document: Value = serde_json::from_str(&text).map_err(|_| "bad_revocations_document")?;
+    let document: Value = strict_json::from_str(&text).map_err(|_| "bad_revocations_document")?;
     let Some(object) = document.as_object() else {
         return Err("bad_revocations_document");
     };

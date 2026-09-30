@@ -15,13 +15,15 @@ use serde_json::{Map, Value};
 use crate::canon::{canonical_bytes, commit_field, sha256_prefixed, CanonError};
 use crate::didkey;
 
-pub const SUPPORTED_SPECS: [&str; 4] = [
+pub const SUPPORTED_SPECS: [&str; 6] = [
     "continuity-receipt/0.1",
     "continuity-receipt/0.2",
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
+    "continuity-receipt/0.5",
+    "continuity-receipt/0.6",
 ];
-pub const RECORD_TYPES: [&str; 9] = [
+pub const RECORD_TYPES: [&str; 11] = [
     "session.pass.created",
     "task.decision",
     "task.execution",
@@ -31,6 +33,8 @@ pub const RECORD_TYPES: [&str; 9] = [
     "authority.succession",
     "agreement.offer",
     "agreement.accept",
+    "state.commitment",
+    "authority.grant",
 ];
 
 const ANCHOR_TYPES: [&str; 3] = ["opentimestamps", "public-chain", "custom"];
@@ -75,9 +79,11 @@ const OFFER_FIELDS: [&str; 5] = ["offer_id", "offeree", "terms_hash", "valid_unt
 const ACCEPT_FIELDS: [&str; 3] = ["offer_ref", "offer_id", "terms_hash"];
 /// 0.4: the accept names the offeree (mirrors `REQUIRED_FIELDS_04`).
 const ACCEPT_FIELDS_04: [&str; 4] = ["offer_ref", "offer_id", "terms_hash", "offeree"];
+const COMMITMENT_FIELDS: [&str; 4] = ["state_kind", "scope", "count", "head_digest"];
+const AUTHORITY_FIELDS: [&str; 5] = ["grant_id", "principal", "agent", "scope", "granted_at"];
 
 fn required_fields(record_type: &str, spec: Option<&str>) -> Option<&'static [&'static str]> {
-    if spec == Some("continuity-receipt/0.4") && record_type == "agreement.accept" {
+    if matches!(spec, Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6")) && record_type == "agreement.accept" {
         return Some(&ACCEPT_FIELDS_04);
     }
     match record_type {
@@ -90,7 +96,81 @@ fn required_fields(record_type: &str, spec: Option<&str>) -> Option<&'static [&'
         "authority.succession" => Some(&SUCCESSION_FIELDS),
         "agreement.offer" => Some(&OFFER_FIELDS),
         "agreement.accept" => Some(&ACCEPT_FIELDS),
+        "state.commitment" if matches!(spec, Some("continuity-receipt/0.5" | "continuity-receipt/0.6")) => Some(&COMMITMENT_FIELDS),
+        "authority.grant" if spec == Some("continuity-receipt/0.6") => Some(&AUTHORITY_FIELDS),
         _ => None,
+    }
+}
+
+fn prefixed_hex(value: Option<&Value>, prefix: &str) -> bool {
+    value.and_then(Value::as_str).is_some_and(|text| {
+        text.strip_prefix(prefix).is_some_and(|hex| {
+            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        })
+    })
+}
+
+fn check_05_body(
+    result: &mut VerifyResult,
+    record_type: &str,
+    body: &Map<String, Value>,
+    receipt_id: Option<&Value>,
+) {
+    let mut bad = Vec::new();
+    match record_type {
+        "session.pass.created" => {
+            if !matches!(body.get("mandala_class").and_then(Value::as_str), Some("gate-lite" | "gate-hard" | "local")) {
+                bad.push("mandala_class must be gate-lite, gate-hard, or local");
+            }
+        }
+        "task.execution" => {
+            if !matches!(body.get("sandbox_class").and_then(Value::as_str), Some("bwrap" | "landlock" | "bwrap-landlock" | "microvm-ch" | "microvm-fc" | "none")) {
+                bad.push("sandbox_class is unknown");
+            }
+            let profile = body.get("runner_profile");
+            if body.get("sandbox_class").and_then(Value::as_str) == Some("bwrap") && profile.is_none() {
+                bad.push("bwrap execution requires runner_profile");
+            }
+            if let Some(profile) = profile {
+                let valid_digest = |value: Option<&str>| {
+                    value.is_some_and(|digest| {
+                        digest.strip_prefix("sha256:").is_some_and(|hex| {
+                            hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                        })
+                    })
+                };
+                let valid = profile.as_object().is_some_and(|object| {
+                    object.len() == 3
+                        && object.get("profile_id").and_then(Value::as_str).is_some_and(|id| !id.is_empty())
+                        && valid_digest(object.get("executable_digest").and_then(Value::as_str))
+                        && valid_digest(object.get("invocation_digest").and_then(Value::as_str))
+                });
+                if !valid {
+                    bad.push("runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest");
+                }
+            }
+        }
+        "state.commitment" => {
+            if !body.get("state_kind").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
+                bad.push("state_kind must be nonempty text");
+            }
+            if !body.get("scope").and_then(Value::as_str).is_some_and(|text| !text.is_empty()) {
+                bad.push("scope must be nonempty text");
+            }
+            if !body.get("count").and_then(Value::as_u64).is_some_and(|count| count <= 9_007_199_254_740_991) {
+                bad.push("count must be an exact JSON integer from 0 through 2^53-1");
+            }
+            if !prefixed_hex(body.get("head_digest"), "sha256:") {
+                bad.push("head_digest must be a sha256 digest");
+            }
+            if body.get("merkle_root").is_some_and(|root| !root.is_null()) && !prefixed_hex(body.get("merkle_root"), "merkle-sha256:") {
+                bad.push("merkle_root must be a merkle-sha256 digest");
+            }
+        }
+        _ => {}
+    }
+    for detail in bad {
+        fatal(result, "malformed", detail, receipt_id);
     }
 }
 
@@ -187,6 +267,112 @@ impl VerifyResult {
         let mut result = Self::default();
         fatal(&mut result, code, detail.into(), None);
         result
+    }
+}
+
+fn check_06_body(
+    result: &mut VerifyResult,
+    record_type: &str,
+    body: &Map<String, Value>,
+    receipt_id: Option<&Value>,
+) {
+    if record_type != "authority.grant" {
+        return;
+    }
+    if body.get("grant_id").and_then(Value::as_str).map_or(true, str::is_empty) {
+        fatal(result, "malformed", "grant_id must be nonempty text".to_string(), receipt_id);
+    }
+    let principal_ok = body
+        .get("principal")
+        .and_then(Value::as_object)
+        .is_some_and(|principal| {
+            principal
+                .get("id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| !id.is_empty())
+                && matches!(
+                    principal.get("assurance").and_then(Value::as_str),
+                    Some("self_asserted" | "issuer_verified")
+                )
+        });
+    if !principal_ok {
+        fatal(
+            result,
+            "malformed",
+            "principal must name an id and an assurance of self_asserted or issuer_verified".to_string(),
+            receipt_id,
+        );
+    }
+    if body.get("agent").and_then(Value::as_str).map_or(true, str::is_empty) {
+        fatal(result, "malformed", "agent must be a nonempty identifier".to_string(), receipt_id);
+    }
+    let scope_ok = body.get("scope").and_then(Value::as_array).is_some_and(|items| {
+        !items.is_empty()
+            && items
+                .iter()
+                .all(|item| item.as_str().is_some_and(|text| !text.is_empty()))
+    });
+    if !scope_ok {
+        fatal(
+            result,
+            "malformed",
+            "scope must be a nonempty list of nonempty strings".to_string(),
+            receipt_id,
+        );
+    }
+    if !validate_timestamp(body.get("granted_at")) {
+        fatal(
+            result,
+            "malformed",
+            "granted_at must be an RFC 3339 UTC timestamp".to_string(),
+            receipt_id,
+        );
+    }
+    if let Some(expires) = body.get("expires_at").filter(|value| !value.is_null()) {
+        if !validate_timestamp(Some(expires)) {
+            fatal(
+                result,
+                "malformed",
+                "expires_at must be an RFC 3339 UTC timestamp".to_string(),
+                receipt_id,
+            );
+        } else if let (Some(granted), Some(expires_at)) = (
+            body.get("granted_at").and_then(Value::as_str).and_then(parse_timestamp),
+            expires.as_str().and_then(parse_timestamp),
+        ) {
+            if expires_at <= granted {
+                fatal(result, "malformed", "expires_at must follow granted_at".to_string(), receipt_id);
+            }
+        }
+    }
+    if body
+        .get("review_policy")
+        .filter(|value| !value.is_null())
+        .is_some_and(|value| !matches!(value.as_str(), Some("none" | "flagged" | "full")))
+    {
+        fatal(
+            result,
+            "malformed",
+            "review_policy must be none, flagged, or full".to_string(),
+            receipt_id,
+        );
+    }
+    if body
+        .get("constraints")
+        .filter(|value| !value.is_null())
+        .is_some_and(|value| !value.is_object())
+    {
+        fatal(result, "malformed", "constraints must be an object".to_string(), receipt_id);
+    }
+    if body
+        .get("policy_ref")
+        .filter(|value| !value.is_null())
+        .is_some_and(|value| !prefixed_hex(Some(value), "sha256:"))
+    {
+        fatal(result, "malformed", "policy_ref must be a sha256 digest".to_string(), receipt_id);
+    }
+    if body.get("gate_ref").and_then(Value::as_str).is_some_and(str::is_empty) {
+        fatal(result, "malformed", "gate_ref must be nonempty text".to_string(), receipt_id);
     }
 }
 
@@ -366,7 +552,8 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
         }
 
         let record_type = record.get("type").and_then(Value::as_str);
-        let Some(record_type) = record_type.filter(|name| RECORD_TYPES.contains(name)) else {
+        let spec_of = record.get("spec").and_then(Value::as_str);
+        let Some(record_type) = record_type.filter(|name| RECORD_TYPES.contains(name) && (*name != "state.commitment" || matches!(spec_of, Some("continuity-receipt/0.5" | "continuity-receipt/0.6"))) && (*name != "authority.grant" || spec_of == Some("continuity-receipt/0.6"))) else {
             fatal(
                 &mut result,
                 "unknown_type",
@@ -399,6 +586,12 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
                 format!("missing body fields [{listed}]"),
                 receipt_id,
             );
+        }
+        if matches!(record.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.5" | "continuity-receipt/0.6")) {
+            check_05_body(&mut result, record_type, body, receipt_id);
+        }
+        if record.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.6") {
+            check_06_body(&mut result, record_type, body, receipt_id);
         }
 
         if !validate_timestamp(record.get("issued_at")) {
@@ -499,6 +692,7 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
 
     check_cross_record(&mut result, receipts, &type_by_seq);
     check_agreements(&mut result, receipts);
+    check_authority(&mut result, receipts);
     check_redactions(
         &mut result,
         receipts,
@@ -705,7 +899,7 @@ fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
         if !BOUND_TYPES.contains(&record_type) {
             continue;
         }
-        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+        if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6")) {
             continue;
         }
         let Some(body) = receipt.get("body").and_then(Value::as_object) else {
@@ -773,6 +967,138 @@ fn check_agreements(result: &mut VerifyResult, receipts: &[Value]) {
 }
 
 /// 0.3 offer resolution plus the 0.4 offeree and chronology rules.
+fn check_authority(result: &mut VerifyResult, receipts: &[Value]) {
+    let mut grants: BTreeMap<String, &Map<String, Value>> = BTreeMap::new();
+    for receipt in receipts.iter().filter_map(Value::as_object) {
+        if receipt.get("type").and_then(Value::as_str) != Some("authority.grant") {
+            continue;
+        }
+        if let Ok(digest) = receipt_digest(receipt) {
+            grants.insert(digest, receipt);
+        }
+    }
+
+    let mut referenced: BTreeSet<String> = BTreeSet::new();
+    for receipt in receipts.iter().filter_map(Value::as_object) {
+        let Some(record_type) = receipt.get("type").and_then(Value::as_str) else {
+            continue;
+        };
+        if !BOUND_TYPES.contains(&record_type) {
+            continue;
+        }
+        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.6") {
+            continue;
+        }
+        let Some(body) = receipt.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        let Some(reference) = body.get("authority_ref").filter(|value| !value.is_null()) else {
+            continue;
+        };
+        let grant = reference.as_str().and_then(|reference| grants.get(reference));
+        let Some(grant) = grant else {
+            result.insufficient_reasons.push(format!(
+                "missing_authority:{}",
+                receipt
+                    .get("receipt_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+            ));
+            continue;
+        };
+        referenced.insert(reference.as_str().unwrap_or("").to_string());
+        let Some(grant_body) = grant.get("body").and_then(Value::as_object) else {
+            continue;
+        };
+        // authority is effective from the later of granted_at and the grant
+        // receipt's own issued_at
+        let grant_issued = grant
+            .get("issued_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let granted_at = grant_body
+            .get("granted_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let effective = match (grant_issued, granted_at) {
+            (Some(issued), Some(granted)) => Some(if granted > issued { granted } else { issued }),
+            (issued, granted) => issued.or(granted),
+        };
+        let bound_issued = receipt
+            .get("issued_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        if let (Some(effective), Some(bound_at)) = (effective, bound_issued) {
+            if bound_at < effective {
+                fatal(
+                    result,
+                    "authority_before_grant",
+                    format!(
+                        "bound receipt issued before its authority grant {}",
+                        py_repr(grant.get("receipt_id"))
+                    ),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
+        let issuer_id = receipt
+            .get("issuer")
+            .and_then(Value::as_object)
+            .and_then(|issuer| issuer.get("id"))
+            .and_then(Value::as_str);
+        if let (Some(issuer_id), Some(agent)) =
+            (issuer_id, grant_body.get("agent").and_then(Value::as_str))
+        {
+            if issuer_id != agent {
+                fatal(
+                    result,
+                    "authority_agent_mismatch",
+                    format!(
+                        "bound receipt issuer {} is not the grant's agent",
+                        py_repr(
+                            receipt
+                                .get("issuer")
+                                .and_then(Value::as_object)
+                                .and_then(|issuer| issuer.get("id"))
+                        )
+                    ),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
+        let expires = grant_body
+            .get("expires_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let bound_again = receipt
+            .get("issued_at")
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        if let (Some(expires_at), Some(bound_at)) = (expires, bound_again) {
+            if bound_at > expires_at {
+                fatal(
+                    result,
+                    "authority_expired",
+                    format!(
+                        "bound receipt issued after the authority window {}",
+                        py_repr(grant_body.get("expires_at"))
+                    ),
+                    receipt.get("receipt_id"),
+                );
+            }
+        }
+    }
+
+    for (digest, grant) in grants.iter() {
+        if !referenced.contains(digest) {
+            result.provisional_reasons.push(format!(
+                "authority_unreferenced:{}",
+                grant.get("receipt_id").and_then(Value::as_str).unwrap_or("")
+            ));
+        }
+    }
+}
+
 fn check_accept(
     result: &mut VerifyResult,
     receipt: &Map<String, Value>,
@@ -840,7 +1166,7 @@ fn check_accept(
             );
         }
     }
-    if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+    if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6")) {
         return;
     }
     let offeree = body.get("offeree").and_then(Value::as_str);
@@ -895,7 +1221,7 @@ fn check_agreement_completeness(
     referenced: &BTreeSet<String>,
 ) {
     for (digest, accept) in accepts {
-        if accept.get("spec").and_then(Value::as_str) == Some("continuity-receipt/0.4")
+        if matches!(accept.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6"))
             && !referenced.contains(digest)
         {
             result.provisional_reasons.push(format!(
@@ -908,7 +1234,7 @@ fn check_agreement_completeness(
         }
     }
     for receipt in receipts.iter().filter_map(Value::as_object) {
-        if receipt.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+        if !matches!(receipt.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6")) {
             continue;
         }
         let Some(record_type) = receipt.get("type").and_then(Value::as_str) else {
@@ -940,7 +1266,7 @@ fn check_agreement_completeness(
             continue;
         };
         for accept in accepts.values() {
-            if accept.get("spec").and_then(Value::as_str) != Some("continuity-receipt/0.4") {
+            if !matches!(accept.get("spec").and_then(Value::as_str), Some("continuity-receipt/0.4" | "continuity-receipt/0.5" | "continuity-receipt/0.6")) {
                 continue;
             }
             let Some(accept_body) = accept.get("body").and_then(Value::as_object) else {

@@ -11,6 +11,7 @@ pub mod anchor;
 pub mod canon;
 pub mod didkey;
 pub mod disclose;
+pub mod strict_json;
 pub mod verification;
 pub mod verify;
 

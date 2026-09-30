@@ -6,6 +6,7 @@ vectors/manifest.json. Requires the Rust binary:
     cargo build --manifest-path rust/Cargo.toml
 """
 import json
+import argparse
 import os
 import subprocess
 import sys
@@ -32,12 +33,15 @@ def signature(proc: subprocess.CompletedProcess) -> tuple:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Compare Python and Rust over a vector manifest")
+    parser.add_argument("--manifest", type=Path, default=MANIFEST)
+    args = parser.parse_args()
     if not RUST_BIN.exists():
         print(f"rust binary missing: {RUST_BIN}", file=sys.stderr)
         print("build it with: cargo build --manifest-path rust/Cargo.toml", file=sys.stderr)
         return 2
 
-    entries = json.loads(MANIFEST.read_text(encoding="utf-8"))["vectors"]
+    entries = json.loads(args.manifest.read_text(encoding="utf-8"))["vectors"]
     mismatches = 0
     for entry in entries:
         bundle = ROOT / "vectors" / entry["file"]

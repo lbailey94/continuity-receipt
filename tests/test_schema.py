@@ -15,11 +15,15 @@ except ImportError:  # pragma: no cover - CI installs jsonschema
 VECTORS = ROOT / "vectors"
 SCHEMA_DIR = ROOT / "schema"
 MANIFEST = json.loads((VECTORS / "manifest.json").read_text(encoding="utf-8"))
+MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.5.json").read_text(encoding="utf-8"))["vectors"]
+MANIFEST["vectors"] += json.loads((VECTORS / "manifest-0.6.json").read_text(encoding="utf-8"))["vectors"]
 SCHEMA_FOR_SPEC = {
     "continuity-receipt/0.1": "continuity-receipt-0.2.schema.json",
     "continuity-receipt/0.2": "continuity-receipt-0.2.schema.json",
     "continuity-receipt/0.3": "continuity-receipt-0.3.schema.json",
     "continuity-receipt/0.4": "continuity-receipt-0.4.schema.json",
+    "continuity-receipt/0.5": "continuity-receipt-0.5.schema.json",
+    "continuity-receipt/0.6": "continuity-receipt-0.6.schema.json",
 }
 
 
@@ -55,6 +59,18 @@ class TestSchema(unittest.TestCase):
             bundle = json.loads((VECTORS / entry["file"]).read_text(encoding="utf-8"))
             validator = validator_for(bundle)
             self.assertTrue(list(validator.iter_errors(bundle)), f"{entry['file']} should fail schema")
+
+    @unittest.skipIf(jsonschema is None, "jsonschema not installed")
+    def test_bwrap_profile_requirement_is_scoped_to_spec_05(self):
+        bundle = json.loads((VECTORS / "02_happy_full.json").read_text(encoding="utf-8"))
+        bundle["spec"] = "continuity-receipt/0.4"
+        for receipt in bundle["receipts"]:
+            receipt["spec"] = "continuity-receipt/0.4"
+            if receipt.get("type") == "task.execution":
+                receipt["body"]["sandbox_class"] = "bwrap"
+                receipt["body"].pop("runner_profile", None)
+        validator = validator_for(bundle)
+        self.assertEqual(list(validator.iter_errors(bundle)), [])
 
 
 if __name__ == "__main__":

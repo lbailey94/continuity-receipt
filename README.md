@@ -6,20 +6,27 @@
 remain supported (open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
+**Checkout development:** [SPEC_0.5_DRAFT.md](SPEC_0.5_DRAFT.md) describes an
+unpublished candidate for local execution and state commitments;
+[SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
+candidate (`authority.grant`) on top. The
+published packages and hosted verifier remain at 0.4.0; use signed tag
+`v0.4.0` for the frozen release surface.
+
 **Version matrix** — the spec and the two implementations version
 independently:
 
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
-| Python reference + CLIs | **0.4.0** (PyPI, 2026-09-24) | `pip install continuity-receipt` |
-| Rust verifier + CLIs | **0.4.0** (crates.io, 2026-09-24) | `cargo install continuity-receipt` |
+| Python reference + CLIs | **0.4.1** published; 0.5.0a0 / 0.6.0a0 checkout candidates | `pip install continuity-receipt==0.4.1` |
+| Rust verifier + CLIs | **0.4.0** published; 0.5.0 / 0.6.0-alpha checkout candidates | `cargo install continuity-receipt --version 0.4.0` |
 
-The install commands resolve to the latest published release (0.4.0).
+The pinned install commands resolve to the published release (0.4.1 on PyPI).
 
 Both implementations support spec 0.4 (the offer/accept binding carried
 through the chain) with identical verdicts and codes over the full vector set.
-Verify the version you have with `continuity-receipt-verify --help` (Python or
+Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python or
 Rust).
 
 A Continuity Receipt is a signed, hash-chained record of one governed task:
@@ -42,7 +49,11 @@ SPEC.md                    the v0.4 specification (normative; 0.1-0.3 supported)
 VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
-REVIEW_BRIEF.md            independent review scope (open invitation)
+ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 candidate example
+REVIEW_BRIEF.md            frozen v0.4 independent-review scope
+REVIEW_BRIEF_05.md         prepared v0.5 candidate review brief (external report pending)
+REVIEW_NOTES_05.md         candidate self-review, findings and open release gates
+INTEGRATION_READINESS.md    exact-candidate gate for producer and verifier integration
 REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not
@@ -53,6 +64,8 @@ ROADMAP.md                 what lands in 0.4 and beyond, and the selection rule
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
 vectors/                   40 bundle vectors + 21 verification-receipt vectors
+vectors/manifest-0.5.json  separate, unpublished candidate corpus
+vectors/manifest-0.6.json  authority candidate corpus (additive over 0.5)
 tools/make_vectors.py      regenerates the vectors (fresh ids/timestamps; published fixtures stay frozen)
 tools/hostile_input_probe.py  malformed-input corpus, structured outcomes + parity
 tests/                     conformance suite (vectors, schema, primitives)
@@ -61,10 +74,12 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.4.0) — clone the repo for the vectors
+# from PyPI (0.4.1) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt
-continuity-receipt-verify vectors/02_happy_full.json   # TRUSTED
+pip install continuity-receipt==0.4.1
+continuity-verify vectors/02_happy_full.json            # TRUSTED
+continuity-consumer vectors/02_happy_full.json --profile conservative # ACCEPT
+continuity-receipt-verify vectors/02_happy_full.json    # compat alias
 continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
 continuity-receipt-verify-receipt vectors/verification/01_valid.json \
   --bundle vectors/verification/bundle.json
@@ -77,6 +92,27 @@ python3 -m continuity_receipt.verify vectors/02_happy_full.json
 # run the conformance suite (vectors + schema + primitives)
 python3 -m unittest discover -s tests -v
 ```
+
+## ERC-8004 Validation (On-Chain Agent Trust on Base)
+
+Any governed task bundle can be validated against ERC-8004 validation standards via the live WhiteMagic trust oracle at `api.whitemagic.dev`:
+
+```bash
+# Validate bundle and receive an EIP-712 typed oracle attestation for Base smart contracts
+curl -s -X POST https://api.whitemagic.dev/erc8004/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Payment-Tx: <tx_hash_or_cdp_envelope>" \
+  -d '{
+    "task_id": "task_2026_0929_alpha",
+    "task_type": "governed_task_bundle",
+    "task_hash": "sha256:...",
+    "bundle": { ... }
+  }'
+```
+
+- **Verdict → Decision:** Bundles with `TRUSTED` verdict emit `{"decision": "ACCEPT", "attestation": { "domain": { "chainId": 8453, ... }, "types": { ... }, "message": { ... }, "signature": "0x..." }}`.
+- **Oracle Signer:** Signed by WhiteMagic trusted validator (`did:key:z6MkmKSa...` / `0x915Ff24dE2882f0EaA728bFE1e80953a99e3a6a1`).
+- **x402 Micropayments:** Gated via HTTP 402 challenge ($0.01 USDC on Base to `0x213b6bB4B32c5f9F7e8d7950E6A02187f59d5757`).
 
 ## Test vectors
 
@@ -106,7 +142,7 @@ receipt valid), unknown member. Schema:
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, release candidate) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (release candidate) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, published) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (published) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 40 bundle vectors and CI diffs it against the Python reference

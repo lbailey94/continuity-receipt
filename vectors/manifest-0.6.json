@@ -1,0 +1,85 @@
+{
+  "spec": "continuity-receipt/0.6",
+  "vectors": [
+    {
+      "file": "24_authority_grant.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 authority grant referenced by decision and execution",
+      "schema_valid": true
+    },
+    {
+      "file": "24b_missing_authority.json",
+      "expected_verdict": "INSUFFICIENT_EVIDENCE",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 keeps a missing authority reference insufficient, not fatal",
+      "schema_valid": true
+    },
+    {
+      "file": "24c_authority_before_grant.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_before_grant",
+      "require_anchor": false,
+      "note": "0.6 refuses a bound receipt issued before its authority grant",
+      "schema_valid": true
+    },
+    {
+      "file": "24d_authority_expired.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_expired",
+      "require_anchor": false,
+      "note": "0.6 refuses a bound receipt issued after the authority window",
+      "schema_valid": true
+    },
+    {
+      "file": "24e_authority_agent_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_agent_mismatch",
+      "require_anchor": false,
+      "note": "0.6 requires the grant's agent to sign the bound receipt",
+      "schema_valid": true
+    },
+    {
+      "file": "24f_authority_unreferenced.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 marks a grant nothing references provisional, not trusted",
+      "schema_valid": true
+    },
+    {
+      "file": "24g_legacy_authority_type.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "unknown_type",
+      "require_anchor": false,
+      "note": "0.5 records cannot use the new authority.grant type",
+      "schema_valid": false
+    },
+    {
+      "file": "24h_bad_review_policy.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an unknown review_policy value",
+      "schema_valid": false
+    },
+    {
+      "file": "24i_bad_principal_assurance.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an unknown principal assurance value",
+      "schema_valid": false
+    },
+    {
+      "file": "24j_empty_scope.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an empty authority scope list",
+      "schema_valid": false
+    }
+  ]
+}

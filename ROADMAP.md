@@ -1,5 +1,37 @@
 # Roadmap
 
+## 0.6 development candidate (unpublished)
+
+- [x] `authority.grant` shape and `authority_ref` binding implemented in both
+  verifiers, schema 0.6, and a separate candidate vector corpus (24–24j).
+  Verifier rules are shape/signature/reference only; identity, scope, and
+  policy enforcement are explicitly out of scope.
+- [ ] `review.record` shape and `review_policy` enforcement design.
+- [ ] External review of the 0.5 + 0.6 stack, then freeze/publish (the 0.5
+  gate below stays authoritative).
+
+## 0.5 development candidate (unpublished)
+
+- [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,
+  legacy/combined `bwrap-landlock`, and honest unconfined `none`) implemented
+  in both verifiers, schema 0.5, and separate signed candidate vectors. Values
+  validate issuer claims only and do not prove runtime confinement.
+- [x] State commitment shape implemented with explicit validation and
+  non-verification limits (see `SPEC_0.5_DRAFT.md`). The WhiteMagic karma-head
+  bundle supplies the initial captured use case; vector 22 is modeled.
+- [x] Adopter guide and file-snapshot producer example distinguish verification,
+  local issuance, runtime capture, and independent corroboration.
+- [x] Capture a second producer use case — MandalaOS gate-lite emits
+  `state.commitment` after `task.execution` (`codex/gate-lite-05-profile`
+  `cb0f721`; example `examples/02_gate_lite_state_commitment`). Same-host
+  capture on the unpublished candidate; independent adoption remains open.
+- [x] Resolve the candidate design questions D1–D4 (2026-09-28; vectors 22r,
+  22s; `REVIEW_NOTES_05.md` §Design resolves).
+- [ ] Obtain adversarial review (internal review receipt filed 2026-09-28;
+  external review pending), then freeze/publish a 0.5 release. The hosted
+  referee and published 0.4.0 packages are unchanged.
+
+
 **Current release:** spec `continuity-receipt/0.4` (2026-09-24; Python tooling
 0.4.0 on PyPI, Rust crate 0.4.0 on crates.io). Spec `0.1`–`0.3` remain
 supported.
@@ -132,6 +164,7 @@ distribution design, 3) remaining Rust completion + crates.io publication.
 
 ## 0.4+ / open questions
 
+- Delegation / representation-session profile candidate — design input captured in `DESIGN_NOTE_REPRESENTATION_SESSION.md` (from Pass 19, 2026-09-26); demand-gated: reuse `agreement.offer`/`agreement.accept` and mandate_ref binding if an adopter appears.
 - Selective disclosure beyond per-field salts (evaluate; do not adopt by default — simplicity is a feature).
 - Formal specification of canonicalization + verification (small enough to verify mechanically).
 - Interop profiles with SAIHM and memorywire once their normative text stabilizes; adapter implementations.

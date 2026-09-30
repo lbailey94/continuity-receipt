@@ -1,6 +1,7 @@
 """Continuity Receipt reference implementation.
 
-Spec: SPEC.md (continuity-receipt/0.4; 0.1-0.3 remain supported)
+Published spec: SPEC.md (continuity-receipt/0.4).
+Checkout candidate: SPEC_0.5_DRAFT.md (0.1-0.5 supported here).
 Verification receipts (companion): VERIFICATION_RECEIPTS.md
 """
 
@@ -21,7 +22,7 @@ from .verification import (
 )
 from .verify import VerifyResult, verify_bundle
 
-SPEC_ID = "continuity-receipt/0.4"
+SPEC_ID = "continuity-receipt/0.5"
 
 __all__ = [
     "SPEC_ID",

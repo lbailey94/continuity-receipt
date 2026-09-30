@@ -1,0 +1,29 @@
+{
+  "title": "Scoreboard #1: Cross-Generation Continuity Verification",
+  "date": "2026-09-24",
+  "spec_version": "continuity-receipt/0.2",
+  "implementations": {
+    "gen2": {
+      "system": "WhiteMagic Gen2 (WMv9)",
+      "release": "v9.2.8",
+      "commit": "3cfc595",
+      "crate": "wm-receipts",
+      "bundle_type": "captured governed_dispatch_bundle (Mandala pass)",
+      "verdict": "TRUSTED"
+    },
+    "gen3": {
+      "system": "WhiteMagic Gen3 (WMgen3)",
+      "release": "v10.0.0-alpha",
+      "charter": "v0.1.1 (Gate 9A closed)",
+      "crate": "wm-gen3-core",
+      "bundle_type": "modeled compatibility fixture; not runtime-emitted",
+      "verdict": "TRUSTED"
+    }
+  },
+  "verifier": {
+    "name": "continuity-receipt standalone reference verifier",
+    "version": "0.4.0",
+    "python_package": "continuity-receipt==0.4.0",
+    "rust_crate": "continuity-receipt = 0.4.0"
+  }
+}
