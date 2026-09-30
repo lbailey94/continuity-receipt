@@ -1,13 +1,13 @@
 # Adoption and evidence guide
 
-## 1. Verify an existing bundle (published 0.4)
+## 1. Verify an existing bundle (published 0.5)
 
 Clone this repository for the frozen vectors, or install the published package. Pin the implementation if results will be cited:
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-pip install continuity-receipt==0.4.0
+pip install continuity-receipt==0.5.0
 continuity-receipt-verify vectors/02_happy_full.json
 ```
 
@@ -54,4 +54,16 @@ A locally developed cross-generation example contains one captured WhiteMagic Ge
 
 ## 4. Conformance and version boundaries
 
-Published spec 0.4 has 40 bundle vectors in vectors/manifest.json and 21 verification-receipt vectors. The separate vectors/manifest-0.5.json is the unpublished candidate corpus. The public hosted conformance referee is pinned to the 0.4 corpus; do not submit the 0.5 vectors as though the service supports them. See SPEC_0.5_DRAFT.md and CONFORMANCE_TABLE.md for the candidate rules and their limits.
+Published spec 0.5 ships in package 0.5.0. Its 21 bundle vectors are in
+`vectors/manifest-0.5.json`. Published 0.4 retains the frozen 40-vector bundle
+corpus in `vectors/manifest.json` and 21 verification-receipt vectors.
+
+The 0.5.0 Python and Rust packages also contain experimental verifier behavior
+for draft spec 0.6 and its 10-vector corpus (`vectors/manifest-0.6.json`),
+which is present in the signed `v0.5.0` source tag. There is no standalone
+normative 0.6 release. The offline Python consumer policy assessment supports
+receipt specs 0.1–0.4 only. The hosted information endpoint advertises its
+conformance corpus separately from its verifier's reported version support;
+see [the capability matrix](docs/CAPABILITY_MATRIX.md) for dated observations
+and limits. An unauthenticated information response does not establish
+authenticated public request behavior.

@@ -1,181 +1,178 @@
-# Crosswalk & Triage: AER-1 · AADP bound permits · SCITT Continuity Receipts
+# Crosswalk and triage: AER-1, AADP bound permits, and SCITT Continuity Receipts
 
-**Status:** informational triage, 2026-09-30. Not normative; not an endorsement
-or adoption claim by any draft's authors. Internet-Drafts may change. Companion
-to `CROSSWALK_SAHU_ACTA_ASQAV.md`.
+**Status:** informational, checked 2026-09-30. This is a local comparison of
+working drafts and repository evidence. It is not normative, an endorsement,
+an adoption statement, or evidence of author or group agreement. Internet-
+Drafts can change. Companion: `CROSSWALK_SAHU_ACTA_ASQAV.md`.
 
-**Follow-ups implemented 2026-09-30:** live AER-1 probe
-(`tools/interop_aer1_probe.py`), 0.6 candidate note
-(`docs/DESIGN_NOTE_EXTERNAL_EVIDENCE_REFS.md`), README naming guard, and the
-W3C CG brief (`docs/W3C_AGENT_IDENTITY_CG_BRIEF_2026-10-06.md`).
-
-Reads: [AER-1 -04](https://datatracker.ietf.org/doc/html/draft-zambo-aer1-04)
-(Zambo, Independent/Informational, 2026-09-29) ·
+**Drafts checked:** [AER-1 -05](https://datatracker.ietf.org/doc/html/draft-zambo-aer1-05)
+(Independent, intended Informational; dated 2026-09-30);
 [AADP bound permits -00](https://datatracker.ietf.org/doc/html/draft-saha-aadp-bound-permit-00)
-(Saha, Independent/Standards Track, 2026-09-29) ·
-[SCITT Continuity Receipts -01](https://datatracker.ietf.org/doc/html/draft-nikolaichuk-scitt-continuity-receipts-01)
-(Nikolaichuk, Independent/Informational, 2026-09-29). Full texts read, not
-titles; disposition before the W3C Agent Identity CG call (2026-10-06).
+(individual Internet-Draft, intended Standards Track; dated 2026-09-29),
+read with its base [AADP -04](https://datatracker.ietf.org/doc/html/draft-saha-aadp-04);
+and [SCITT Continuity Receipts -01](https://datatracker.ietf.org/doc/html/draft-nikolaichuk-scitt-continuity-receipts-01)
+(individual Informational Internet-Draft, dated 2026-09-29). These are work in
+progress, not IETF standards. SCITT's registration API is separately described
+in [SCRAPI -05](https://datatracker.ietf.org/doc/html/draft-ietf-scitt-scrapi-05).
 
-## 1. Verdict table
+## 1. Short comparison
 
-| draft | family | what it actually is | relation to continuity-receipt | disposition |
-|---|---|---|---|---|
-| AER-1 -04 | execution receipt | one tool call, portable, public URL, SHA-256 output commitment, provenance classes, job chains, workflow (Merkle) receipts | sibling at finer granularity; evidence source for our chain; explicitly leaves decision/authority/settlement to other specs | **compose + probe** (live probe below) |
-| AADP bound permit -00 | authority / permit | PDP-signed permit bound to one recipient, presenter key, HTTP request, and decided action instance; mandate reference; fail-closed | complements our local dispatch-seam governance with cross-boundary request binding; Mandala supplies the mandate side | **compose + track** |
-| SCITT Continuity Receipts -01 | recovery attestation | registration of a *recovery event* of a stateful artifact in a transparency log (COSE receipt over RFC 9943/9942) | same name, different object (artifact recovery, not agent session continuity); concept twins at our `state.commitment` layer | **differentiate the name; compose at the commitment layer** |
-
-No fatal collisions. All three are compose targets.
-
-## 2. AER-1 -04 (Zambo)
-
-**What it is.** A deliberately small interoperable core for one tool call:
-`id` (UUID), `receipt_schema_version`, `created_at` (RFC 3339), `tool{name,
-version, scope}`, `provenance_class`, `canonical_bytes` (base64 of the exact
-UTF-8 bytes hashed), `output_hash` (`sha256:` + hex), `verification_status`.
-The public URL is a resolution rule, not a stored member (§3, §9). Revision 04
-adds hash-chained job timelines (§7) and workflow receipts: an ordered step
-sequence bound to one goal with a Merkle root (§8), bidirectionally linked.
-
-**Maturity.** Reference implementation deployed (`zambo.dev`); conformance kit
-with seven language runners, 43/43 vectors, frozen v1.4.0 corpus; receipts
-anchored to Nostr relays with a Bitcoin-anchored challenge exercised; three
-independent agent verifications reported (§Implementation Status).
-
-**Overlap and differences.** Their provenance classes — `EXECUTED BY <system>`,
-`OBSERVED VIA GATEWAY`, `LOGGED BY AGENT`, with "verification MUST NOT upgrade
-a report into an observation" — are the same epistemic discipline as our
-disclosure/counterparty-attestation rules, applied per call. Differences:
-public-URL/online verification versus our bundle/offline recomputation;
-Nostr/Bitcoin anchors versus our OpenTimestamps/public-chain anchor types;
-raw-output digests versus our canonical-view digests.
-
-**Field map (provisional).**
-
-| AER-1 | continuity-receipt | note |
-|---|---|---|
-| `id` | receipt `id` | both stable identifiers; CR ids are per-record within bundles |
-| `created_at` | `issued_at` | same role, same format |
-| `tool{name,version,scope}` | `task.execution` body fields | CR carries per-type bodies; schemas differ |
-| `provenance_class` | nearest: disclosure + counterparty attestation | concept aligned; no field-level mapping |
-| `canonical_bytes` / `output_hash` | per-type content digests | AER-1 commits raw output bytes; CR digests canonical receipt views |
-| `verification_status` | CR verdict | single-record check versus chain verdict |
-| §7 chains / §8 workflows | `prev` links / agreements | job timeline + workflow versus session lifecycle |
-
-**Live interop probe (2026-09-30, from this repo's tooling).** Fetched the
-machine verifier for a live receipt and recomputed the commitment:
-
-```
-GET https://zambo.dev/api/receipt/130da435-e157-498e-af90-605866a86a27/verify
-sha256(base64_decode(canonical_bytes)) == output_hash  ->  MATCH
-(sha256:0492c18e09059aa2e30ba0864f6aada2ef08475a5b35944cbf2a9ce46d12b9f1)
-```
-
-**Compose path.** §15 states AER-1 "leaves decision semantics, authorization,
-and settlement bindings to other specifications" — that is our profile's
-territory. Path: (a) `tools/interop_aer1_probe.py` replicating the probe
-above; (b) optional 0.6 evidence-reference: `task.execution` /
-`delivery.attestation` bodies carrying AER-1 receipt id + URL + digest as
-fine-grained execution evidence; (c) a short draft comment offering the
-crosswalk (provenance-class alignment is worth mutual citation).
-
-## 3. AADP bound permits -00 (Saha)
-
-**What it is.** The third of three questions at a trust boundary ("was this
-exact request decided, under the sender's current authorization state, and is
-what arrived the request that was decided?"). A bound permit is a short-lived
-envelope signed by the AADP Policy Decision Point, bound to one recipient, one
-presenter key, one HTTP request (HTTP Message Signatures + Content-Digest) and
-one decided action instance (`action_digest`), optionally referencing a
-mandate the recipient evaluates itself; verification is fail-closed with
-explicit refusal reasons; multi-hop decision chains are refused in this
-revision; recipient confirmation is recorded.
-
-**Relation to us.** Our governance is strong at the *local dispatch seam*
-(gate-lite passes, Mandala authority, Dharma/karma). AADP addresses the layer
-our stack does not: carrying a per-action decision across an organizational
-boundary. Mandala supplies the mandate; AADP binds the exact request to the
-decision about it. Composition, not competition: a CR `task.decision` could
-carry the permit digest that governed a cross-org `task.execution`.
-
-**Provisional map.** permit envelope ↔ gate-lite pass (`mandala_pass`);
-`action_digest` ↔ the argument/action commitment our gate validates;
-mandate reference ↔ authority grants / `authority.succession`; recipient
-confirmation ↔ `delivery.attestation` (nearest).
-
-**Caveats.** Author name `Saha` is distinct from the `sahu` agent-action-
-receipts draft we already probe (`tools/interop_sahu_vectors.py`); confirm
-whether the AADP -00 author family overlaps before asserting any relationship.
-Draft is Standards Track — read §6 issuer scope and §7 currentness before
-relying on any constructions; no probe attempted yet (HTTP Message Signatures
-make it heavier than AER-1).
-
-## 4. SCITT Continuity Receipts -01 (Nikolaichuk)
-
-**What it is.** The SCITT forward path (what an artifact was built from) has a
-durable shape (RFC 9943 logs, RFC 9942 receipts). This draft covers the second
-path: stateful assets (models, databases, indexes, key hierarchies) that are
-sealed, moved, lost, and re-created, leaving no independently checkable trace.
-A **Continuity Receipt** is the Receipt obtained when a *recovery statement*
-(CDDL `continuity-claims`: `recovered-digest`, `sealed-material`,
-`policy-id`, `recovery-environment` with TEE family/measurement, RATS
-`attestation-ref` in referenced/embedded/registered modes, `freshness`,
-`outcome`, `prev-event` chains, optional `equivalence` byte-identical/
-operational/none) is registered in a transparency service. It proves exactly
-one thing: that statement was registered at a log position — it does NOT prove
-the recovery occurred, the bytes match, or the attestations were favourable
-(§3.3, normative).
-
-**Name reality.** The term "continuity receipt" now names two different
-objects: theirs (artifact/workload recovery registration) and ours
-(agent-session lifecycle and authority/settlement evidence). The concept
-families are adjacent, not identical. Practical guards: use "agent continuity
-receipt" in external copy; keep the `continuity-receipt/0.5` identifier; add a
-cross-reference note; consider a courtesy engagement with the author — §1
-cites ephemeral TEE gateway receipts (in-memory TTL, no transparency
-integration) as an unsolved durability gap, which is the same gap our hosted
-verifier and anchoring answer from the other side.
-
-**Compose path.** `state.commitment` (0.5: chain-head and file-snapshot
-commitments) is the natural interface: a CR state commitment could be
-registered as a recovery statement payload (or referenced) so agent
-continuity gains a transparency-log anchor; conversely a SCITT receipt could
-be carried as a CR external anchor (sibling to OpenTimestamps/public-chain).
-Feasibility depends on the SCITT registration API (`draft-ietf-scitt-scrapi`)
-and the registration policy (§7); assess before proposing anything.
-
-## 5. Landscape map — where CR sits
-
-| layer | draft family | examples | CR relationship |
+| Work | Object and stated scope | Possible relationship to continuity-receipt | Evidence boundary |
 |---|---|---|---|
-| per-execution evidence | execution receipts | AER-1, sahu | embed as evidence refs |
-| per-decision authorization | permits | AADP, vaara, AATR | bind decision digests into our chain |
-| compliance / audit | audit receipts | ACTA, asqav | compare semantics; no wire compat (see companion doc) |
-| workload identity | attestation | WIMSE AIMS, PTV (RATS) | map identity; future `runner_profile` attestation |
-| transparency registration | SCITT | RFC 9943/9942, this draft | anchor/registration interface |
-| lifecycle chain | **ours** | continuity-receipt/0.5 | the chain that binds offer→accept→decision→execution→delivery→settlement→revocation |
+| AER-1 -05 | A portable record of one agent tool execution; §§7–8 add a hash-chained job timeline and a workflow receipt over ordered step receipts. | Fine-grained execution evidence could be referenced by a CR record, if a future digest profile is defined. | Its hash procedure confirms committed bytes and recorded links, not external outcomes or events it did not observe. The checked-in probe is a single live fixture check, not AER-1 conformance. |
+| AADP bound permit -00, with AADP -04 | A short-lived PDP-signed decision permit bound to one recipient, presenter key, HTTP request and action instance; a referenced mandate remains separately evaluated. | A later CR record could refer to a permit that a recipient actually checked. | AADP requires recipient-owned scope/currentness policy. The permit alone does not override recipient policy or establish broader principal identity, adoption, or exactly-once effect. No AADP probe or integration is evidenced here. |
+| SCITT Continuity Receipts -01 | A recovery statement about a stateful artifact registered in a SCITT transparency service; the returned receipt proves registration and log position. | An agent-state recovery could be a separate registration or a CR could carry a SCITT receipt reference after its profile is defined. | A SCITT receipt does not prove recovery occurred, recovered bytes match, or an attestation was verified/favourable. No CR-to-SCITT registration or interoperability is evidenced here. |
 
-PTV (`draft-anandakrishnan-rats-ptv-agent-identity-01`) is a thin RATS
-request/response profile proving an agent is bound to an enrolled attestation
-key and authorized configuration — a future compose for attesting execution
-environments, not a receipts competitor. `draft-intra-handshake-fail-50`
-(purported early-attestation CVEs; unverified) reinforces the field's turn to
-continuous attestation and careful claims — our disclosure rules already
-follow that discipline.
+## 2. Keep the three CR surfaces distinct
 
-## 6. Recommendations (before 2026-10-06)
+The following are related repository surfaces, not interchangeable claims:
 
-1. **AER-1:** add `tools/interop_aer1_probe.py` (the probe above is the
-   fixture); optional 0.6 evidence-ref note; a draft comment offering the
-   crosswalk.
-2. **AADP:** no code yet; add to this crosswalk set; revisit after §6/§7 are
-   studied; watch for a -01 (Standards Track drafts move).
-3. **SCITT:** name guards now (docs cross-reference; "agent continuity
-   receipt" in external copy); assess SCRAPI registration feasibility for
-   `state.commitment`; consider author contact only after feasibility.
-4. **Oct 6 CG call:** this cluster is identity-adjacent; the CG brief should
-   note the crosswalk work exists (sahu probe + this triage) without claiming
-   endorsements.
-5. **Do not adopt formats wholesale.** CR's differentiators remain offline
-   verification, chain semantics, agreement/settlement binding, and
-   revocation; everything above composes into that, not over it.
+| CR surface | Current checked state | What it does not establish |
+|---|---|---|
+| Core protocol and verifier | `SPEC.md` describes published `continuity-receipt/0.5`. The 0.5.0 Python and Rust packages also accept 0.6 verifier behavior; 0.6 is still a development draft with no standalone 0.6 release. See `CAPABILITY_MATRIX.md`. | Package acceptance of a draft version does not make 0.6 normative, an external standard, or interoperable with any draft below. Core `TRUSTED` verifies the disclosed bundle under the implemented CR rules; it is not a general action authorization or proof that issuer claims happened. |
+| Local Python consumer assessment | The unsigned `continuity-consumer` profile is separately versioned, local policy assessment for CR 0.1–0.4. It checks configured issuer/spec lists and optional record presence after core verification; it does not fetch or discover evidence. | `ACCEPT` does not authenticate the real-world identity or independent key custody of an issuer, establish execution or freshness, check external revocation, or authorize an action. This is not a cross-host adopter result. |
+| 0.6 authority candidate | `SPEC_0.6_DRAFT.md` and its local candidate vectors cover `authority.grant` as a signed issuer/operator assertion and optional in-bundle linkage. The verifier behavior is present experimentally in the 0.5.0 packages. | The record does not prove that its signer was authorized by the named principal. It is not a recipient-checked AADP permit, policy decision, delegated identity credential, or independent authorization path. The authority-required consumer profile is proposed, not implemented. |
+
+Consequently, a crosswalk to AADP describes a possible future composition
+between separate decisions and records. It does not upgrade any of the three
+CR surfaces above or turn CR into an authorization protocol.
+
+## 3. AER-1 -05
+
+AER-1 -05 defines a small execution receipt with an identifier, creation time,
+tool and caller scope, provenance class, `canonical_bytes`, and an
+`output_hash`. The hash is SHA-256 over the exact UTF-8 bytes represented by
+`canonical_bytes`; the verifier must reproduce those bytes before confirming
+the output commitment. The receipt's bytes/commitment are not the digest of the
+whole AER-1 record. The draft also requires provenance to remain visible and
+says verification cannot turn a report into an observation (§§3–6).
+
+Sections 7 and 8 cover, respectively, hash-chained job timelines and workflow
+receipts. Those links can show tampering in the recorded sequence; they do not
+make a reported action executed or prove business effects. Section 9 defines
+public resolution as a format requirement; that requirement is not evidence
+that a third-party service is currently available.
+
+| AER-1 element | Nearest CR concept | Limit |
+|---|---|---|
+| `id`, `created_at` | CR record identifier, `issued_at` | Identifiers, schemas, and signed bytes differ. |
+| `tool` and caller scope | Execution context in a CR task record | No field-level compatibility is defined. |
+| `provenance_class` | Issuer claims and any counterparty attestation | Conceptual analogy only; CR has no equivalent AER-1 provenance enum. |
+| `canonical_bytes` / `output_hash` | A CR record's own signed/canonical body and digest | Different objects and digest scopes. AER-1 hashes execution output bytes; it does not define a digest of the whole receipt for use as a CR external reference. |
+| §§7–8 job/workflow links | CR `prev` chain and agreement/lifecycle links | Structures and checks differ; neither implies the other's semantics. |
+
+**Probe bound.** `tools/interop_aer1_probe.py` is labelled against -04 and the
+crosswalk's original dated probe record concerns one live example. Its code
+checks public URL HTTP 200, requested `id`, the `verification_status` string,
+base64 decoding, strict UTF-8, SHA-256 equality against `output_hash`, and
+`canonical_byte_length` only when that extra field is present. The dated
+crosswalk record reports one fixture (`130da435-e157-498e-af90-605866a86a27`)
+whose recomputed output hash matched
+`sha256:0492c18e09059aa2e30ba0864f6aada2ef08475a5b35944cbf2a9ce46d12b9f1`.
+That observation is tied to 2026-09-30 and does not establish current service
+availability. It does not verify a general AER-1 corpus, job-chain or workflow
+receipt, anchor, observed provenance, real-world action, service availability
+over time, or independent implementation. As of this review, upstream is -05;
+this review did not requalify the existing -04-labelled probe against -05. No
+AER-1 adoption or endorsement is claimed.
+
+## 4. AADP bound permits -00: recipient scope and currentness
+
+The bound-permit draft extends the base AADP -04 cross-boundary. It says the
+permit carries the issuer's per-action decision; a named mandate is a separate
+reference that the recipient evaluates when required. The permit does not
+replace the recipient's own policy. The following details are from bound-
+permit -00 §§3.3, 6–7. Every permit declares one currentness mode, and the
+recipient's record states which mode applied:
+
+- **Issuer scope belongs to the recipient (§6).** A recipient maintains its
+  own issuer table with keys, permitted action types, per-field limits,
+  `not_after`, and a minimum accepted currentness mode. Every permit's
+  `authorization_details` entry must fit the configured action type and its
+  comparison-rule limits. An issuer's published metadata can inform that
+  table but never grants scope; the recipient's table is authoritative and
+  changes only by recipient action. The draft recommends recording who
+  changed a scope, when, and what changed.
+- **Time-bounded mode (§7.2).** The permit is treated as current until `exp`
+  with no further status query. Revocation of the mandate or supersession of
+  policy before expiry is not detected, so this leaves a declared, bounded
+  exposure window. The recipient may accept this mode only where its issuer
+  table allows it. Under §3.3, when `execute_within` is absent, `exp - iat`
+  must not exceed 120 seconds (an action-type registration may lower that
+  ceiling, not raise it); when `execute_within` is present, `exp` cannot be
+  later than its deadline. Short expiry bounds time; it does not close the
+  revocation/supersession window before expiry.
+- **Status-checked mode (§7.2).** At verification time, the recipient must
+  establish that the permit, policy version, and mandate have not been revoked
+  or superseded. The draft defines an issuer status-list option and an
+  issuer-signed stapled freshness statement; its recommended stapled age is
+  no more than 30 seconds, subject to the recipient's configured freshness
+  window. If status is unavailable, unparsable, or stale, refusal with
+  `status-unavailable` is required unless a locally configured, audited
+  fail-open policy explicitly applies to that risk class and is recorded.
+
+This is only a standards crosswalk. CR does not implement AADP verification,
+recipient scope tables, permit consumption, mandate evaluation, currentness,
+or AADP confirmations. A CR field containing a permit digest would establish
+only a reference/commitment under a future, defined profile; it would not
+itself establish that a recipient checked or accepted the permit.
+
+## 5. SCITT Continuity Receipts -01
+
+The SCITT draft's “Continuity Receipt” is an ordinary RFC 9942 receipt
+returned after registering a signed recovery statement about a stateful
+artifact under the RFC 9943 architecture. Its §3.3 boundary is explicit: the
+receipt proves that a particular issuer-signed recovery statement was
+registered at a position in a particular transparency service's append-only
+log. It does not prove recovery occurred, bytes matched the original,
+attestation results were verified or favourable, or the log's registration
+policy checked those facts.
+
+The name therefore overlaps with this repository's “agent continuity
+receipt” wording, while the objects and claims differ. Use “agent continuity
+receipt” when context needs to distinguish this CR project. This is naming
+hygiene, not a claim of conflict, priority, endorsement, or adoption.
+
+The potential join is at the state-evidence layer, not wire compatibility:
+CR `state.commitment` could be a payload/reference for a separately authored
+recovery statement if its meaning and the SCITT registration policy fit; a
+SCITT receipt could be carried as external evidence once a CR reference
+profile is agreed. SCRAPI -05 provides registration and query endpoints, but
+does not settle authentication (out of scope) or establish that a particular
+service's policy is suitable. No service integration or registration has been
+tested for CR.
+
+## 6. Open issue: external-reference digest and verdict effect
+
+`DESIGN_NOTE_EXTERNAL_EVIDENCE_REFS.md` is explicitly a non-normative
+candidate. It sketches `digest: sha256:<hex>` but leaves the digest scope open:
+exact referenced-object bytes versus a specified canonical JSON view, and
+which object is covered for formats such as AER-1. AER-1's `output_hash` is
+not automatically the digest of its receipt record. This crosswalk makes no
+choice between raw serialization bytes and canonical JSON and does not define
+a canonicalization rule.
+
+The candidate note also sketches a verdict effect (unresolved references as
+insufficient evidence; a checked digest mismatch as untrusted). That effect
+is not a rule in published CR 0.5, not part of the local 0.1–0.4 consumer
+profile, and not yet approved as 0.6+ candidate semantics. Whether an
+unavailable reference affects the core verdict, a separate consumer
+assessment, or neither; and whether a checked mismatch is a core failure or
+profile-specific outcome remain open decisions. No wire or runtime behavior
+is proposed by this crosswalk.
+
+## 7. Bounded follow-ups
+
+1. Decide and document the external-reference object's byte scope and any
+   canonicalization, per kind, before defining a field or interoperability
+   vector.
+2. Separately decide whether unresolved or mismatched references affect core
+   verdicts or only a consumer profile. Do not infer either from this note's
+   candidate prose.
+3. If AADP composition is pursued, keep the recipient's issuer/action scope,
+   accepted currentness modes, status-unavailable policy, and actual permit
+   verification evidence explicit. A reference alone is not authorization.
+4. Assess SCITT registration policy and a concrete SCRAPI service before
+   claiming a registration path works.
+5. Keep future proposal, test, and implementation claims separately labelled;
+   no draft author or working group has endorsed this crosswalk.

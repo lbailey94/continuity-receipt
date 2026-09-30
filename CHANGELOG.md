@@ -1,26 +1,32 @@
 # Changelog
 
-## Unreleased — 0.6 development candidate
+## 0.6 development specification — no standalone 0.6 release
 
 An authority record: `authority.grant` (principal, agent, scope, window,
 `review_policy` validated as shape) plus `authority_ref` on bound records,
 with shape-only verifier rules — `missing_authority` (insufficient),
 `authority_before_grant`, `authority_agent_mismatch`, `authority_expired`,
-and `authority_unreferenced` (provisional). Schema 0.6, vectors 24–24j,
-Python and Rust prerelease builds accept 0.1–0.6. Not a tag, package
-publication, hosted rollout, or adoption claim. The 0.5 candidate is
-unchanged; both remain behind the external review gate in `ROADMAP.md`.
+and `authority_unreferenced` (provisional). The 0.6 schema and authority
+implementation and 10-vector corpus are present in the signed `v0.5.0` source
+tag; both package verifiers accept 0.6. The authority specification remains a
+development draft; there is no standalone 0.6 specification release. This is
+not an independent review or adoption claim. See `ROADMAP.md` for open
+qualification gates.
 
-## 0.5.0 — 2026-09-30
+## 0.5.0 — published 2026-09-30
 
-Spec 0.5 candidate published: local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate JSON member rejection, and consumer profile assessment.
+Spec 0.5 and package version 0.5.0 were published on 2026-09-30. The signed
+`v0.5.0` tag points to `ff008888af6f225077b0661aa5b2d88da843839c`; PyPI and
+crates.io both list 0.5.0. Independent adversarial review and independent-host
+adopter qualification remained open at publication and remain separate gates.
 
 - **Local authority and execution vocabulary.** `session.pass.created.mandala_class` gains `local`. `task.execution.sandbox_class` accepts `bwrap`, `landlock`, `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none`.
 - **Runner profile binding.** `bwrap` execution carries `runner_profile` (`profile_id`, `executable_digest`, `invocation_digest`).
 - **state.commitment.** Signed record type supporting chain-head and file-snapshot state commitments, bounded by exact IEEE-754 integer counts in `0..2^53-1`.
 - **Hardened parsers.** CLI boundary parsers reject duplicate object member names at any depth for all spec versions.
-- **Consumer profile & qualification.** Added `continuity-consumer` CLI (`continuity_receipt/consumer.py`), adopter qualification harness, and crosswalk documentation.
-- **Vectors 22–23b.** Separate candidate vector manifest (`vectors/manifest-0.5.json`) with 21 differential vectors verified across Python and Rust. Published 0.1–0.4 fixtures remain unchanged.
+- **Consumer profile & qualification tooling.** Added Python-only `continuity-consumer` policy assessment (policy specs 0.1–0.4) and the 0.5 adopter qualification harness. The harness does not itself establish independent adoption.
+- **Vectors 22–23b.** Published `vectors/manifest-0.5.json` corpus contains 21 vectors. Published 0.1–0.4 fixtures remain unchanged.
+- **Experimental 0.6 behavior.** The 0.5.0 Python and Rust packages also include verifier implementation support for the 0.6 authority draft. This does not make the 0.6 specification a standalone release.
 
 ## 0.4.0 — 2026-09-24
 

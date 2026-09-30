@@ -1,6 +1,15 @@
 # Other-host qualification packet for Continuity Receipt 0.5
 
-This packet assesses a **real producer capture** made on a clean adopter host. It is conditional: current Mandala gate-lite uses `continuity-receipt/0.4` and does not emit a 0.5 `state.commitment`. Do not run this against a fixture or reinterpret an existing 0.4 capture as adoption evidence. If no real 0.5 capture exists, report the gate as pending.
+This packet assesses a **real producer capture** made on a clean adopter host.
+The public Mandala gate-lite line remains on published receipt spec 0.4. A
+private candidate at
+`8ea8c7eb17d576efdbfa0d311b007dd7b95f8389` pins the published
+`continuity-receipt==0.5.0` package and emits spec 0.5, and a checked-in
+2026-09-28 capture is same-host maintainer evidence. That capture is not an
+independent-host qualification. This packet remains a pending gate until a
+real capture is produced and independently reviewed on another host. Do not
+run it against a fixture or reinterpret an existing 0.4 capture as adoption
+evidence.
 
 ## Inputs and profile
 
@@ -11,7 +20,7 @@ The assessor supports the explicit `file-snapshot-v1` profile only. The separate
 ## Clean-host procedure
 
 1. On the second laptop, install from the selected pinned source commit using the project's documented clean-install steps. Record OS/kernel, Python/Rust versions, commands, and any errors. Build Python and Rust verifiers from that same pinned source and record executable hashes. Use an operator able to explain how the account and host were administered; a hostname alone does not establish independent administration.
-2. Run the actual Mandala gate-lite producer with the intended test input and capture the exact emitted 0.5 bundle and the referenced state snapshot separately. Preserve the producer command, stdout/stderr, environment details that matter, source and executable pins, operator/host record, and file hashes. Do not edit, reserialize, or regenerate the bundle after capture.
+2. From the selected private candidate source, run the actual Mandala gate-lite producer with the intended test input and capture the exact emitted 0.5 bundle and the referenced state snapshot separately. Preserve the producer command, stdout/stderr, environment details that matter, source and executable pins, operator/host record, and file hashes. Do not edit, reserialize, or regenerate the bundle after capture. The public 0.4 line cannot supply this 0.5 capture.
 3. From the pinned Continuity Receipt checkout, run the offline assessor. Example (replace paths and executable names with the locally built, hashed binaries):
 
    ```sh

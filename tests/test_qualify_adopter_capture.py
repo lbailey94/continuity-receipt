@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.qualify_adopter_capture import REPO_ROOT, assess, snapshot_commitment, strict_load
 from continuity_receipt import keys
@@ -160,6 +161,46 @@ class TestQualifyAdopterCapture(unittest.TestCase):
             report, _ = _case(Path(td), duplicate=True)
             self.assertEqual(report["status"], "FAIL")
             self.assertIn("duplicate JSON member", report["checks"]["input_validation"])
+
+    def test_excessive_json_nesting_returns_structured_fail(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            _case(tmp_path)
+            capture = tmp_path / "capture"
+            bundle_path = capture / "bundle.json"
+            raw = b'{"spec":"continuity-receipt/0.5","nested":' + b"[" * 10_000 + b"]" * 10_000 + b"}"
+            bundle_path.write_bytes(raw)
+            metadata_path = capture / "metadata.json"
+            metadata = json.loads(metadata_path.read_text())
+            metadata["captured_bundle_sha256"] = "sha256:" + hashlib.sha256(raw).hexdigest()
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            report = assess(
+                bundle_path,
+                capture / "state.json",
+                metadata_path,
+                capture / "artifacts",
+                [str(capture / "python-verifier")],
+                [str(capture / "rust-verifier")],
+            )
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual(report["checks"]["input_validation"], "input_nesting_too_deep")
+
+    def test_canonicalization_recursion_returns_structured_fail(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            _case(tmp_path)
+            capture = tmp_path / "capture"
+            with patch("tools.qualify_adopter_capture.canonical", side_effect=RecursionError):
+                report = assess(
+                    capture / "bundle.json",
+                    capture / "state.json",
+                    capture / "metadata.json",
+                    capture / "artifacts",
+                    [str(capture / "python-verifier")],
+                    [str(capture / "rust-verifier")],
+                )
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual(report["checks"]["input_validation"], "input_nesting_too_deep")
 
     def test_verifier_disagreement_fails(self):
         with tempfile.TemporaryDirectory() as td:
