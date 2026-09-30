@@ -2,30 +2,25 @@
 
 **An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
 
-**Spec version:** `continuity-receipt/0.4` — published 2026-09-24. `0.1`–`0.3`
+**Spec version:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
 remain supported (open items listed in `SPEC.md` §11).
 **License:** Apache-2.0 (specification text, code, and vectors).
 
-**Checkout development:** [SPEC_0.5_DRAFT.md](SPEC_0.5_DRAFT.md) describes an
-unpublished candidate for local execution and state commitments;
-[SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
-candidate (`authority.grant`) on top. The
-published packages and hosted verifier remain at 0.4.0; use signed tag
-`v0.4.0` for the frozen release surface.
+**Checkout development:** [SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
+candidate (`authority.grant`) on top of 0.5.
 
 **Version matrix** — the spec and the two implementations version
 independently:
 
 | Artifact | Current | Published install |
 |---|---|---|
-| Spec / wire format | `continuity-receipt/0.4` (published 2026-09-24) | — |
-| Python reference + CLIs | **0.4.1** published; 0.5.0a0 / 0.6.0a0 checkout candidates | `pip install continuity-receipt==0.4.1` |
-| Rust verifier + CLIs | **0.4.0** published; 0.5.0 / 0.6.0-alpha checkout candidates | `cargo install continuity-receipt --version 0.4.0` |
+| Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
+| Python reference + CLIs | **0.5.0** | `pip install continuity-receipt==0.5.0` |
+| Rust verifier + CLIs | **0.5.0** | `cargo install continuity-receipt --version 0.5.0` |
 
-The pinned install commands resolve to the published release (0.4.1 on PyPI).
+The pinned install commands resolve to the published release (0.5.0).
 
-Both implementations support spec 0.4 (the offer/accept binding carried
-through the chain) with identical verdicts and codes over the full vector set.
+Both implementations support spec 0.5 (local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate member rejection, and consumer profile assessment) with identical verdicts and codes over the full vector set.
 Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python or
 Rust).
 

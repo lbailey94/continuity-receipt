@@ -11,16 +11,16 @@ Python and Rust prerelease builds accept 0.1–0.6. Not a tag, package
 publication, hosted rollout, or adoption claim. The 0.5 candidate is
 unchanged; both remain behind the external review gate in `ROADMAP.md`.
 
-## Unreleased — 0.5 development candidate
+## 0.5.0 — 2026-09-30
 
-Local authority and unconfined execution values, a state-commitment record,
-schema 0.5, a separate candidate vector corpus, and an adopter guide are in
-the checkout. Python is versioned 0.5.0a0 and Rust 0.5.0-alpha.0. This is
-not a tag, package publication, hosted rollout, or claim of runtime adoption.
-Published 0.1–0.4 fixtures and the 40-vector conformance manifest remain
-unchanged. The 0.4.0 GitHub Release now documents the signed tag and frozen
-package blemishes.
+Spec 0.5 candidate published: local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate JSON member rejection, and consumer profile assessment.
 
+- **Local authority and execution vocabulary.** `session.pass.created.mandala_class` gains `local`. `task.execution.sandbox_class` accepts `bwrap`, `landlock`, `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none`.
+- **Runner profile binding.** `bwrap` execution carries `runner_profile` (`profile_id`, `executable_digest`, `invocation_digest`).
+- **state.commitment.** Signed record type supporting chain-head and file-snapshot state commitments, bounded by exact IEEE-754 integer counts in `0..2^53-1`.
+- **Hardened parsers.** CLI boundary parsers reject duplicate object member names at any depth for all spec versions.
+- **Consumer profile & qualification.** Added `continuity-consumer` CLI (`continuity_receipt/consumer.py`), adopter qualification harness, and crosswalk documentation.
+- **Vectors 22–23b.** Separate candidate vector manifest (`vectors/manifest-0.5.json`) with 21 differential vectors verified across Python and Rust. Published 0.1–0.4 fixtures remain unchanged.
 
 ## 0.4.0 — 2026-09-24
 

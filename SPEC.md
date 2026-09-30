@@ -1,11 +1,24 @@
-# Continuity Receipt — v0.4 Specification
+# Continuity Receipt — v0.5 Specification
 
-**Status:** `continuity-receipt/0.4` — published 2026-09-24. `0.1`–`0.3`
+**Status:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
 remain supported by the verifier. Open items in §11.
 **Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
-0.4 released 2026-09-24.
+0.4 released 2026-09-24; 0.5 released 2026-09-30.
 **Home:** this repository — versioned independently of any product release
 train.
+
+## 0.5 changes at a glance
+
+- **Local authority and unconfined execution vocabulary:** `session.pass.created.mandala_class`
+  gains `local`. `task.execution.sandbox_class` accepts `bwrap`, `landlock`,
+  `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none` (§4.5).
+- **Runner profile binding:** A 0.5 `task.execution` with `sandbox_class: "bwrap"`
+  must carry a signed `runner_profile` (`profile_id`, `executable_digest`, `invocation_digest`).
+- **state.commitment:** New record type supporting chain-head and file-snapshot state
+  commitments, with integer counts bounded by IEEE-754 exact JSON representation in `0..2^53-1` (§4.10).
+- **Duplicate member rejection:** Raw CLI parsers reject duplicate object member names across
+  all spec versions.
+- JSON Schema `schema/continuity-receipt-0.5.schema.json`; vectors 22–22s and 23/23b.
 
 ## 0.4 changes at a glance
 
