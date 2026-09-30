@@ -13,9 +13,9 @@ continuity-receipt-verify vectors/02_happy_full.json
 
 A TRUSTED result establishes format, signature, chain, and selected policy checks. It does not independently establish that the issuer's narrated task occurred. For a signed statement about a verification run, see VERIFY_IN_5_MIN.md; verify the underlying bundle again yourself.
 
-## 2. Emit a minimal local bundle (0.5 checkout candidate)
+## 2. Emit a minimal local bundle (0.5)
 
-Spec 0.5 is **unpublished**. Use this checkout and its Python dependencies to try the producer script against a file you control:
+Spec 0.5 is published (2026-09-30). Use this checkout and its Python dependencies to try the producer script against a file you control:
 
 ```sh
 openssl genpkey -algorithm ED25519 -out /tmp/cr-example-key.pem
@@ -50,7 +50,7 @@ Use the following labels in examples and reports:
 | Captured runtime artifact | A named runtime emitted these exact bytes under a recorded invocation. |
 | Independently corroborated | A separate observer or recomputation supports a specified body claim. |
 
-A locally developed cross-generation example contains one captured WhiteMagic Gen2 bundle and two modeled Gen3 fixtures. The Gen3 fixtures must not be presented as Gen3-emitted evidence; that example is not part of this candidate or the public release.
+A locally developed cross-generation example contains one captured WhiteMagic Gen2 bundle and two modeled Gen3 fixtures. The Gen3 fixtures must not be presented as Gen3-emitted evidence; that example is not part of this guide or the public release.
 
 ## 4. Conformance and version boundaries
 
