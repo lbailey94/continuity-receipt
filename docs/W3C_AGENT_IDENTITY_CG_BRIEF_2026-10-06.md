@@ -26,23 +26,28 @@ say, not to propose a competing identity mechanism.
   attests what its issuer signed, not that events occurred; missing evidence
   is distinguished from false evidence (`INSUFFICIENT_EVIDENCE` ≠ false).
 
-## 3. Questions to ask / things to listen for
+## 3. Agenda map (published 2026-10-06; chair: Adolfo Grego Micha)
 
-1. **Revocation distribution.** How does the CG expect agent credential
-   revocation to propagate to verifiers (CR has its own revocation
-   statements; alignment matters).
-2. **Attestation composition.** How do RATS-family attestations (PTV and
-   hardware-anchored agent identity) bind to the DID/VC identity the CG
-   defines? Needed for `runner_profile`/sandbox assertions in receipts.
-3. **Delegation chains.** Agent-to-agent mandates with revocation — is the
-   CG scoping delegation semantics, or deferring to WIMSE/OAuth?
-4. **Post-quantum migration.** Any CG timeline that would force receipt
-   signature agility (we are Ed25519-only today, disclosed).
-5. **Representation sessions.** Overlap with our representation-session note;
-   if the CG productizes the concept, decide compose vs cede early.
+The group sets order on-call. Our mapping of the published items:
+
+| agenda item | our angle / contribution |
+|---|---|
+| §4.2 Landscape document | Crosswalks are ready to offer on request (sahu/AER-1/AADP/SCITT probes); do not dump, offer |
+| §4.3 DNS vs alternative roots | We are anchor-agnostic (`did:key` + OTS/chain anchors); nothing to push |
+| §4.4 C2PA alignment | Composition path worth supporting: content provenance (C2PA) + action provenance (receipts) are complementary |
+| §4.5 Authorization scope across organizations | Maps to AADP bound permits; state the local-seam vs cross-boundary split |
+| §4.6 Identifier collisions that fail open | **Closest to our design**: registries bind identifiers; we bind revocation + anchors; our revocation statements are prior art |
+| §4.7 ARIA / WAI-ARIA disambiguation | Naming hygiene; mention our "agent continuity receipt" guard briefly |
+| AOB | Only if natural: the bounded-proof sentence (receipts attest what issuers signed; missing ≠ false) |
+
+Still to ask (async if no slot): revocation distribution mechanics;
+attestation (RATS/PTV) ↔ DID binding; PQ timeline for Ed25519-only formats.
 
 ## 4. Speaking notes
 
+- Logistics: Tue 2026-10-06, 15:00 UTC (Google Meet link in the agenda file);
+  minutes for 09-22 were promised by the chair — read them if published.
+- Highest-value slot: §4.6 (collisions that fail open) — volunteer there.
 - Lead with evidence, not ambition: probes and crosswalks exist; no adoption
   or endorsement claims about any draft or author.
 - Do not pitch hosting or pricing; this is a standards venue.
@@ -53,7 +58,9 @@ say, not to propose a competing identity mechanism.
 
 ## 5. References
 
-- CG: https://www.w3.org/community/agent-identity/ (agenda 2026-09-29)
+- CG: https://www.w3.org/community/agent-identity/ · 2026-10-06 agenda:
+  https://github.com/w3c-cg/agent-identity/blob/main/meetings/2026/2026-10-06-agenda.md
+  · minutes: https://github.com/w3c-cg/agent-identity/blob/main/meetings/2026/2026-09-22-minutes.md
 - PTV: draft-anandakrishnan-rats-ptv-agent-identity-01
 - AER-1: draft-zambo-aer1-04 · SCITT continuity receipts:
   draft-nikolaichuk-scitt-continuity-receipts-01
