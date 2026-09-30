@@ -4,6 +4,11 @@
 or adoption claim by any draft's authors. Internet-Drafts may change. Companion
 to `CROSSWALK_SAHU_ACTA_ASQAV.md`.
 
+**Follow-ups implemented 2026-09-30:** live AER-1 probe
+(`tools/interop_aer1_probe.py`), 0.6 candidate note
+(`docs/DESIGN_NOTE_EXTERNAL_EVIDENCE_REFS.md`), README naming guard, and the
+W3C CG brief (`docs/W3C_AGENT_IDENTITY_CG_BRIEF_2026-10-06.md`).
+
 Reads: [AER-1 -04](https://datatracker.ietf.org/doc/html/draft-zambo-aer1-04)
 (Zambo, Independent/Informational, 2026-09-29) ·
 [AADP bound permits -00](https://datatracker.ietf.org/doc/html/draft-saha-aadp-bound-permit-00)

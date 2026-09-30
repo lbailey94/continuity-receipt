@@ -29,6 +29,8 @@ A Continuity Receipt is a signed, hash-chained record of one governed task:
 
 The spec is intentionally small: JSON (RFC 8785 canonicalization), SHA-256, Ed25519, `did:key` identities. No new cryptography. Redaction uses salted commitments so fields can be revealed selectively without breaking integrity; erasure makes commitments opaque while the chain still verifies.
 
+**Naming.** "Continuity Receipt" currently names two different objects in the standards landscape: this specification's agent-session lifecycle record (`continuity-receipt/0.5`), and an IETF SCITT draft that registers the *recovery of stateful assets* in a transparency log (`draft-nikolaichuk-scitt-continuity-receipts`). They are adjacent concepts, not the same object. In external copy, prefer **"agent continuity receipt"** for this specification; see `docs/CROSSWALK_AER1_AADP_SCITT.md`.
+
 ## Why this exists
 
 Agents are accumulating persistent memory and doing delegated work at scale, but accountability is still self-reported. This format makes the difference checkable: claims arrive with signed evidence, missing evidence is distinguished from false evidence, and a termination claim (`task.termination`) is required for a task to verify as complete — it proves the issuer signed that the task stopped, not that it did.
