@@ -1,0 +1,14 @@
+--- a/Caddyfile
++++ b/Caddyfile
+@@ -169,11 +169,11 @@
+ 	# Authenticated owner-bound Memory Crystals (candidate rollout)
+ 	handle /crystals {
+-		reverse_proxy 127.0.0.1:18792
++		respond 503
+ 	}
+ 	handle /crystals/* {
+-		reverse_proxy 127.0.0.1:18792
++		respond 503
+ 	}
+ 
+ 	# Keyless (anon cap): stored anchor proofs

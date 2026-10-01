@@ -22,7 +22,8 @@ Endpoints (all loopback; the gateway in front does auth, caps, and audit):
 Properties:
 - Verification is stateless (bundles are verified in memory and dropped).
   Storage exists only for the two opt-in distribution services (revocation
-  documents and hosted anchor proofs) and the service's signing key.
+  documents, hosted anchor proofs, and sealed crystals), service signing key,
+  plus the internal-assertion replay ledger.
 - Content-free logging: only method/path/status/bytes (the gateway audits).
 - Fail closed: oversized bodies 413, invalid JSON 400, verifier errors are
   returned as structured verdicts, never stack traces.
@@ -31,12 +32,15 @@ Auth, metering, and caps are the gateway's job (authd in front). Bind loopback.
 """
 import argparse
 import base64
+import contextlib
 import hashlib
 import hmac
 import json
 import os
 import pathlib
 import re
+import sqlite3
+import stat
 import sys
 import threading
 import time
@@ -70,6 +74,7 @@ REVOCATIONS_DIR = STATE_DIR / "revocations"
 ANCHORS_DIR = STATE_DIR / "anchors"
 RECEIPTS_DIR = STATE_DIR / "receipts"
 CRYSTALS_DIR = STATE_DIR / "tenant-crystals"
+CRYSTAL_QUARANTINE_DIR = STATE_DIR / "tenant-crystals-quarantine"
 NOTARIZE_DIR = STATE_DIR / "notarizations"
 INTERNAL_TOKEN_PATH = STATE_DIR / "payment_internal.token"
 
@@ -80,6 +85,8 @@ INTERNAL_TOKEN_PATH = STATE_DIR / "payment_internal.token"
 # gateway's authenticated registry (keys.json entries may carry "owner_id").
 CRYSTAL_ASSERTION_HEADER = "X-WM-Crystal-Assertion"
 CRYSTAL_ASSERTION_SECRET_PATH = STATE_DIR / "crystal_assertion.secret"
+CRYSTAL_ASSERTION_KEYS_PATH = STATE_DIR / "crystal_assertion.keys.json"
+CRYSTAL_ASSERTION_REPLAY_PATH = STATE_DIR / "crystal_assertion_replay.sqlite3"
 CRYSTAL_ASSERTION_MAX_TTL_S = 120
 CRYSTAL_ASSERTION_SKEW_S = 5
 
@@ -313,6 +320,175 @@ class TenantCrystalStore:
         return items
 
 
+def plan_legacy_crystal_quarantine(storage_root: pathlib.Path,
+                                   quarantine_root: pathlib.Path,
+                                   registered_owner_ids=()) -> dict:
+    """Create a hash-bearing dry-run plan for all legacy crystal files.
+
+    No owner is inferred from the locator, crystal ID, ciphertext, or first
+    reader. Applying the returned plan is a separate explicit operation.
+    """
+    source_root = storage_root.resolve()
+    target_root = quarantine_root.resolve()
+    if source_root == target_root or source_root.is_relative_to(target_root) or target_root.is_relative_to(source_root):
+        raise ValueError("source and quarantine roots must be separate and non-overlapping")
+    if storage_root.is_symlink() or quarantine_root.is_symlink():
+        raise ValueError("source and quarantine roots must not be symlinks")
+    if any(not isinstance(owner_id, str) or not re.fullmatch(r"[0-9a-f]{64}", owner_id)
+           for owner_id in registered_owner_ids):
+        raise ValueError("registered owner IDs must be 64 lowercase hex characters")
+    registered_locators = {f"sha256:{owner_id}" for owner_id in registered_owner_ids}
+    entries = []
+    for directory, dirnames, filenames in os.walk(source_root, followlinks=False):
+        directory_path = pathlib.Path(directory)
+        for name in list(dirnames):
+            child = directory_path / name
+            if child.is_symlink() or not child.is_dir():
+                raise ValueError(f"non-directory or symlink in legacy source tree: {child.relative_to(source_root)}")
+        for name in filenames:
+            source = directory_path / name
+            info = source.lstat()
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError(f"non-regular entry in legacy source tree: {source.relative_to(source_root)}")
+            if not name.endswith(".crystal"):
+                continue
+            relative = source.relative_to(source_root)
+            raw = source.read_bytes()
+            try:
+                envelope = _request_json(raw)
+                locator = envelope.get("tenant_hash") if isinstance(envelope, dict) else None
+            except (ValueError, RecursionError):
+                locator = None
+            # A current, explicitly registered owner locator is outside this
+            # legacy quarantine plan. No locator is ever used to create a map.
+            if locator in registered_locators:
+                continue
+            entries.append({
+                "source": relative.as_posix(),
+                "destination": relative.as_posix(),
+                "source_sha256": hashlib.sha256(raw).hexdigest(),
+                "tenant_locator": locator if isinstance(locator, str) else None,
+                "disposition": "quarantine_unmapped_legacy_owner",
+            })
+    return {
+        "kind": "wm-crystal-legacy-quarantine-plan",
+        "version": 1,
+        "mode": "dry-run",
+        "source_root": str(source_root),
+        "quarantine_root": str(target_root),
+        "registered_owner_locators": sorted(registered_locators),
+        "entries": entries,
+    }
+
+
+def apply_legacy_crystal_quarantine_plan(plan: dict) -> dict:
+    """Apply a dry-run quarantine plan after rechecking every source hash."""
+    if not isinstance(plan, dict) or plan.get("kind") != "wm-crystal-legacy-quarantine-plan" or plan.get("version") != 1:
+        raise ValueError("unsupported legacy quarantine plan")
+    source_root = pathlib.Path(plan["source_root"]).resolve()
+    target_root = pathlib.Path(plan["quarantine_root"]).resolve()
+    if source_root == target_root or source_root.is_relative_to(target_root) or target_root.is_relative_to(source_root):
+        raise ValueError("source and quarantine roots must be separate and non-overlapping")
+    if pathlib.Path(plan["source_root"]).is_symlink() or pathlib.Path(plan["quarantine_root"]).is_symlink():
+        raise ValueError("source and quarantine roots must not be symlinks")
+    prepared = []
+    seen_sources = set()
+    seen_targets = set()
+    for entry in plan.get("entries", []):
+        if not isinstance(entry, dict):
+            raise ValueError("invalid quarantine plan entry")
+        relative = pathlib.PurePosixPath(entry["source"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("unsafe quarantine plan path")
+        source_candidate = source_root / pathlib.Path(*relative.parts)
+        target_candidate = target_root / pathlib.Path(*relative.parts)
+        for root, candidate in ((source_root, source_candidate), (target_root, target_candidate)):
+            cursor = root
+            for part in relative.parts[:-1]:
+                cursor = cursor / part
+                if cursor.is_symlink():
+                    raise ValueError("symlink in quarantine plan path")
+        if source_candidate.is_symlink() or target_candidate.is_symlink():
+            raise ValueError("symlink in quarantine plan path")
+        source = source_candidate.resolve()
+        target = target_candidate.resolve()
+        if not source.is_relative_to(source_root) or not target.is_relative_to(target_root):
+            raise ValueError("quarantine path escapes configured root")
+        if source in seen_sources or target in seen_targets:
+            raise ValueError("duplicate source or destination in quarantine plan")
+        seen_sources.add(source)
+        seen_targets.add(target)
+        if source.is_symlink() or not source.is_file() or not stat.S_ISREG(source.lstat().st_mode):
+            raise ValueError("legacy source is not a regular file")
+        if target.exists() or target.is_symlink():
+            raise FileExistsError("quarantine destination already exists")
+        raw = source.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if not hmac.compare_digest(digest, entry.get("source_sha256", "")):
+            raise ValueError("legacy crystal changed since quarantine plan")
+        prepared.append((source, target, raw, digest, entry))
+
+    # No file moves until all paths, types, destination collisions, and source
+    # hashes in the complete manifest have passed preflight.
+    applied = []
+    # Validate every existing destination directory before creating any of
+    # them. This keeps a late permissive directory from leaving even an
+    # unnecessary partial directory tree behind.
+    if target_root.exists():
+        if target_root.is_symlink() or not target_root.is_dir():
+            raise ValueError("quarantine root must be a real directory")
+        if stat.S_IMODE(target_root.stat().st_mode) & 0o077:
+            raise PermissionError("quarantine root must be private (mode 0700 or stricter)")
+    for _, target, _, _, _ in prepared:
+        relative_parent = target.parent.relative_to(target_root)
+        parent = target_root
+        for component in relative_parent.parts:
+            parent = parent / component
+            if not parent.exists() and not parent.is_symlink():
+                continue
+            if parent.is_symlink() or not parent.is_dir():
+                raise ValueError("non-directory or symlink in quarantine destination")
+            if stat.S_IMODE(parent.stat().st_mode) & 0o077:
+                raise PermissionError("quarantine directories must be private (mode 0700 or stricter)")
+
+    target_root.mkdir(parents=True, mode=0o700, exist_ok=True)
+    if stat.S_IMODE(target_root.stat().st_mode) & 0o077:
+        raise PermissionError("quarantine root must be private (mode 0700 or stricter)")
+    # Prepare and validate every destination directory before the first link
+    # or source unlink.
+    for source, target, raw, digest, entry in prepared:
+        relative_parent = target.parent.relative_to(target_root)
+        parent = target_root
+        for component in relative_parent.parts:
+            parent = parent / component
+            try:
+                parent.mkdir(mode=0o700)
+            except FileExistsError:
+                if parent.is_symlink() or not parent.is_dir():
+                    raise ValueError("non-directory or symlink in quarantine destination")
+            if stat.S_IMODE(parent.stat().st_mode) & 0o077:
+                raise PermissionError("quarantine directories must be private (mode 0700 or stricter)")
+    for source, target, raw, digest, entry in prepared:
+        os.link(source, target, follow_symlinks=False)  # atomic no-overwrite create
+        with target.open("rb") as quarantined:
+            if not hmac.compare_digest(hashlib.sha256(quarantined.read()).hexdigest(), digest):
+                target.unlink()
+                raise OSError("quarantine source changed after preflight")
+        _fsync_directory(target.parent)
+        source.unlink()
+        _fsync_directory(source.parent)
+        applied.append({**entry, "status": "quarantined"})
+    return {**plan, "mode": "applied", "entries": applied}
+
+
+def _fsync_directory(path: pathlib.Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def _clean_hex64(value):
     if not isinstance(value, str):
         return None
@@ -328,30 +504,88 @@ def _b64url_decode(segment: str) -> bytes:
     return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
 
 
-_CRYSTAL_ASSERTION_LOCK = threading.Lock()
-_CRYSTAL_ASSERTION_SEEN: dict[str, int] = {}
+def _crystal_assertion_keys() -> dict[str, bytes]:
+    """Load a bounded-overlap keyring; retain legacy single-secret compatibility."""
+    try:
+        document = _request_json(CRYSTAL_ASSERTION_KEYS_PATH.read_bytes())
+    except FileNotFoundError:
+        try:
+            secret = CRYSTAL_ASSERTION_SECRET_PATH.read_bytes()
+        except OSError as error:
+            raise CrystalAssertionError("assertion secret unavailable") from error
+        if len(secret) < 32:
+            raise CrystalAssertionError("assertion secret too short")
+        return {"legacy": secret}
+    except (OSError, ValueError, RecursionError) as error:
+        raise CrystalAssertionError("assertion keyring unavailable or malformed") from error
+    if not isinstance(document, dict) or not isinstance(document.get("keys"), dict):
+        raise CrystalAssertionError("assertion keyring malformed")
+    keys = {}
+    for kid, encoded in document["keys"].items():
+        if not isinstance(kid, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", kid) or not isinstance(encoded, str):
+            raise CrystalAssertionError("assertion keyring malformed")
+        try:
+            key = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        except (ValueError, TypeError):
+            raise CrystalAssertionError("assertion keyring malformed") from None
+        if len(key) < 32:
+            raise CrystalAssertionError("assertion keyring contains a short key")
+        keys[kid] = key
+    if not keys:
+        raise CrystalAssertionError("assertion keyring has no keys")
+    return keys
+
+
+def _reserve_crystal_nonce(nonce: str, expires_at: int, now: int) -> None:
+    """Atomically reserve a nonce across threads, processes, and API restarts."""
+    CRYSTAL_ASSERTION_REPLAY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with contextlib.closing(sqlite3.connect(
+                CRYSTAL_ASSERTION_REPLAY_PATH, timeout=10, isolation_level=None)) as db:
+            db.execute("PRAGMA busy_timeout=10000")
+            db.execute("CREATE TABLE IF NOT EXISTS assertion_nonces (nonce TEXT PRIMARY KEY, retain_until INTEGER NOT NULL)")
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM assertion_nonces WHERE retain_until < ?", (now,))
+            db.execute("INSERT INTO assertion_nonces(nonce, retain_until) VALUES (?, ?)", (nonce, expires_at + CRYSTAL_ASSERTION_SKEW_S))
+            db.execute("COMMIT")
+    except sqlite3.IntegrityError:
+        try:
+            db.execute("ROLLBACK")
+        except (UnboundLocalError, sqlite3.Error):
+            pass
+        raise CrystalAssertionError("assertion replay") from None
+    except sqlite3.Error as error:
+        try:
+            db.execute("ROLLBACK")
+        except (UnboundLocalError, sqlite3.Error):
+            pass
+        raise CrystalAssertionError("assertion replay store unavailable") from error
 
 
 def verify_crystal_assertion(header_value, method: str, target: str,
                              body: bytes, now: int | None = None) -> str:
     """Verify the authd-issued crystal assertion; return owner_id or raise.
 
-    Fails closed on a missing secret, malformed or tampered assertion, method/
+    Fails closed on a missing keyring, malformed or tampered assertion, method/
     target/body mismatch, expired or over-long lifetime, future issue time, and
-    replayed nonce. The secret file is read per request so rotation on the
-    trusted side is a file swap; there is no fallback to a keyless read.
+    replayed nonce. The keyring is read per request. Rotate by adding a new
+    key as active while retaining the old key for at least the max assertion
+    lifetime plus skew, then remove the old key. There is no keyless fallback.
     """
     now = int(time.time()) if now is None else now
     if not isinstance(header_value, str) or "." not in header_value:
         raise CrystalAssertionError("missing or malformed assertion")
     payload_b64, signature_b64 = header_value.split(".", 1)
     try:
-        secret = CRYSTAL_ASSERTION_SECRET_PATH.read_bytes()
-    except OSError as error:
-        raise CrystalAssertionError("assertion secret unavailable") from error
-    if len(secret) < 32:
-        raise CrystalAssertionError("assertion secret too short")
+        keys = _crystal_assertion_keys()
+    except CrystalAssertionError:
+        raise
     try:
+        claims = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        kid = claims.get("kid", "legacy") if isinstance(claims, dict) else None
+        secret = keys.get(kid)
+        if secret is None:
+            raise CrystalAssertionError("unknown assertion key id")
         expected = hmac.new(secret, b"wm-crystal-assertion-v1." + payload_b64.encode("ascii"),
                             hashlib.sha256).digest()
         provided = _b64url_decode(signature_b64)
@@ -360,7 +594,8 @@ def verify_crystal_assertion(header_value, method: str, target: str,
     if not hmac.compare_digest(expected, provided):
         raise CrystalAssertionError("assertion signature mismatch")
     try:
-        claims = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        if not isinstance(claims, dict):
+            raise ValueError("claims must be object")
     except (ValueError, TypeError, RecursionError):
         raise CrystalAssertionError("malformed assertion payload") from None
     if not isinstance(claims, dict) or claims.get("v") != 1:
@@ -378,7 +613,7 @@ def verify_crystal_assertion(header_value, method: str, target: str,
         raise CrystalAssertionError("assertion body mismatch")
     iat = claims.get("iat")
     exp = claims.get("exp")
-    if not isinstance(iat, int) or not isinstance(exp, int):
+    if type(iat) is not int or type(exp) is not int or iat >= exp:
         raise CrystalAssertionError("invalid assertion lifetime")
     if exp < now - CRYSTAL_ASSERTION_SKEW_S:
         raise CrystalAssertionError("assertion expired")
@@ -389,13 +624,7 @@ def verify_crystal_assertion(header_value, method: str, target: str,
     nonce = claims.get("nonce")
     if not isinstance(nonce, str) or not re.fullmatch(r"[0-9a-f]{32}", nonce):
         raise CrystalAssertionError("invalid assertion nonce")
-    with _CRYSTAL_ASSERTION_LOCK:
-        for seen_nonce, seen_exp in list(_CRYSTAL_ASSERTION_SEEN.items()):
-            if seen_exp < now:
-                _CRYSTAL_ASSERTION_SEEN.pop(seen_nonce, None)
-        if nonce in _CRYSTAL_ASSERTION_SEEN:
-            raise CrystalAssertionError("assertion replay")
-        _CRYSTAL_ASSERTION_SEEN[nonce] = exp
+    _reserve_crystal_nonce(nonce, exp, now)
     return owner_id
 
 
@@ -844,8 +1073,9 @@ def info_payload() -> dict:
             "POST /mcp": "MCP surface: verify_bundle / verify_anchor / get_revocations",
             "POST /erc8004/validate": "Derive an outcome from the core verifier verdict and task binding; issuer policy is not evaluated and anchors are not required. Returns an Ed25519-signed canonical JSON statement; this service does not relay it onchain.",
             "POST /crystals": "store sealed Memory Crystal ciphertext (2 MiB max; ChaCha20-Poly1305 / AES-256-GCM)",
-            "GET /crystals/<id>": "fetch stored crystal keylessly using caller-supplied tenant-hash locator (not an authorization credential)",
-            "GET /crystals/lineage": "fetch DAG lineage for tenant (?tenant=<tenant_hash>)",
+            "GET /crystals/owner-locator": "authenticated bootstrap; return the owner locator assigned by the gateway registry",
+            "GET /crystals/<id>": "fetch a crystal in the authenticated owner's scope",
+            "GET /crystals/lineage": "fetch lineage in the authenticated owner's scope",
             "POST /notarize": "sign caller-supplied context/prompt digests and bounded claims; service does not observe the underlying context or execution",
             "GET /notarize/<digest>": "fetch stored caller-claim attestation (keyless)",
             "GET /openapi.json": "OpenAPI 3.1 contract",
@@ -909,13 +1139,16 @@ def info_payload() -> dict:
             "specification": "wm-crystal/1.0",
             "endpoints": {
                 "write": "POST /crystals (or PUT /crystals/<id>)",
-                "read": "GET /crystals/<id> (or /crystals/<tenant>/<id>)",
-                "lineage": "GET /crystals/lineage?tenant=<tenant_hash>",
+                "read": "GET /crystals/<id> (authenticated owner scope)",
+                "lineage": "GET /crystals/lineage (authenticated owner scope)",
             },
             "supported_ciphers": list(SUPPORTED_CIPHERS.keys()),
             "max_crystal_size_bytes": MAX_CRYSTAL_SIZE_BYTES,
-            "isolation": "filesystem paths are partitioned by caller-supplied tenant hash; there is no authenticated tenant isolation",
-            "access_model": "filesystem paths are partitioned by caller-supplied tenant hash; keyless reads have no authenticated tenant ownership check",
+            "isolation": "candidate routes derive storage scope from an authenticated gateway assertion mapped through the explicit owner registry; legacy ownerless data must be quarantined",
+            "access_model": "all crystal reads and writes require an authenticated owner assertion; GET /crystals/owner-locator returns the registry-mapped locator; no first-reader ownership claim",
+            "envelope_compatibility": "wm-crystal/1.0 envelope/AAD retained; new clients may bootstrap and use the registry locator; legacy public-salt locators are not automatically migrated",
+            "assertion_replay": "SQLite nonce ledger is persistent across API restarts and shared across worker processes; nonce is retained through exp plus clock-skew allowance",
+            "assertion_key_rotation": "keyring carries active_kid and keys; issuer uses active_kid, verifier accepts retained overlap keys until removed",
             "content_addressing": "sha256:hex(sha256(ciphertext))",
         },
         "limits": {
@@ -928,7 +1161,7 @@ def info_payload() -> dict:
                 "stores": "digest + verdict payload in memory only; never on disk",
             },
         },
-        "privacy": "POST /verify evaluates bundles in memory and does not store or log them. Persistent data also includes revocation documents, hosted anchors, payment receipts, caller-claim notarizations, sealed crystals, and the service signing key. Crystal reads are keyless and use a caller-supplied tenant-hash locator; this is not authenticated tenant isolation. ?cache=1 opts into an in-memory digest->verdict cache.",
+        "privacy": "POST /verify evaluates bundles in memory and does not store or log them. Persistent data also includes revocation documents, hosted anchors, payment receipts, caller-claim notarizations, sealed crystals, assertion replay nonces, and the service signing key. Crystal routes require an authenticated owner assertion; legacy ownerless crystals remain quarantined until an explicit operator mapping is established. ?cache=1 opts into an in-memory digest->verdict cache.",
     }
     try:
         did = signing_identity()[0]
@@ -957,6 +1190,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         for name, value in extra_headers:
             self.send_header(name, value)
+        if urllib.parse.urlsplit(self.path).path == "/crystals" or urllib.parse.urlsplit(self.path).path.startswith("/crystals/"):
+            self._send_crystal_cache_headers()
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -966,11 +1201,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         if etag:
             self.send_header("ETag", etag)
+        if urllib.parse.urlsplit(self.path).path == "/crystals" or urllib.parse.urlsplit(self.path).path.startswith("/crystals/"):
+            self._send_crystal_cache_headers()
+        elif etag:
             self.send_header("Cache-Control", "public, max-age=300")
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_crystal_cache_headers(self):
+        self.send_header("Cache-Control", "private, no-store")
+        self.send_header("Vary", "Authorization, X-Api-Key, X-Session-Pass, X-WM-Crystal-Assertion")
 
     def _read_body(self, max_limit: int = MAX_BODY) -> bytes | None:
         length = int(self.headers.get("Content-Length") or 0)
@@ -1003,11 +1245,12 @@ class Handler(BaseHTTPRequestHandler):
                 "spec": "wm-crystal/1.0",
                 "endpoints": {
                     "write": "POST /crystals (or PUT /crystals/<id>)",
-                    "read": "GET /crystals/<crystal_id> (with X-Tenant-Hash or ?tenant=)",
-                    "lineage": "GET /crystals/lineage?tenant=<tenant_hash>",
+                    "bootstrap": "GET /crystals/owner-locator (authenticated; returns explicit registry mapping)",
+                    "read": "GET /crystals/<crystal_id> (authenticated owner scope)",
+                    "lineage": "GET /crystals/lineage (authenticated owner scope)",
                 },
-                "pricing": "$0.02 USDC on Base mainnet (x402) for writes; reads keyless",
-                "access_model": "Reads are keyless and selected by a caller-supplied tenant-hash locator; the locator is not an authorization credential.",
+                "pricing": "$0.02 USDC on Base mainnet (x402) for writes; reads require an authenticated mapped owner",
+                "access_model": "all crystal reads and writes require an authenticated owner assertion; GET /crystals/owner-locator returns the registry-mapped locator; no first-reader ownership claim",
                 "hard_limit": f"{MAX_CRYSTAL_SIZE_BYTES} bytes (2 MiB)",
             })
         elif path.startswith("/crystals/"):
@@ -1817,6 +2060,13 @@ class Handler(BaseHTTPRequestHandler):
             self._send(401, {"error": "crystal access denied"})
             return
         scope = f"sha256:{owner_id}"
+
+        if segment == "owner-locator":
+            if self.command != "GET":
+                self._send(405, {"error": "method not allowed"})
+                return
+            self._send(200, {"owner_locator": scope, "specification": "wm-crystal/1.0"})
+            return
 
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         if segment == "lineage":

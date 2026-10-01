@@ -60,7 +60,15 @@ USAGE_LOCK = threading.Lock()
 
 BATCH_TOOL_DEF = {
     "name": "memory.search_batch",
+    "title": "Search memories in batch",
     "description": "Execute multiple memory search queries concurrently in a single turn. Unpacks up to 10 queries, searches the curated corpus, and returns consolidated results.",
+    "annotations": {
+        "title": "Search memories in batch",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
     "inputSchema": {
         "type": "object",
         "properties": {
@@ -83,15 +91,32 @@ TOKEN_HEADER = "Authorization"
 
 CRYSTAL_ASSERTION_HEADER = "X-WM-Crystal-Assertion"
 CRYSTAL_INTERNAL_SECRET_FILE = "crystal_assertion.secret"
+CRYSTAL_INTERNAL_KEYS_FILE = "crystal_assertion.keys.json"
+CRYSTAL_INTERNAL_KEYRING_MAX_BYTES = 65536
 CRYSTAL_OWNER_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _reject_duplicate_json_members(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object member")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value):
+    raise ValueError(f"non-finite JSON number is not allowed: {value}")
 
 def _crystal_b64(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
-def _make_crystal_assertion(secret: bytes, owner_id: str, method: str, target: str, body: bytes) -> str:
+def _make_crystal_assertion(secret: bytes, owner_id: str, method: str, target: str, body: bytes,
+                           kid: str = "legacy") -> str:
     now = int(time.time())
     claims = {
         "v": 1,
+        "kid": kid,
         "owner_id": owner_id,
         "method": method.upper(),
         "target": target,
@@ -103,6 +128,52 @@ def _make_crystal_assertion(secret: bytes, owner_id: str, method: str, target: s
     encoded = _crystal_b64(json.dumps(claims, sort_keys=True, separators=(",", ":")).encode("utf-8"))
     signature = _crystal_b64(hmac.new(secret, ("wm-crystal-assertion-v1." + encoded).encode("ascii"), hashlib.sha256).digest())
     return encoded + "." + signature
+
+
+def _load_crystal_issuer_key(state_dir: pathlib.Path) -> tuple[str, bytes]:
+    """Use the keyring active key; old single-secret deployments remain readable."""
+    keyring_path = state_dir / CRYSTAL_INTERNAL_KEYS_FILE
+    if keyring_path.exists():
+        raw = keyring_path.read_bytes()
+        if len(raw) > CRYSTAL_INTERNAL_KEYRING_MAX_BYTES:
+            raise ValueError("assertion keyring exceeds size limit")
+        try:
+            document = json.loads(
+                raw.decode("utf-8"),
+                object_pairs_hook=_reject_duplicate_json_members,
+                parse_constant=_reject_json_constant,
+            )
+        except (UnicodeDecodeError, ValueError, RecursionError) as error:
+            raise ValueError("assertion keyring is malformed") from error
+        if not isinstance(document, dict) or not isinstance(document.get("keys"), dict):
+            raise ValueError("assertion keyring must be an object with a keys object")
+        kid = document.get("active_kid")
+        key_map = document["keys"]
+        if not isinstance(kid, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", kid):
+            raise ValueError("assertion keyring has no valid active key")
+        decoded = {}
+        for key_id, encoded_key in key_map.items():
+            if not isinstance(key_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", key_id):
+                raise ValueError("assertion keyring contains an invalid key id")
+            if not isinstance(encoded_key, str):
+                raise ValueError("assertion keyring contains a non-string key")
+            try:
+                key = base64.b64decode(
+                    encoded_key + "=" * (-len(encoded_key) % 4),
+                    altchars=b"-_", validate=True,
+                )
+            except (ValueError, TypeError):
+                raise ValueError("assertion keyring contains invalid base64") from None
+            if len(key) < 32:
+                raise ValueError("assertion keyring contains a short key")
+            decoded[key_id] = key
+        if kid not in decoded:
+            raise ValueError("assertion keyring has no valid active key")
+        return kid, decoded[kid]
+    secret = (state_dir / CRYSTAL_INTERNAL_SECRET_FILE).read_bytes()
+    if len(secret) < 32:
+        raise ValueError("internal assertion secret is too short")
+    return "legacy", secret
 
 # Keyless discovery: MCP directory probes (Glama, mcp.so, Bazaar) and agents
 # browsing before they commit cannot send a Bearer key. These JSON-RPC methods
@@ -291,11 +362,21 @@ class Gateway(http.server.BaseHTTPRequestHandler):
         self.send_response(status)
         for name, value in extra_headers:
             self.send_header(name, value)
+        if self._is_crystal_path():
+            self.send_crystal_cache_headers()
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.keep_alive = True  # buffered + self-delimiting
         self.end_headers()
         self.wfile.write(body)
+
+    def _is_crystal_path(self):
+        path = urllib.parse.urlsplit(self.path).path
+        return path == "/crystals" or path.startswith("/crystals/")
+
+    def send_crystal_cache_headers(self):
+        self.send_header("Cache-Control", "private, no-store")
+        self.send_header("Vary", "Authorization, X-Api-Key, X-Session-Pass, X-WM-Crystal-Assertion")
 
     # ── x402 metered lane (testnet-first; mainnet off by default) ─────
     def x402_requirements(self, amount=None):
@@ -1285,11 +1366,9 @@ class Gateway(http.server.BaseHTTPRequestHandler):
                            "crystal-owner-unmapped", path=self.request_path())
                 return
             try:
-                secret = (self.server.state_dir / CRYSTAL_INTERNAL_SECRET_FILE).read_bytes()
-                if len(secret) < 32:
-                    raise ValueError("internal assertion secret is too short")
+                kid, secret = _load_crystal_issuer_key(self.server.state_dir)
                 crystal_assertion = _make_crystal_assertion(
-                    secret, owner_id, method, self.path, body or b""
+                    secret, owner_id, method, self.path, body or b"", kid=kid
                 )
             except (OSError, ValueError):
                 self.send_json(503, {"error": "crystal_internal_auth_unavailable"})
@@ -1423,8 +1502,12 @@ class Gateway(http.server.BaseHTTPRequestHandler):
                         return
                 self.send_response(up.status)
                 for k, v in up.headers.items():
-                    if k.lower() not in ("transfer-encoding", "connection", "content-length"):
+                    if k.lower() not in ("transfer-encoding", "connection", "content-length") and not (
+                        is_crystal_request and k.lower() in ("cache-control", "vary")
+                    ):
                         self.send_header(k, v)
+                if is_crystal_request:
+                    self.send_crystal_cache_headers()
                 for name, value in self.rate_limit_headers(key_info):
                     self.send_header(name, value)
                 if paid:
@@ -1519,6 +1602,8 @@ class Gateway(http.server.BaseHTTPRequestHandler):
                 return
             self.send_response(e.code)
             self.send_header("Content-Length", str(len(err_body)))
+            if self._is_crystal_path():
+                self.send_crystal_cache_headers()
             for name, value in self.rate_limit_headers(key_info):
                 self.send_header(name, value)
             self.keep_alive = True  # buffered + self-delimiting

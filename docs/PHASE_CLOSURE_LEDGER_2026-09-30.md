@@ -69,7 +69,8 @@ READY at https://www.whitemagic.dev/verify.
 
 ## Phase 5 — Independent relying-agent qualification
 
-Packet and bounded local demo only; no external operator contacted.
+Historical checkpoint: packet and bounded local dry demo only on September 30.
+The October 1 release and verified Mac return are recorded below.
 
 | Item | Evidence | Remaining gate |
 | --- | --- | --- |
@@ -110,14 +111,55 @@ Packet and bounded local demo only; no external operator contacted.
 
 - ERC per-check fields are intentionally `null` (compatibility change,
   human-approved); boolean-only clients must tolerate nulls.
-- Production runtime matches 13/14 installed Python modules of wheel 0.5.0;
-  only `_version.py` differs (recorded in staging evidence).
+- The pre-rollout production runtime matched 13/14 Python modules of wheel
+  0.5.0. After the approved rollout, all 14/14 match; independently
+  rechecked against the SHA-256-verified PyPI wheel on 2026-10-01.
 - The published 0.5.0 wheel predates the Phase 1–4 local changes; the local
   hardened consumer is not published.
 - `/info` text still describes the v1 keyless Crystal locator, which remains
   accurate for production until ownership enforcement lands.
-- Replay cache in the Phase 4C candidate is in-memory and per-process; no
-  multi-process replay reasoning yet.
+- The original Phase 4C candidate used an in-memory per-process replay cache.
+  The reviewed continuation uses persistent atomic SQLite reservations and
+  retains nonces through expiry plus skew; cross-process replay is tested.
 - The protected preview browser login limitation for the site is superseded
   by production rendered checks, but preview browser interaction itself was
   never exercised.
+
+## Review continuation — 2026-10-01
+
+Primary revalidated PR #11 head e9d44c8, current service source 10f36afc…
+and tooling 0.5.0; canonical deploy-check passed. Phase 4C existing harness
+passed 12/12, but independent expiry-boundary review reproduced assertion
+replay during the five-second acceptance grace window. This is an open
+candidate defect assigned a regression and repair, not a production change.
+The missing actual relying-agent action runner and Mac release under claim
+#456 are assigned separately. See REPAIR_STRATEGY_2026-10-01.md.
+
+## Independently verified repair progress — 2026-10-01
+
+- Native Mac packet source c255661 is released at Sangha #491, SHA-256
+  451eb4269c9c28e6b303bad7abf0f3ee024e869602578d0732a6d813fb27824c.
+  Preparation claim #456 released by #492. Clean extraction passed 13 action
+  regressions, the preserved eight-case dry demo, real fresh assessment
+  recording, duplicate refusal and expired-input refusal. Mac returned board #495: native macOS/arm64 Python 3.14.7 rehearsal PASS.
+  Primary verified all 23 evidence hashes and recomputed the stored assessment.
+  Shared fleet administration means independently administered adoption stays open.
+- Revised Crystal candidate passed 25 local and disposable Caddy TLS VPS
+  staging cases. Persistent expiry-skew replay protection, cross-process
+  reservation, rotation, owner bootstrap, synthetic quarantine and malformed
+  keyring refusal are covered. Canonical kit/production remain unchanged.
+- Lucas chose preserve and quarantine for the unknown-owner legacy row.
+  Actual protected migration and account assignment remain open.
+- Website receipt regressions 12/12, route checks and offline discovery
+  checks passed again. Public gate-lite runtime-version pin follow-up
+  0eeac42 passed 103 tests with 6 explicit runner skips and PR #7 CI.
+
+- Final integrated private L2 candidate ca79981 passed 130 tests with 6
+  explicit profile skips, plus the independent real Bubblewrap probe.
+  Private main received reviewed POSIX fallback 2a52027; no deployment follows
+  from either source update. Public PRs #6 and #7 merged after review and CI; main e14acbb.
+- Receipt final suite: 150 passed, 59 skipped, 13 subtests; Python/Rust parity
+  40/40 published, 21/21 0.5 candidate, 10/10 0.6 candidate and 21/21
+  verification receipts; hostile inputs 208 cases/416 runs, zero failures or
+  parity mismatches. Pilot source-import follow-up fixes preloaded-module
+  ambiguity without invalidating the immutable fresh-process Mac capture.

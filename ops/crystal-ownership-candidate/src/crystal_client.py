@@ -18,6 +18,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -61,6 +62,7 @@ def seal_crystal(
     parent_crystal_id: str | None = None,
     metadata_public: dict[str, Any] | None = None,
     cipher: str = "aes-256-gcm",
+    owner_locator: str | None = None,
 ) -> dict[str, Any]:
     """Client-side Zero-Knowledge seal of memory content into a Memory Crystal envelope."""
     if AESGCM is None:
@@ -82,7 +84,12 @@ def seal_crystal(
     if len(raw_plaintext) > MAX_SIZE:
         raise ValueError(f"plaintext size {len(raw_plaintext)} exceeds maximum {MAX_SIZE} bytes")
 
-    tenant_hash = compute_tenant_hash(tenant_id)
+    if owner_locator is not None:
+        if not isinstance(owner_locator, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", owner_locator):
+            raise ValueError("owner_locator must be sha256:<64 lowercase hex> from authenticated bootstrap")
+        tenant_hash = owner_locator
+    else:
+        tenant_hash = compute_tenant_hash(tenant_id)
     created_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     aad = build_aad(cipher_norm, tenant_hash, parent_crystal_id, created_at)
 
@@ -184,17 +191,16 @@ def push_crystal(
 
 def pull_crystal(
     crystal_id: str,
-    tenant_id: str,
+    auth_token: str,
     api_url: str = "https://api.whitemagic.dev",
 ) -> dict[str, Any]:
-    """Fetch stored Memory Crystal (keyless read via tenant hash)."""
-    tenant_hash = compute_tenant_hash(tenant_id)
+    """Fetch a crystal from the authenticated owner's server-derived scope."""
     clean_id = crystal_id.replace("sha256:", "").strip()
-    target = f"{api_url.rstrip('/')}/crystals/{clean_id}?tenant={urllib.parse.quote(tenant_hash)}"
+    target = f"{api_url.rstrip('/')}/crystals/{clean_id}"
 
     req = urllib.request.Request(
         target,
-        headers={"User-Agent": "whitemagic-crystal-client/1.0"},
+        headers={"User-Agent": "whitemagic-crystal-client/1.0", "Authorization": f"Bearer {auth_token}"},
         method="GET",
     )
     try:
@@ -206,25 +212,43 @@ def pull_crystal(
 
 
 def pull_lineage(
-    tenant_id: str,
+    auth_token: str,
     api_url: str = "https://api.whitemagic.dev",
 ) -> list[dict[str, Any]]:
-    """Fetch DAG lineage for tenant crystals (keyless read)."""
-    tenant_hash = compute_tenant_hash(tenant_id)
-    target = f"{api_url.rstrip('/')}/crystals/lineage?tenant={urllib.parse.quote(tenant_hash)}"
+    """Fetch DAG lineage for the authenticated owner."""
+    target = f"{api_url.rstrip('/')}/crystals/lineage"
 
     req = urllib.request.Request(
         target,
-        headers={"User-Agent": "whitemagic-crystal-client/1.0"},
+        headers={"User-Agent": "whitemagic-crystal-client/1.0", "Authorization": f"Bearer {auth_token}"},
         method="GET",
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as res:
             doc = json.loads(res.read().decode("utf-8"))
-            return doc.get("crystals", [])
     except urllib.error.HTTPError as e:
         err_msg = e.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"HTTP {e.code}: {err_msg}") from e
+    return doc.get("crystals", [])
+
+
+def fetch_owner_locator(auth_token: str, api_url: str = "https://api.whitemagic.dev") -> str:
+    """Ask the authenticated gateway for its explicit registry-mapped locator."""
+    req = urllib.request.Request(
+        api_url.rstrip("/") + "/crystals/owner-locator",
+        headers={"Authorization": f"Bearer {auth_token}", "User-Agent": "whitemagic-crystal-client/1.0"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            doc = json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {e.code}: {err_msg}") from e
+    locator = doc.get("owner_locator") if isinstance(doc, dict) else None
+    if not isinstance(locator, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", locator):
+        raise RuntimeError("gateway returned an invalid owner locator")
+    return locator
 
 
 def main():
@@ -240,7 +264,8 @@ def main():
     seal_cmd.add_argument("--content", help="Plaintext content string")
     seal_cmd.add_argument("--file", help="Path to plaintext file")
     seal_cmd.add_argument("--key", help="Hex-encoded 32-byte key or key file path", required=True)
-    seal_cmd.add_argument("--tenant", help="Tenant ID string", required=True)
+    seal_cmd.add_argument("--tenant", help="Legacy v1 tenant ID (uses public-salt locator)")
+    seal_cmd.add_argument("--owner-locator", help="Authenticated locator from owner-locator command")
     seal_cmd.add_argument("--parent", help="Parent crystal ID (for chain DAG)", default=None)
     seal_cmd.add_argument("--cipher", choices=["AES-256-GCM", "ChaCha20-Poly1305"], default="AES-256-GCM")
     seal_cmd.add_argument("--out", help="Output JSON envelope file")
@@ -257,16 +282,20 @@ def main():
     push_cmd.add_argument("--token", help="Bearer API key or session pass token", required=True)
 
     # pull
-    pull_cmd = sub.add_parser("pull", help="Keylessly pull crystal envelope from remote gateway")
+    pull_cmd = sub.add_parser("pull", help="Pull a crystal from the authenticated owner's scope")
     pull_cmd.add_argument("--id", help="Crystal ID (sha256:... or hex)", required=True)
-    pull_cmd.add_argument("--tenant", help="Tenant ID", required=True)
+    pull_cmd.add_argument("--token", help="Bearer API key or session pass", required=True)
     pull_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
     pull_cmd.add_argument("--out", help="Save pulled envelope to JSON file")
 
     # lineage
     lineage_cmd = sub.add_parser("lineage", help="Fetch crystal lineage DAG for tenant")
-    lineage_cmd.add_argument("--tenant", help="Tenant ID", required=True)
+    lineage_cmd.add_argument("--token", help="Bearer API key or session pass", required=True)
     lineage_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
+
+    locator_cmd = sub.add_parser("owner-locator", help="Fetch authenticated server-assigned owner locator")
+    locator_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
+    locator_cmd.add_argument("--token", help="Bearer API key or session pass", required=True)
 
     args = ap.parse_args()
 
@@ -300,12 +329,16 @@ def main():
             content = args.content
         else:
             content = sys.stdin.read()
+        locator = args.owner_locator
+        if not args.tenant and not locator:
+            raise ValueError("provide --owner-locator for mapped ownership or --tenant for legacy v1 sealing")
         envelope = seal_crystal(
             content=content,
             key=key,
-            tenant_id=args.tenant,
+            tenant_id=args.tenant or "owner-locator",
             parent_crystal_id=args.parent,
             cipher=args.cipher,
+            owner_locator=locator,
         )
         out_json = json.dumps(envelope, indent=2)
         if args.out:
@@ -329,7 +362,7 @@ def main():
         print(json.dumps(res, indent=2))
 
     elif args.command == "pull":
-        doc = pull_crystal(args.id, args.tenant, api_url=args.api)
+        doc = pull_crystal(args.id, args.token, api_url=args.api)
         out_json = json.dumps(doc, indent=2)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f:
@@ -339,8 +372,11 @@ def main():
             print(out_json)
 
     elif args.command == "lineage":
-        items = pull_lineage(args.tenant, api_url=args.api)
+        items = pull_lineage(args.token, api_url=args.api)
         print(json.dumps(items, indent=2))
+
+    elif args.command == "owner-locator":
+        print(fetch_owner_locator(args.token, api_url=args.api))
 
     else:
         ap.print_help()

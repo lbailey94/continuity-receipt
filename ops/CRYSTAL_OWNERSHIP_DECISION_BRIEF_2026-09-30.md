@@ -1,119 +1,127 @@
-# Memory Crystal ownership — production decision brief (Phase 4C)
+# Memory Crystal ownership — Phase 4C decision and review brief
 
-**Status: decision brief for Lucas. No implementation is implied until the
-decisions below are recorded.** Companion documents:
-`CRYSTAL_OWNERSHIP_CONTRACT_2026-09-30.md` (the proposed contract) and
-`CRYSTAL_OWNERSHIP_EVIDENCE_2026-09-30.md` (the local candidate and its 12
-loopback cases). The candidate is isolated; the canonical kit and production
-are unchanged.
+**Status: isolated candidate updated; production decisions and rollout remain
+open.** This brief records the selected disposition for the known ownerless
+legacy envelope and the concrete candidate boundary. Companion evidence:
+`CRYSTAL_OWNERSHIP_EVIDENCE_2026-09-30.md`. No canonical or live service
+change has been made.
 
-## Why this is ready to decide
+## Recorded decision: legacy envelope
 
-- The gap is real and reproduced: keyless `GET /crystals/<id>` returns
-  ciphertext and metadata to anyone who knows the locator
-  (`ops/test_crystal_access_boundary.py`).
-- A concrete contract and a working local candidate exist; the remaining
-  work is decisions (this brief) plus implementation, staging, and rollout.
-- Production exposure today is small: a read-only inventory found **one
-  tenant directory and one `.crystal` envelope (558 bytes)** with no owner
-  mapping. There is no external reader population to break that we know of.
+The owner is **unknown**. Preserve the envelope and quarantine it from public
+reads and lineage until an operator establishes an owner through an explicit,
+reviewed mapping process. Do not delete it, expose it, or infer ownership
+from its locator, its ciphertext ID, or the first authenticated reader.
 
-## Decisions requested
+The candidate CLI defaults to writing a hash-bearing dry-run plan. Applying a
+plan requires an explicit `--apply`, rechecks every planned byte hash before
+moving any file, and stores the exact bytes under a separate quarantine root
+that the Crystal API does not search. For a store with assigned owners, each
+verified ID must be supplied with a repeated `--registered-owner-id` option;
+only those exact `sha256:<owner_id>` locators are excluded. This has been
+tested with temporary synthetic data only. A production manifest has not
+been generated and no live data has been accessed.
 
-### D1 — Authoritative principal and owner mapping
+## Candidate contract choices
 
-How an authenticated caller resolves to an owner id.
+### Authenticated principal and owner mapping
 
-- **Recommended:** the gateway key registry (`keys.json`) gains an
-  `"owner_id"` field per key: 64 lowercase hex characters, randomly assigned
-  per account, never derived from email, tenant name, key label, or payer id.
-  OAuth token records map to an owner through the same registry (fail closed
-  if unmapped). Session passes resolve to the issuing account's owner —
-  today the pass carries a payer id, so passes stay unmapped and fail closed
-  until a payer→owner mapping exists. x402 payment never selects an owner.
-- **Consequence:** existing keys keep working for other routes but Crystal
-  routes return 403 until the owner assignment is made; assignment is a
-  one-line registry edit per account.
+The candidate looks up a 64-character lowercase `owner_id` on the
+authenticated gateway key record. It does not derive an owner from a token,
+key label, payer, IP address, request body, ciphertext, or tenant locator.
+Unmapped principals fail closed. Session passes and OAuth records still need
+explicit registry mappings before Crystal access can be enabled for them.
+Payment authorizes billing only and never claims ownership.
 
-### D2 — Internal authd → API channel
+### Internal assertion and key rotation
 
-- **Recommended:** keep the signed assertion from the candidate (HMAC over
-  version, owner, method, exact path+query, body digest, `iat`/`exp`, nonce)
-  with the secret in a `0600` file on both sides. Rotation is a file swap;
-  no client restart needed. A Unix socket or mTLS remains an option later if
-  the topology changes.
-- **Consequence:** no systemd/socket changes; the secret file must be
-  provisioned on the VPS and included in backups.
+The candidate HMAC assertion binds `kid`, owner ID, method, exact path and
+query, body digest, lifetime, and nonce. The API uses a persistent SQLite
+nonce ledger so replay rejection survives workers and restarts. Keyring
+rotation uses a bounded overlap: install a new active key while retaining the
+old verifier key for at least the maximum assertion lifetime plus skew, switch
+the issuer, then remove the old key. Actual file permissions, secret
+provisioning, backup, and rotation must be rehearsed on the target host.
 
-### D3 — Owner locator
+### Locator and envelope versioning
 
-- **Recommended:** locator = `sha256:<owner_id>`. The existing v1 client-side
-  public-salt tenant hash becomes legacy-only; new writes bind the locator
-  into AEAD AAD.
-- **Consequence:** a locator change requires re-sealing data (AAD binding),
-  so treat `owner_id` as stable. Do not reuse the public-salt scheme for new
-  owners.
+The candidate owner locator is `sha256:<owner_id>`. An authenticated
+`GET /crystals/owner-locator` bootstrap returns only the locator assigned by
+the explicit gateway registry. The candidate client offers
+`owner-locator --token ...`, `seal --owner-locator ...`, and authenticated
+token-based pulls and lineage.
 
-### D4 — Legacy data disposition (the one existing envelope)
+For this enforcement candidate, retain the `wm-crystal/1.0` envelope shape
+and existing AAD rules. New clients can use the registry-assigned locator in
+the existing locator field. This is an access-control transition with a
+client behavior change, not a claim that a new `wm-crystal/2.0` wire format
+has been defined. Legacy public-salt locators are not translated or assigned
+to an owner automatically. A future 2.0 format should have its own reviewed
+specification and migration plan.
 
-- **Recommended:** quarantine: remove it from all API reads/lineage until an
-  owner is established through a process stronger than knowing its locator;
-  keep a protected backup copy. No first-reader claims.
-- **Question for Lucas:** is that envelope known internal test data? If yes,
-  the cleanest disposition is export-to-backup then remove; if it might be
-  someone's data, quarantine it and decide later.
+## Candidate evidence status
 
-### D5 — Versioning and client compatibility
+- [x] Synthetic two-owner upload/read/lineage and foreign-write refusal.
+- [x] Unmapped principal, forged internal headers, selector mismatch, and
+  direct-to-API assertion checks.
+- [x] Lifetime ordering/type validation, exact expiry-skew handling,
+  method/target/body binding, and one-time nonce tests.
+- [x] Replay persistence across module reload, concurrent reservation, and
+  key overlap/revocation behavior.
+- [x] Authenticated locator bootstrap and client envelope sealing.
+- [x] Synthetic legacy dry-run/apply quarantine, byte-hash preservation,
+  owner-read/lineage isolation, whole-manifest, duplicate-entry, and
+  destination-permission preflight.
+- [x] Current local 25-case harness includes private/no-store and credential
+  variation checks for Crystal success, denial, uniform miss, and 304 paths.
+- [x] Prior 22-case transient VPS staging used disposable state; it predates
+  the final quarantine/cache-header fixes. The primary then passed the final
+  25-case matrix through disposable Caddy TLS on the VPS; see
+  `ops/review-evidence/crystal-caddy-vps-staging-2026-10-01.txt`.
+- [x] Read-only parity checks confirmed current Caddy and both API units
+  match the hosted-kit source; no live route was changed.
+- [x] Canonical source/config patches apply cleanly to temporary copies;
+  source outputs match candidate byte-for-byte.
+- [x] Disposable backup/restore and assertion key-overlap/retirement
+  rehearsal restored state hashes and replay marker.
+- [x] Disposable target-host Caddy TLS matrix, 25 cases.
+- [ ] Actual production-domain post-cutover TLS checks after approval.
+- [ ] Review root's protected one-item production dry-run manifest, then
+  preserve/quarantine the ownerless envelope. Manifest:
+  `/root/continuity-rollouts/crystal-review-qjI5Ho5P/legacy-dry-run.json`,
+  SHA-256 `de5f53492f552672db0c3225c305ff67c8fcd4e610a681c12ca6c72e9ab5081c`;
+  source-byte SHA-256
+  `f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae`.
+  No apply has occurred.
+- [ ] Canonical kit, public `/info`, docs, client, discovery copy, and gateway
+  keyless route changes in a separate reviewed PR.
+- [ ] Production keyring/owner mapping, host rollback rehearsal, deployment,
+  and post-deployment verification.
 
-- **Recommended staging:** Stage A (same release as enforcement): owner-bound
-  access on the existing `wm-crystal/1.0` envelope, keyless `/crystals/*`
-  removed from the gateway, `/info` and docs updated, no `wm-crystal/2.0`
-  yet. Stage B (separate, later): `wm-crystal/2.0` envelope that binds the
-  server-assigned locator in AAD, plus a client owner-locator bootstrap and
-  rotation/recovery tests.
-- **Alternative:** go straight to 2.0. Slower, more client surface, no
-  known reader population that justifies it first.
-- **Consequence:** Stage A is a breaking access change for any unauthenticated
-  reader; we know of none, but the release note must say so explicitly.
+## Recommended next sequence
 
-### D6 — Ops, copy, and rollout mechanics
+1. Review the candidate source, client, harness, and quarantine helper as one
+   change; independently rerun the 25-case harness, including malformed
+   gateway keyring refusal and restoration, and the actual
+   cross-process replay race and process-restart probe.
+2. Check the target gateway's principal types, Caddy route normalization, and
+   API loopback boundary. Decide which account records receive explicit owner
+   IDs; leave unmapped credentials denied.
+3. Complete the public TLS/Caddy matrix and review root's protected
+   production quarantine dry-run manifest without printing crystal contents.
+   Apply only after each source hash and protected destination are reviewed.
+4. Update canonical clients and public copy, remove the gateway's keyless
+   Crystal paths, run production rollback checks, then request explicit
+   release/deployment approval.
 
-- Update `/info`, `RECEIPT_API.md`, and discovery copy; remove `/crystals/*`
-  from the gateway's keyless paths; keep audit events for 403/404 outcomes;
-  watch assertion-failure rates after rollout.
-- Reuse the reviewed deployment pattern: protected backup, narrow delta,
-  restart only receipt-api/authd, live checks, rollback on failure.
-- `/info` currently still describes keyless locator reads; it must not after
-  rollout.
+The candidate does not authorize a merge, release, deployment, or actual
+production quarantine. It is ready for independent source review, not
+production rollout.
 
-### D7 — Evidence required before rollout (checklist)
+## Final primary review continuation
 
-- [x] Local: two-owner upload/read/lineage, forged-header stripping, replay,
-  lifetime and binding checks, foreign-envelope write refusal (12/12).
-- [ ] Local: owner key rotation/recovery test; migration/quarantine test for
-  the ownerless row.
-- [ ] Staging on the VPS: the changed routes under the production unit
-  hardening, plus a repeat of forged-header/replay through Caddy (exact
-  path+query binding must be verified against any rewrite rules).
-- [ ] Prod readiness: owner ids assigned to internal keys; assertion secret
-  provisioned and backed up; `/info` copy updated; keyless path removed;
-  rollback rehearsal.
-- [ ] Post-deploy double-check: live 403 keyless, owner read works, second
-  owner 404, audit events present; then monitor for a day.
-
-## Proposed sequencing if approved
-
-1. Record D1–D6 decisions here (one line each is enough).
-2. Codex (or opencode) implements D1–D3 + D6 in the canonical kit, adds the
-D7 missing tests, and re-runs the full suites.
-3. Primary review of the diff; staging matrix on the VPS.
-4. D4 legacy disposition executed by the primary with a protected backup.
-5. Rollout with the reviewed deploy pattern, then the post-deploy checks.
-6. Stage B (2.0 + client bootstrap + rotation exercise) as a separate change.
-
-## What we are NOT deciding tonight
-
-- `wm-crystal/2.0` wire details (Stage B), external-evidence references,
-  issuer-policy/anchors, and independent adoption keep their own gates.
-- No package publication is required for Phase 4C; this is hosted-lane
-  source, not a spec change.
+Final source/config pins are in `ops/review-evidence/crystal-final-pins-2026-10-01.json`.
+The canonical source patch preserves unrelated MCP batch title/annotations.
+The production registry has three credential rows and zero owner mappings;
+all existing Crystal credentials will be denied until explicit mappings are
+established. Production cutover/quarantine are not performed by staging.

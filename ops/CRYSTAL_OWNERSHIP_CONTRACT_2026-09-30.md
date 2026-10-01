@@ -80,3 +80,37 @@ found one tenant directory and one `.crystal` envelope, 558 serialized bytes.
 No owner mapping was established or data classification inferred. Any legacy
 cutover therefore needs an explicit owner/migration decision for that row;
 knowing its locator must not confer ownership.
+
+## Reviewed continuation — 2026-10-01
+
+An isolated implementation candidate now exists; canonical kit and live
+service remain unchanged. The initial 12-case candidate had an expiry-skew
+replay bug. Primary review reproduced it, then Luna implemented persistent
+SQLite reservations through the complete acceptance window, strict lifetime
+ordering, keyring overlap/revocation, authenticated locator bootstrap and
+client changes, and dry-run/apply quarantine. A further malformed gateway
+keyring issue found in primary review is fixed with a regression.
+
+Primary independently passed the earlier 22-case harness locally and on the
+VPS under a disposable hardened unit with synthetic owners/state. Tests
+include separate-process nonce races and replay after restart. The staging
+files/processes were removed afterward. API candidate hash a492f5f347c560be4d0bdd44b6f5852060b3444eab5f62358891683adee973a9;
+authd candidate hash 0b3eaaf9ea309620db23d0ce21af69aaf05be9f0b85297bdf01fa5697aa77b3b.
+
+The current candidate retains the wm-crystal/1.0 envelope/AAD shape while
+changing the authenticated access contract and adding owner-locator
+bootstrap. This is a deliberate staged alternative to the original v2
+proposal, not an implicit v2 specification. Published core semantics are
+unchanged. No automatic locator-to-owner assignment is permitted.
+
+Lucas selected preserve-and-quarantine for the owner-unknown production
+envelope. This is a recorded migration decision, not evidence that the live
+row has been moved. Live principal assignment, protected manifest/backup,
+rollback, canonical config/docs and final rollout approval remain gates.
+
+The final candidate adds whole-manifest permission/duplicate preflight and
+private/no-store cache policy for owner-bound responses. Primary passed its
+25-case matrix through disposable Caddy TLS on the VPS. Exact final hashes
+are recorded in `ops/review-evidence/crystal-final-pins-2026-10-01.json`; those
+supersede the earlier 22-case source hashes above. Production has zero mapped
+owner IDs; denial until explicit assignment is the selected fail-closed path.

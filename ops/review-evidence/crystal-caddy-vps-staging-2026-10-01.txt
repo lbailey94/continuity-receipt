@@ -1,0 +1,36 @@
+Running as unit: crystal-review-yygzmHBi.service
+test_01_owner_write_then_read_roundtrip (__main__.OwnershipCandidateCaddyTLS.test_01_owner_write_then_read_roundtrip) ... ok
+test_02_keyless_read_fails_closed (__main__.OwnershipCandidateCaddyTLS.test_02_keyless_read_fails_closed) ... ok
+test_03_unmapped_key_denied (__main__.OwnershipCandidateCaddyTLS.test_03_unmapped_key_denied) ... ok
+test_04_cross_owner_read_uniform_miss (__main__.OwnershipCandidateCaddyTLS.test_04_cross_owner_read_uniform_miss) ... ok
+test_05_spoofed_internal_headers_stripped (__main__.OwnershipCandidateCaddyTLS.test_05_spoofed_internal_headers_stripped) ... ok
+test_06_tenant_selector_mismatch_uniform_miss (__main__.OwnershipCandidateCaddyTLS.test_06_tenant_selector_mismatch_uniform_miss) ... ok
+test_07_owner_cannot_write_foreign_envelope (__main__.OwnershipCandidateCaddyTLS.test_07_owner_cannot_write_foreign_envelope) ... ok
+test_08_lineage_scoped_to_owner (__main__.OwnershipCandidateCaddyTLS.test_08_lineage_scoped_to_owner) ... ok
+test_09_direct_api_requires_valid_assertion (__main__.OwnershipCandidateCaddyTLS.test_09_direct_api_requires_valid_assertion) ... ok
+test_10_direct_api_accepts_valid_assertion_then_rejects_replay (__main__.OwnershipCandidateCaddyTLS.test_10_direct_api_accepts_valid_assertion_then_rejects_replay) ... ok
+test_11_lifetime_bounds (__main__.OwnershipCandidateCaddyTLS.test_11_lifetime_bounds) ... ok
+test_12_method_target_body_binding (__main__.OwnershipCandidateCaddyTLS.test_12_method_target_body_binding) ... ok
+test_13_replay_persists_across_module_reload_and_skew_window (__main__.OwnershipCandidateCaddyTLS.test_13_replay_persists_across_module_reload_and_skew_window) ... ok
+test_14_cross_process_replay_race_and_restart (__main__.OwnershipCandidateCaddyTLS.test_14_cross_process_replay_race_and_restart) ... ok
+test_15_lifetime_ordering_and_non_bool_integers (__main__.OwnershipCandidateCaddyTLS.test_15_lifetime_ordering_and_non_bool_integers) ... ok
+test_16_concurrent_replay_reservation_is_single_use (__main__.OwnershipCandidateCaddyTLS.test_16_concurrent_replay_reservation_is_single_use) ... ok
+test_17_assertion_key_rotation_overlap_and_revocation (__main__.OwnershipCandidateCaddyTLS.test_17_assertion_key_rotation_overlap_and_revocation) ... ok
+test_18_owner_locator_bootstrap_and_client_sealing (__main__.OwnershipCandidateCaddyTLS.test_18_owner_locator_bootstrap_and_client_sealing) ... ok
+test_19_ownerless_legacy_locator_is_quarantined (__main__.OwnershipCandidateCaddyTLS.test_19_ownerless_legacy_locator_is_quarantined) ... ok
+test_20_quarantine_manifest_preflights_all_sources (__main__.OwnershipCandidateCaddyTLS.test_20_quarantine_manifest_preflights_all_sources) ... ok
+test_21_quarantine_permissions_preflight_prevents_partial_moves (__main__.OwnershipCandidateCaddyTLS.test_21_quarantine_permissions_preflight_prevents_partial_moves) ... ok
+test_22_quarantine_manifest_rejects_duplicate_source_before_moves (__main__.OwnershipCandidateCaddyTLS.test_22_quarantine_manifest_rejects_duplicate_source_before_moves) ... ok
+test_23_candidate_info_has_no_stale_keyless_crystal_claims (__main__.OwnershipCandidateCaddyTLS.test_23_candidate_info_has_no_stale_keyless_crystal_claims) ... ok
+test_24_crystal_responses_are_never_shared_cached (__main__.OwnershipCandidateCaddyTLS.test_24_crystal_responses_are_never_shared_cached) ... ok
+test_malformed_gateway_keyring_fails_closed_and_is_restored (__main__.OwnershipCandidateCaddyTLS.test_malformed_gateway_keyring_fails_closed_and_is_restored) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 2.160s
+
+OK
+Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+Service runtime: 2.310s
+CPU time consumed: 1.060s
+Memory peak: 110.9M (swap: 0B)

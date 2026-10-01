@@ -1,0 +1,14 @@
+{
+  "result": "LOCAL_SYNTHETIC_REHEARSAL_PASS",
+  "source_snapshot": {
+    "source_commit": "c255661dc07ed6c33c8dc16a38b74f05cea81fdc",
+    "runtime_hardening_commit": "e03a2686ccc94b4f49d8deef711e8d726ecf258c",
+    "distribution_version_label": "0.5.0",
+    "scope": "Reviewed source snapshot; hardened consumer is not the published 0.5.0 wheel; deterministic synthetic test keys are public; no independence claim"
+  },
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+  "cryptography": "50.0.1",
+  "caller_time_utc": "2026-10-01T04:40:02Z",
+  "limitations": "Synthetic public test keys; caller time is not trusted; local filesystem action only; second-host and administrative independence require actual operator facts"
+}
