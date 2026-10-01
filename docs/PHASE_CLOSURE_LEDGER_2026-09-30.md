@@ -64,8 +64,8 @@ READY at https://www.whitemagic.dev/verify.
 | Staging qualification | 83-check HTTP matrix under a transient hardened systemd unit; disposable source/package rollback rehearsal; all staging processes and directories removed | None; completed before rollout |
 | Production rollout | Explicit human approval; `deploy_reviewed_hosted.sh` with hash checks, protected backup `/root/continuity-rollouts/20260930.7oCqdj6v`, signing key byte-identical before/after; post-deployment 82 loopback + 13 authenticated public + 4 live ERC checks passed; live `/info` reports 0.5.0 | Paid settlement has only been exercised against loopback stubs; no real x402 payment has been made |
 | Package pin/provisioning (`hosted-package-pin.patch`) | Patch reconstruction and `bash -n` passed; deployment instead installed the PyPI-hash-verified 0.5.0 wheel with `--no-index --no-deps`; canonical provision recipe/README synchronized and `deploy-check.sh --quiet` clean | The standalone patch remains unapplied — keep or retire as explicit review |
-| Crystal lane: caller-supplied tenant-hash locator is not an authorization credential; keyless reads disclose ciphertext/metadata and authd forwards no owner principal | Baseline characterization (opt-in) reproduced unauthenticated ciphertext/lineage retrieval for a known locator while outsider AEAD decryption failed; primary reran it; read-only production inventory found one envelope (no owner mapping inferred) | **Open.** Ownership enforcement and migration are unimplemented in the canonical kit and production |
-| Phase 4C ownership contract and local candidate (prepared 2026-09-30 after the original thread was interrupted) | Contract `ops/CRYSTAL_OWNERSHIP_CONTRACT_2026-09-30.md`; candidate in `ops/crystal-ownership-candidate/src/` (+56/−3 authd, +129/−19 receipt-api) with 12/12 loopback cases: write/read roundtrip, keyless and unmapped-key fail-closed, cross-owner uniform 404, spoofed header stripping, foreign selector miss, foreign-envelope write 403, owner-scoped lineage, direct-API 401s, replay rejection, lifetime bounds, method/target/body binding. See `ops/CRYSTAL_OWNERSHIP_EVIDENCE_2026-09-30.md` | **Review pending and every production gate open:** principal registry/owner assignment, `wm-crystal/2.0` versioning + client bootstrap, legacy migration/quarantine (one existing production envelope), `/info`/docs copy, channel hardening (mTLS/Unix socket), key rotation tests, staging and deployment authorization |
+| Crystal lane: caller-supplied tenant-hash locator is not an authorization credential; keyless reads disclose ciphertext/metadata and authd forwards no owner principal | Baseline characterization (opt-in) reproduced unauthenticated ciphertext/lineage retrieval for a known locator while outsider AEAD decryption failed; primary reran it; read-only production inventory found one envelope (no owner mapping inferred) | Superseded by the approved October 1 ownership rollout below; explicit customer owner assignment remains open |
+| Phase 4C ownership contract and local candidate (prepared 2026-09-30 after the original thread was interrupted) | Contract `ops/CRYSTAL_OWNERSHIP_CONTRACT_2026-09-30.md`; candidate in `ops/crystal-ownership-candidate/src/` (+56/−3 authd, +129/−19 receipt-api) with 12/12 loopback cases: write/read roundtrip, keyless and unmapped-key fail-closed, cross-owner uniform 404, spoofed header stripping, foreign selector miss, foreign-envelope write 403, owner-scoped lineage, direct-API 401s, replay rejection, lifetime bounds, method/target/body binding. See `ops/CRYSTAL_OWNERSHIP_EVIDENCE_2026-09-30.md` | Historical 12-case preparation superseded by 25-case local/Caddy TLS staging, persistent replay, authenticated client bootstrap, key rotation/restore rehearsal and approved October 1 deployment. Envelope remains `wm-crystal/1.0`; no v2 migration. Explicit owner assignment remains open |
 
 ## Phase 5 — Independent relying-agent qualification
 
@@ -92,20 +92,18 @@ The October 1 release and verified Mac return are recorded below.
 
 1. External relying-agent run with a real next-action decision on an
    independently administered host (Phase 5). No fabrication of independence.
-2. Second-host producer capture and independent review (Phase 5, mac packet;
-   claim #456).
-3. Crystal ownership enforcement, principal registry, migration/quarantine,
-   `/info` and docs reconciliation, client bootstrap, staging and rollout
-   (Phase 4C). Local candidate evidence only.
+2. Private L2 W2 host capture: revised packet released at Sangha #497; Mac operator run and primary review remain open. Native Python relying-agent Mac capture is verified; claim #456 is closed.
+3. Crystal customer owner assignment: approved ownership enforcement and protected quarantine are deployed. Preserve ciphertext until independently established ownership permits an explicit mapping and reviewed restoration; no automatic claim.
 4. External-evidence wire decisions and only then a versioned field
    definition (Phase 6).
 5. W3C correspondence and GitHub `v0.5.0` release-entry decisions (human
    review).
 6. Any future publication: Phases 1–4 local changes are not in a published
    package; the next package version is an explicit human decision.
-7. Paid settlement lane: no real x402 payment has been made; settlement,
-   replay, and paid-response binding were exercised only against loopback
-   stubs.
+7. Paid settlement lane: this repair pass made no real x402 transaction.
+   Settlement/replay/paid-response regressions used loopback stubs. The site
+   retains its separately sourced public payment fixture; this repair pass
+   does not infer delivery or chain finality from that signed fixture.
 
 ## Known blemishes and accepted limitations
 
@@ -116,8 +114,7 @@ The October 1 release and verified Mac return are recorded below.
   rechecked against the SHA-256-verified PyPI wheel on 2026-10-01.
 - The published 0.5.0 wheel predates the Phase 1–4 local changes; the local
   hardened consumer is not published.
-- `/info` text still describes the v1 keyless Crystal locator, which remains
-  accurate for production until ownership enforcement lands.
+- Crystal `/info` now advertises authenticated registry-mapped owner scope and retained `wm-crystal/1.0` envelopes. Three existing credentials have no mappings; their Crystal requests are intentionally denied pending explicit assignment.
 - The original Phase 4C candidate used an in-memory per-process replay cache.
   The reviewed continuation uses persistent atomic SQLite reservations and
   retains nonces through expiry plus skew; cross-process replay is tested.
@@ -147,9 +144,9 @@ The missing actual relying-agent action runner and Mac release under claim
 - Revised Crystal candidate passed 25 local and disposable Caddy TLS VPS
   staging cases. Persistent expiry-skew replay protection, cross-process
   reservation, rotation, owner bootstrap, synthetic quarantine and malformed
-  keyring refusal are covered. Canonical kit/production remain unchanged.
+  keyring refusal are covered. The reviewed cutover is now applied in the canonical kit and production; see the live checks below.
 - Lucas chose preserve and quarantine for the unknown-owner legacy row.
-  Actual protected migration and account assignment remain open.
+  Protected consistent backup and quarantine are complete; account assignment remains open.
 - Website receipt regressions 12/12, route checks and offline discovery
   checks passed again. Public gate-lite runtime-version pin follow-up
   0eeac42 passed 103 tests with 6 explicit runner skips and PR #7 CI.
@@ -163,3 +160,62 @@ The missing actual relying-agent action runner and Mac release under claim
   verification receipts; hostile inputs 208 cases/416 runs, zero failures or
   parity mismatches. Pilot source-import follow-up fixes preloaded-module
   ambiguity without invalidating the immutable fresh-process Mac capture.
+
+## Approved production ownership cutover — 2026-10-01
+
+Lucas explicitly approved the reviewed breaking access change at PR #11
+`4a473a5`. API/gateway sources match the final reviewed pins; keyless Crystal
+access was removed. The canonical hosted kit matches deployed source/config
+(`deploy-check.sh --quiet` passed). API, gateway, key issuance and Caddy are active.
+
+- Gateway, API and the shared-state key writer were stopped for the complete
+  consistent backup at `/root/continuity-rollouts/approved-20261001/consistent-backup.tar`
+  (root-only). Backup SHA-256 is `d9d183ad21529005374b26fa5fa4234a6beed927275b07864eab7b56584a0a22`.
+- Exactly one customer envelope was preserved in root-only quarantine. Its
+  original, backup and quarantine encrypted-byte hash is
+  `f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae`.
+  No plaintext or payload was inspected, and no decryption was attempted.
+  Hash verification reads encrypted bytes only. No locator is published.
+  The API service account cannot read quarantine.
+- Registry bytes were unchanged. Three credentials still have zero owner
+  mappings. New assertion keys are private; persistent replay reservations
+  and authenticated registry scope enforce the reviewed model.
+- Actual public TLS checks: health/info 200, anonymous Crystal requests 402,
+  an unmapped existing credential 403, direct data API without assertion 401,
+  and all Crystal responses `private, no-store`. Direct `/crystals` API is
+  non-sensitive discovery metadata (200). Authenticated public `/verify`
+  returned TRUSTED for the published synthetic agreement fixture.
+- Full positive/cross-owner/key-rotation adversarial checks use isolated
+  synthetic staging, not invented production owner mappings. Rollback must
+  retain closed Crystal routes and preserved quarantine.
+
+Evidence: `ops/review-evidence/crystal-live-cutover-2026-10-01.json` and
+`ops/review-evidence/crystal-protected-backup-summary-2026-10-01.json`.
+
+Final W2 archive released at board #497: `e657bbfe3989b34565e21a6cc0f4c74b5bc5d5940161ad5f0fd876e12be1d8a0`,
+private source `ca79981`. Primary clean extraction passed 130 tests/6 skips
+and the real Bubblewrap egress probe; operator host results remain open.
+
+## Website and client review closure — 2026-10-01
+
+Site PR #29 (`cae9885`) merged as `629b60b2acad95ea1284c8933aa3711c713ef7dc`
+after primary inspection, green CI and a Ready Vercel preview. Both preview
+and production passed 12-route CLI content checks. Production deployment
+`whitemagic-site-5psnbuerz-lbailey94s-projects.vercel.app` is Ready and
+serves `www.whitemagic.dev`. English/Chinese hosted, receipts and trust pages
+and coupled discovery surfaces describe current 0.5.0/0.1–0.6 support,
+owner-registry Crystal access, caller-claim notarization and ERC outcome limits.
+PR #21's DID/profile/anchor corrections are incorporated and #21 is closed.
+The earlier failed Vercel build at `16edb1c` was an MCP snapshot version
+mismatch corrected by `918a975`; no build-gate weakening was needed.
+The preview browser permission was declined; no retry or browser workaround
+was used. CLI preview checks had already completed; rendered local checks,
+CI, Ready preview and production CLI checks provide the review evidence.
+
+Primary client review: CR 10 tests and isolated WMv9 12 tests passed; final
+local Crystal integration 25/25 passed. The current CR suite is 160 passed,
+59 explicit skips, 13 subtests. Canonical local client synchronized; WMv9
+port remains a reviewed isolated candidate with a retained patch. No client
+network requests or customer payload reads were used in these tests.
+See `ops/HOSTED_DISCOVERY_DEPLOYMENT_2026-10-01.md` and the source/test
+pins in `ops/review-evidence/crystal-client-hardening-2026-10-01.json`.

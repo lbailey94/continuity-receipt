@@ -1,10 +1,58 @@
-# Memory Crystal authenticated ownership contract — Phase 4C proposal
+# Memory Crystal authenticated ownership contract — Phase 4C
 
-**Status: proposed, not implemented.** This document records the current access boundary and a concrete contract for a separately reviewed runtime change. It does not change the hosted API, gateway, client, deployment, or existing data. An isolated local candidate exercising the trusted-assertion and owner-scope core was prepared on 2026-09-30 (`ops/CRYSTAL_OWNERSHIP_EVIDENCE_2026-09-30.md`); canonical and deployed behavior remain unchanged and every production gate below is still open.
+**Status: deployed on 2026-10-01; owner-mapped customer access remains disabled.** The Crystal ownership boundary is active in production. The deployed envelope remains `wm-crystal/1.0`; this is an authenticated access-control change, not a new wire-format release. The production registry has three credential records and zero owner mappings, so those credentials fail closed for Crystal until an operator explicitly assigns owners. Payment alone does not establish ownership.
 
-## Current boundary inspected
+The owner-unknown legacy envelope was preserved in a consistent root-only
+backup and moved as encrypted bytes into a root-only quarantine namespace. No
+plaintext or decryption key was inspected, and the service account cannot read
+the quarantine. The production registry was unchanged. Live TLS checks passed
+for health/info, owner-mapped-denial behavior, and authenticated `/verify`; see
+[`crystal-live-cutover-2026-10-01.json`](review-evidence/crystal-live-cutover-2026-10-01.json)
+and [`crystal-protected-backup-summary-2026-10-01.json`](review-evidence/crystal-protected-backup-summary-2026-10-01.json).
+The backup summary records backup SHA-256
+`d9d183ad21529005374b26fa5fa4234a6beed927275b07864eab7b56584a0a22` and
+encrypted-envelope SHA-256
+`f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae`.
 
-Inspected the canonical hosted kit's `receipt-api.py`, `authd.py`, `Caddyfile`, `whitemagic-api-gateway.service`, `RECEIPT_API.md`, `crystal_client.py`, and existing Crystal test, plus `WMv9/scripts/crystal_client.py`. The two client files are not identical; both independently document/implement client-chosen tenant hashes and keyless pulls. Source hashes at inspection time: hosted API `f3daa358f055ae1ac4667629c2a73ecd6df694684ad778c0a2a8410ccd72c134`; authd `e84330ff169ec28324b332901a431ec95d10818500c982c25ae959e9801fcaf6`; Caddyfile `7becd6f62019976c3cd7995e2c0a14976084c34b0883ccdffe02ba4ae94ce32a`; API service unit `b3498f5fcf0d9be5bbfc479add2b66fc764111681582c5972768a5a8cac5d67d`; hosted client `81cf497be3683fd07fbb2f79d9101b75d71d3e93660f9aaff5fd533a0533be55`; WMv9 client `4db935cc8c72166219624a592db5b9c55adab104c61766ad41e28026681b3ac5`; API docs `1071f4e8425884df1931b797259e12eda0193ddece4c09e09500baebb864b679`. The current behavior is:
+## Current deployed contract
+
+- The gateway requires normal route authorization/billing and an explicit
+  registry-mapped `owner_id` for every Crystal operation. It strips
+  client-supplied identity/assertion headers and signs an internal assertion
+  bound to the owner, method, exact path/query, body digest, lifetime, key ID,
+  and single-use nonce. The API derives storage scope only from that assertion.
+- `GET /crystals/owner-locator` returns only the authenticated registry
+  assignment. Item reads, writes, and lineage are owner-scoped; a foreign or
+  absent item produces the same 404. No first-reader ownership, locator-based
+  migration, or payment-based owner selection occurs.
+- x402 payment or a session pass may authorize billing/access to a metered
+  route; neither creates or selects a Crystal owner. With zero current owner
+  mappings, paid or keyed principals remain denied until an explicit mapping
+  is recorded.
+- Crystal responses, including denials and conditional responses, use
+  `Cache-Control: private, no-store` and vary by authentication headers. An
+  ETag/304 response is returned only after owner assertion validation and does
+  not authorize shared caching.
+- The envelope and AAD remain `wm-crystal/1.0`. The locator is assigned by the
+  registry and used by the client; no automatic mapping from legacy public-salt
+  locators is performed. The ownerless envelope remains quarantined and
+  excluded from reads and lineage.
+- The existing hosted Crystal client implements the authenticated locator
+  bootstrap and owner-bound access. Older clients that rely on keyless reads
+  or client-selected tenant locators must update before use.
+
+Live `/info` reports verifier runtime 0.5.0 and accepts receipt specs 0.1–0.6;
+that hosted runtime version does not assert publication of matching PyPI or
+crates.io releases. The ERC-8004 adapter returns an Ed25519-signed canonical
+JSON statement and does not produce an EVM EIP-712 signature or relay a
+transaction. Caller-claim notarization binds submitted claims to a signer; it
+does not observe or prove the underlying context or execution. The refreshed
+hosted-kit descriptions are in `planning/private/hosted-kit/RECEIPT_API.md`
+and `server-card-api.json`.
+
+## Historical boundary inspected before cutover (2026-09-30)
+
+Inspected the canonical hosted kit's `receipt-api.py`, `authd.py`, `Caddyfile`, `whitemagic-api-gateway.service`, `RECEIPT_API.md`, `crystal_client.py`, and existing Crystal test, plus `WMv9/scripts/crystal_client.py`. The two client files are not identical; both independently documented/implemented client-chosen tenant hashes and keyless pulls before cutover. Source hashes at inspection time: hosted API `f3daa358f055ae1ac4667629c2a73ecd6df694684ad778c0a2a8410ccd72c134`; authd `e84330ff169ec28324b332901a431ec95d10818500c982c25ae959e9801fcaf6`; Caddyfile `7becd6f62019976c3cd7995e2c0a14976084c34b0883ccdffe02ba4ae94ce32a`; API service unit `b3498f5fcf0d9be5bbfc479add2b66fc764111681582c5972768a5a8cac5d67d`; hosted client `81cf497be3683fd07fbb2f79d9101b75d71d3e93660f9aaff5fd533a0533be55`; WMv9 client `4db935cc8c72166219624a592db5b9c55adab104c61766ad41e28026681b3ac5`; API docs `1071f4e8425884df1931b797259e12eda0193ddece4c09e09500baebb864b679`. The pre-cutover behavior was:
 
 - The gateway routes `/crystals` to authd. Its service configuration lists `/crystals/*` as keyless; authd's keyless-path check applies only to GET/HEAD. Thus Crystal reads, including `/crystals/<id>` and `/crystals/lineage`, can pass the gateway without an authenticated account principal. Crystal writes are outside that keyless wildcard and require a key/session or x402 at the gateway.
 - The API's `GET /crystals/<id>` takes the storage tenant locator from a caller-provided `X-Tenant-Hash`, `?tenant=`, or `/crystals/<tenant>/<id>` path. Lineage likewise accepts caller-provided tenant query/header. No API ownership authorization binds that locator to the authenticated caller.
@@ -27,7 +75,7 @@ Observed result: **1 characterization test passed, reproducing the baseline gap*
 
 This is a characterization of the API handler. The authd/Caddy routing conclusion above is source/config inspection, not a live gateway test. No public Crystal ID/tenant probe was made. With no opt-in variable, unittest skipped the class; pytest collection also returned one skip, so the baseline assertion does not run as part of general test discovery.
 
-## Proposed minimal contract: `wm-crystal/2.0` ownership-bound access
+## Original design proposal (not selected): `wm-crystal/2.0` ownership-bound access
 
 ### Principal and trusted gateway-to-API assertion
 
@@ -62,9 +110,9 @@ Existing v1 rows contain a public-salt tenant hash but no authenticated owner ma
 
 ## Compatibility consequences and separate gates
 
-This is a breaking access-control change for clients that currently read without authentication or pass a tenant hash in query/header/path. Reads and lineage become authenticated and owner-scoped; old Crystal clients need an authenticated identity/owner-locator bootstrap and v2 behavior. Existing write billing can remain, but payment alone will not select a data owner. Ownerless v1 data requires the explicit migration process above. Ciphertext representation and content addressing may remain compatible for v1 after a verified ownership mapping, but v1 metadata/AAD and v2 behavior must be versioned rather than silently conflated.
+This section records the earlier design exploration. The selected deployed implementation retains the `wm-crystal/1.0` envelope/AAD and changes the access boundary; it does not implement a `wm-crystal/2.0` format.
 
-Before runtime implementation, the service owner must select the authoritative account principal, map session passes/API keys/OAuth subjects to it, decide x402 owner binding, choose the internal channel (mTLS/Unix socket or signed assertion), and authorize legacy data disposition. Follow with reviewed API/authd/client diffs, forged-header and replay tests, two-owner upload/read/lineage tests, same-owner key rotation/recovery tests, migration tests for ownerless and conflicting rows, updated `/info` and docs, and isolated staging verification. The contract is **not implemented**, and the baseline test documents a present gap rather than a security control.
+Those choices were resolved for this cutover with explicit registry assignment as the ownership source, a signed internal assertion, and preserve-and-quarantine for unknown-owner data. The baseline characterization below documents the pre-cutover gap, not current deployed behavior.
 
 ## Primary independent review
 
@@ -81,10 +129,10 @@ No owner mapping was established or data classification inferred. Any legacy
 cutover therefore needs an explicit owner/migration decision for that row;
 knowing its locator must not confer ownership.
 
-## Reviewed continuation — 2026-10-01
+## Candidate review history — 2026-10-01
 
-An isolated implementation candidate now exists; canonical kit and live
-service remain unchanged. The initial 12-case candidate had an expiry-skew
+The isolated implementation candidate went through primary review before
+cutover. The initial 12-case candidate had an expiry-skew
 replay bug. Primary review reproduced it, then Luna implemented persistent
 SQLite reservations through the complete acceptance window, strict lifetime
 ordering, keyring overlap/revocation, authenticated locator bootstrap and
@@ -97,20 +145,36 @@ include separate-process nonce races and replay after restart. The staging
 files/processes were removed afterward. API candidate hash a492f5f347c560be4d0bdd44b6f5852060b3444eab5f62358891683adee973a9;
 authd candidate hash 0b3eaaf9ea309620db23d0ce21af69aaf05be9f0b85297bdf01fa5697aa77b3b.
 
-The current candidate retains the wm-crystal/1.0 envelope/AAD shape while
+The selected deployed implementation retains the wm-crystal/1.0 envelope/AAD shape while
 changing the authenticated access contract and adding owner-locator
 bootstrap. This is a deliberate staged alternative to the original v2
 proposal, not an implicit v2 specification. Published core semantics are
 unchanged. No automatic locator-to-owner assignment is permitted.
 
 Lucas selected preserve-and-quarantine for the owner-unknown production
-envelope. This is a recorded migration decision, not evidence that the live
-row has been moved. Live principal assignment, protected manifest/backup,
-rollback, canonical config/docs and final rollout approval remain gates.
+envelope. That decision was implemented during the approved cutover described
+above; the live row is now quarantined as encrypted bytes and is present in the
+protected consistent backup.
 
 The final candidate adds whole-manifest permission/duplicate preflight and
 private/no-store cache policy for owner-bound responses. Primary passed its
-25-case matrix through disposable Caddy TLS on the VPS. Exact final hashes
-are recorded in `ops/review-evidence/crystal-final-pins-2026-10-01.json`; those
-supersede the earlier 22-case source hashes above. Production has zero mapped
-owner IDs; denial until explicit assignment is the selected fail-closed path.
+25-case matrix through disposable Caddy TLS on the VPS. Exact source hashes
+are recorded in `ops/review-evidence/crystal-final-pins-2026-10-01.json` and
+were synchronized to the canonical kit during cutover. Production still has
+zero mapped owner IDs; denial until explicit assignment is the active
+fail-closed behavior.
+
+## Production cutover — 2026-10-01
+
+The approved source/config cutover completed and services are active. The
+protected backup summary records one quarantined envelope, unchanged registry,
+and service-account denial of quarantine reads. No plaintext was inspected.
+Post-cutover public TLS checks returned 402 to unauthenticated Crystal
+requests and 403 to authenticated but unmapped principals; the public
+`/verify` check returned 200. Direct loopback API requests without a valid
+assertion returned 401. The exact status/cache-control matrix is in
+`ops/review-evidence/crystal-live-cutover-2026-10-01.json`.
+
+Remaining operational condition: an administrator must separately verify and
+record each desired principal-to-owner assignment before Crystal access can
+be enabled for that principal. The three current credentials remain unmapped.

@@ -32,7 +32,7 @@ Mac evidence returned at #495 and passed primary hash/assessment review.
    successful staging before any live cutover approval is requested.
 6. Review stacked public #6 then #7; integrate L2 only after private review.
 
-## External prerequisites that local tests cannot supply
+## Original external prerequisites (status updated below)
 
 - Actual Mac/operator run, returned capture and administrative-separation facts.
 - Legacy owner remains unknown. Lucas selected preservation and quarantine;
@@ -45,3 +45,20 @@ Mac evidence returned at #495 and passed primary hash/assessment review.
 The objective tonight is to close implementable defects and handoffs, and
 prepare tested reviewable integration/deployment candidates. External results
 remain open until supplied. A green delegate report is not primary evidence.
+
+## Executed integration checkpoint
+
+Native Mac return #495 verified; revised W2 released #497 awaiting Linux host
+capture. Public gate-lite #6/#7 are merged, private POSIX fallback is pushed,
+private L2 #2 remains a reviewed draft. PR #11 source stays draft/unpublished.
+The explicit Crystal deployment approval was executed with consistent backup,
+byte-preserved root-only quarantine, unchanged registry and public TLS checks.
+The customer owner assignment remains unresolved. Website PR #29 merged as
+629b60b2acad95ea1284c8933aa3711c713ef7dc under the user's explicit
+update/deploy instruction. Vercel production is Ready and primary CLI assertions
+passed across all 12 preview and production discovery/page routes. PR #21 is
+superseded and closed. The final client follow-up passed 10 CR and 12 WMv9
+tests, 25 Crystal integration cases, and the CR suite (160 passed, 59 skipped,
+13 subtests). WMv9 remains an isolated reviewed patch, not merged or released. Vercel's failed `16edb1c` build was a 9.3.1/9.3.0
+MCP snapshot mismatch; follow-up `918a975` corrected it and later production
+builds are Ready. No automatic customer ownership inference is permitted.

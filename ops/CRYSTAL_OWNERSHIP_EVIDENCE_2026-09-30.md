@@ -1,16 +1,19 @@
-# Memory Crystal owner-bound access — isolated Phase 4C candidate
+# Memory Crystal owner-bound access — Phase 4C evidence
 
-**Status: isolated candidate, reviewed synthetic/VPS staging, and rollout
-preparation.** No canonical hosted source/config, live service, VPS file, or
-stored production crystal was changed. This agent read the hosted-kit service
-and Caddy files and performed read-only remote parity checks. A separate
-protected production quarantine manifest is being prepared by the root agent;
-no live crystal was moved. The candidate is not approved for rollout.
+**Status: deployed on 2026-10-01; production owner mappings remain empty.**
+Canonical gateway/API/client sources and route configuration were synchronized
+to the reviewed candidate. The owner-unknown legacy envelope was preserved as
+encrypted bytes in root-only quarantine and in a protected consistent backup;
+no plaintext or decryption key was inspected. The registry remains unchanged
+with three credential records and zero owner IDs, so existing credentials are
+denied Crystal access until explicit mappings are assigned. Production
+cutover evidence is recorded in the linked JSON artifacts below.
 
-## Candidate behavior
+## Deployed behavior
 
-The candidate lives under `ops/crystal-ownership-candidate/` and changes only
-that implementation plus its opt-in harness. `authd.py` requires an explicit
+The reviewed implementation lives under `ops/crystal-ownership-candidate/`
+and its source hashes are pinned in
+`ops/review-evidence/crystal-final-pins-2026-10-01.json`. `authd.py` requires an explicit
 64-hex `owner_id` on the authenticated key registry entry for Crystal routes.
 An unmapped principal fails closed; payments, public-salt tenant hashes,
 ciphertext IDs, and first reads never claim an owner. The gateway strips
@@ -48,8 +51,10 @@ exists.
 ## Ownerless legacy quarantine
 
 The decision for the one existing production envelope is **owner unknown;
-preserve and quarantine**. No operation against that live data was performed.
-The candidate includes `quarantine_legacy.py`: dry-run is the default and
+preserve and quarantine**. Cutover preserved the encrypted bytes in root-only
+quarantine and a consistent protected backup; the service account cannot read
+the quarantine. No plaintext was inspected. The candidate includes
+`quarantine_legacy.py`: dry-run is the default and
 writes a JSON plan with exact source paths, tenant locators, and source-byte
 SHA-256 values. `--apply` is required to apply a saved plan. Before planning
 against a store with already-mapped owners, pass each explicitly verified ID
@@ -63,11 +68,15 @@ from the API's readable crystal root, so ordinary reads and lineage do not
 enumerate quarantined files. The plan makes no owner assignment. Any eventual
 mapping requires a separately approved, recorded operator mapping.
 
-The test exercises only synthetic envelopes in fresh temporary directories.
+The harness exercises only synthetic envelopes in fresh temporary directories.
 It checks the dry-run leaves bytes in place, applying moves the exact bytes to
 the quarantine namespace, and the API cannot return that crystal by owner
 read or lineage. A changed source in a later manifest row fails whole-plan
-preflight before any file moves.
+preflight before any file moves. The live one-envelope disposition is
+independently summarized at
+`ops/review-evidence/crystal-protected-backup-summary-2026-10-01.json`; the
+cutover matrix is at
+`ops/review-evidence/crystal-live-cutover-2026-10-01.json`.
 
 ## Verification
 
@@ -107,10 +116,10 @@ disposable `rollout/rehearse_state.py` rehearsal restored the exact saved
 state hashes and preserved the replay marker; old and new keys validated
 during overlap, and the old key failed after retirement.
 
-Read-only `deploy-check.sh --detail` parity checks for the Caddyfile and both
-API service units matched the local hosted-kit copies. This confirms file
-parity at check time; no request was sent through public TLS/Caddy against the
-new candidate.
+Read-only pre-cutover `deploy-check.sh --detail` parity checks for the Caddyfile
+and both API service units matched the local hosted-kit copies. The later
+approved cutover synchronized the pinned source/config to production. The
+separate production-domain TLS matrix is recorded in the live cutover JSON.
 
 Completed gates:
 
@@ -120,39 +129,32 @@ Completed gates:
 - [x] Source/config patch dry-run and exact candidate match on temporary
   copies.
 - [x] Disposable state backup/restore and key-overlap/retirement rehearsal.
-- [x] Read-only Caddy and API-unit parity checks against the deployed host.
+- [x] Read-only pre-cutover Caddy and API-unit parity checks.
 
-## Still required before any rollout
+## Production cutover results and remaining condition
 
-- Actual production-domain post-cutover checks; disposable Caddy TLS staging
-  on the target host already passed the final 25-case matrix.
-- Reconcile the decision brief and proposed contract with current production
-  topology. In particular, confirm all authd principal types and session-pass
-  ownership mappings; unmapped session passes remain denied for Crystal.
-- Provision a production keyring and owner IDs; no live key rotation or
-  production mapping has occurred.
-- Complete review of target-host Caddy path behavior for exact path/query
-  binding. Source config has no Crystal rewrite, and the internal API is
-  configured on loopback, but the public candidate path remains untested.
-- Update the canonical hosted kit, public `/info`, clients, docs, discovery
-  copy, and gateway keyless paths in a separately reviewed change.
-- Review and then preserve/quarantine the actual ownerless production
-  envelope. Root prepared a protected read-only one-item manifest at
-  `/root/continuity-rollouts/crystal-review-qjI5Ho5P/legacy-dry-run.json`
-  (manifest SHA-256 `de5f53492f552672db0c3225c305ff67c8fcd4e610a681c12ca6c72e9ab5081c`;
-  source-byte SHA-256 `f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae`).
-  No `--apply` has run. Do not infer ownership from the old locator or first
-  read.
-- Complete host-specific rollback rehearsal, then obtain a separate explicit
-  release/deployment decision and post-deploy verification.
+- [x] Approved source/config cutover completed; service state is
+  `cutover-services-active`.
+- [x] Protected consistent backup recorded with SHA-256
+  `d9d183ad21529005374b26fa5fa4234a6beed927275b07864eab7b56584a0a22`.
+- [x] One encrypted envelope preserved in quarantine with byte SHA-256
+  `f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae`;
+  plaintext not inspected and service-account quarantine reads denied.
+- [x] Production registry unchanged: three credential rows, zero owner
+  mappings. No customer locator was requested.
+- [x] Public TLS checks: unauthenticated Crystal requests received 402,
+  authenticated but unmapped requests received 403, and authenticated
+  `/verify` returned 200. Crystal responses were `private, no-store`.
+- [x] `/info` publishes the owner-bound `wm-crystal/1.0` access contract.
+- [ ] Assign any customer owner IDs only through a separate, explicit,
+  reviewed operator mapping. Until then existing credentials remain denied.
 
-No merge, release, deployment, actual quarantine, external probe, or public
-claim is made by this candidate evidence.
-
-## Final primary review continuation
+## Final primary review and cutover record
 
 Final source/config pins are in `ops/review-evidence/crystal-final-pins-2026-10-01.json`.
 The canonical source patch preserves unrelated MCP batch title/annotations.
 The production registry has three credential rows and zero owner mappings;
-all existing Crystal credentials will be denied until explicit mappings are
-established. Production cutover/quarantine are not performed by staging.
+all existing Crystal credentials remain denied until explicit mappings are
+established. The source deployment and quarantine are production actions
+recorded in the live cutover and protected-backup summaries, not inferred from
+staging results.

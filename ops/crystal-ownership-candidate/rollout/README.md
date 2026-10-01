@@ -1,10 +1,10 @@
 # Crystal ownership rollout preparation
 
-**Review packet only. Do not run against the production host yet.** The only
+**Approved and deployed 2026-10-01. Do not rerun this one-time migration.** The only
 owner disposition selected so far is: the known legacy envelope has unknown
 ownership, must be preserved, and must be quarantined. No owner IDs are to be
 added to production `keys.json` until each assignment is separately
-established. No live data was accessed or moved by this packet.
+established. The approved cutover preserved the one envelope in a consistent protected backup and root-only quarantine; no plaintext was inspected or decrypted. The preparation history below is retained; the deployment record at the end is current.
 
 ## Files in this packet
 
@@ -171,7 +171,7 @@ The existing `ops/deploy_reviewed_hosted.sh` handles a different receipt-api
 and wheel-only deployment. It is not an applicable rollout script for this
 cross-service Crystal change.
 
-## Current gates
+## Preparation gates at review time (superseded by cutover record)
 
 - [x] Current candidate local harness: 25 cases pass, including quarantine
   destination preflight checks and private/no-store Crystal response
@@ -197,3 +197,31 @@ The canonical source patch preserves unrelated MCP batch title/annotations.
 The production registry has three credential rows and zero owner mappings;
 all existing Crystal credentials will be denied until explicit mappings are
 established. Production cutover/quarantine are not performed by staging.
+
+## Approved cutover record — current
+
+The explicit user approval of PR #11 `4a473a5` was executed on October 1.
+Canonical and VPS source/config are synchronized. Backup/key provisioning and
+root-only quarantine are complete. See
+`ops/review-evidence/crystal-protected-backup-summary-2026-10-01.json` and
+`ops/review-evidence/crystal-live-cutover-2026-10-01.json` for exact pins,
+backup/envelope hashes and public TLS checks. The customer encrypted bytes
+are unchanged, registry unchanged, and service-account quarantine access denied.
+Owner assignment remains unknown: all three existing credentials remain unmapped
+and Crystal requests fail closed. Positive owner cases were run on isolated
+synthetic staging. Do not rerun migration, assign an owner, restore the old
+keyless route, or blindly replace active state.
+
+## Client-only follow-up after cutover
+
+The approved source/config deployment at `4a473a5` is preserved above.
+The local client helper subsequently received independently reviewed HTTPS
+origin, redirect, strict-ID and credential-input hardening; binary key bytes
+are preserved and generated key files are private/exclusive. Apply
+`client-hardening.patch` after the historical `canonical-kit.patch` when
+reconstructing the current client. The canonical local helper now matches
+the reviewed candidate. No API/gateway source, package, owner registry or
+customer data was changed by this follow-up. Tests and source hashes:
+`ops/review-evidence/crystal-client-hardening-2026-10-01.json`.
+The WMv9 port is reviewed in its isolated worktree and retained as a patch;
+it has not been integrated into WMv9 main or released.
