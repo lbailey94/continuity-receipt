@@ -1,0 +1,1 @@
+Local pilot artifact for exercising caller-side byte integrity checks.
