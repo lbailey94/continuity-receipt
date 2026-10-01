@@ -11,6 +11,26 @@ Python and Rust prerelease builds accept 0.1–0.6. Not a tag, package
 publication, hosted rollout, or adoption claim. The 0.5 candidate is
 unchanged; both remain behind the external review gate in `ROADMAP.md`.
 
+## 0.5.1 — published 2026-10-01
+
+Patch release for the published 0.5 line; spec, schemas, and vector corpus
+are unchanged. Published to PyPI and crates.io; source at tag `v0.5.1`
+(base `894eadc`). Candidate rehearsed locally (129 Python tests + Rust
+suites green, wheel smoke from an isolated venv, vector 02 TRUSTED,
+`cargo publish --dry-run`).
+
+- **Packaging alignment.** `pyproject.toml`, `continuity_receipt/_version.py`,
+  `rust/Cargo.toml`, and `rust/Cargo.lock` now report 0.5.1 so the Python and
+  Rust package releases stay aligned with the reviewed consumer hardening.
+- **Consumer hardening included** (already on `main` before the patch): the
+  relying-party consumer profile's accepted record-type vocabulary stays fixed
+  to published specs 0.1–0.4, and excessive nesting during canonicalization is
+  a structured refusal; over-bound adopter captures return a structured
+  qualification failure.
+- **Protocol unchanged:** `continuity-receipt/0.5`; no schema, vector, or Rust
+  source changes. The 0.6 authority draft remains an unreleased development
+  candidate behind the external review gate.
+
 ## 0.5.0 — 2026-09-30
 
 Spec 0.5 candidate published: local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate JSON member rejection, and consumer profile assessment.

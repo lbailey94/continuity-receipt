@@ -15,10 +15,10 @@ independently:
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
-| Python reference + CLIs | **0.5.0** | `pip install continuity-receipt==0.5.0` |
-| Rust verifier + CLIs | **0.5.0** | `cargo install continuity-receipt --version 0.5.0` |
+| Python reference + CLIs | **0.5.1** | `pip install continuity-receipt==0.5.1` |
+| Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
 
-The pinned install commands resolve to the published release (0.5.0).
+The pinned install commands resolve to the published release (0.5.1).
 
 Both implementations support spec 0.5 (local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate member rejection, and consumer profile assessment) with identical verdicts and codes over the full vector set.
 Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python or
@@ -75,9 +75,9 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.5.0) — clone the repo for the vectors
+# from PyPI (0.5.1) — clone the repo for the vectors
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt==0.5.0
+pip install continuity-receipt==0.5.1
 continuity-verify vectors/02_happy_full.json            # TRUSTED
 continuity-consumer vectors/02_happy_full.json --profile conservative # ACCEPT
 continuity-receipt-verify vectors/02_happy_full.json    # compat alias
@@ -140,7 +140,7 @@ receipt valid), unknown member. Schema:
 ## Status and provenance
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, published) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (published) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI. `0.5` (2026-09-30, published) — local authority (`mandala_class: local`), execution sandbox vocabulary with `runner_profile` binding, `state.commitment` (chain-head and file snapshots), duplicate-member rejection in all parsers, and the consumer profile assessment; schema 0.5, candidate vectors 22–23b, crosswalk documentation. Tooling `0.5.0` (published) — PyPI + crates.io.
+- **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, published) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (published) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI. `0.5` (2026-09-30, published) — local authority (`mandala_class: local`), execution sandbox vocabulary with `runner_profile` binding, `state.commitment` (chain-head and file snapshots), duplicate-member rejection in all parsers, and the consumer profile assessment; schema 0.5, candidate vectors 22–23b, crosswalk documentation. Tooling `0.5.0` (published) — PyPI + crates.io. Tooling `0.5.1` (2026-10-01, published) — packaging alignment (version metadata); includes the reviewed consumer hardening.
 - **Second implementation:** `rust/` — an independent Rust verifier
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 40 bundle vectors and CI diffs it against the Python reference
