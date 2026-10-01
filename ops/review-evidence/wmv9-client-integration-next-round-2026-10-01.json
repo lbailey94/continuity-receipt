@@ -1,0 +1,17 @@
+{
+  "commit": "ad8a4dc49508f401c8a032a8293094b245315cfc",
+  "parent": "15d6d9accb0961f41d04e9986454f2d19a398b67",
+  "state": "integrated and pushed WMv9 main; no binary release/deployment",
+  "primary_tests": 12,
+  "paths": [
+    "scripts/crystal_client.py",
+    "scripts/tests/test_crystal_client.py"
+  ],
+  "coordination": {
+    "federated18795": "outer store scope clobbered inner code scope; success alone not accepted",
+    "direct18790": "release-freeze exact scope free; two exact file claims independently confirmed in WMv9/.git/wm-leases.json; both released after integration"
+  },
+  "real_customer_or_registry_access": false,
+  "documentation_ci_commit": "ea41f004c8a5bddba868e3337418ba1fcfa965f6",
+  "primary_host_scripts_command_passed": true
+}

@@ -1,0 +1,8 @@
+test_conflicting_existing_destination_is_never_overwritten (test_recovery_harness.SyntheticRecoveryTests.test_conflicting_existing_destination_is_never_overwritten) ... ok
+test_end_to_end_synthetic_quarantine_and_recovery (test_recovery_harness.SyntheticRecoveryTests.test_end_to_end_synthetic_quarantine_and_recovery) ... ok
+test_missing_any_required_approval_refuses_before_copy (test_recovery_harness.SyntheticRecoveryTests.test_missing_any_required_approval_refuses_before_copy) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.206s
+
+OK

@@ -219,3 +219,45 @@ port remains a reviewed isolated candidate with a retained patch. No client
 network requests or customer payload reads were used in these tests.
 See `ops/HOSTED_DISCOVERY_DEPLOYMENT_2026-10-01.md` and the source/test
 pins in `ops/review-evidence/crystal-client-hardening-2026-10-01.json`.
+
+## Next-phase review and integration — 2026-10-01
+
+User authorized the five-phase continuation with Luna implementation and
+primary review. Customer recovery design/harness is accepted as synthetic
+control-flow evidence after primary corrections: actual subprocess termination,
+stale-stage refusal/reconciliation, preserved v1 AAD locator and opaque byte
+identity, simulated mapping-conflict refusal. Three tests and the CLI pass;
+no real customer identity/mapping/restoration occurred.
+
+WMv9 client ad8a4dc and source-distribution/CI follow-up ea41f00 are reviewed,
+integrated and pushed to main. Primary12clienttests and combined host-script
+suite pass. GitHub Host Scripts, Linux/macOS tests, Clippy and boundary E2E
+passed on ea41f00; remaining broader jobs were still running at this checkpoint.
+This does not constitute a new binary release or VPS deployment.
+
+GitHub's missing historicalv0.5.0 release entry is now published as Latest,
+after primary signed-tag, artifact checksum and exact-body checks. Existing
+package/tag artifacts were not replaced. A distinct local0.5.1 candidate passed primary metadata and 14 installed checks;
+it is not published or deployed.
+
+SitePR30 corrects the blanket read-only claim to apply to recall and offers
+EN/zh manual ownership-review contact guidance that prohibits sending plaintext,
+encryption keys or bearer credentials. CI and Ready preview passed; primary
+12preview/production routes and targeted newcopy checks passed. Production
+merge5d14b6f is Ready. Actual browser checks also passed on the prior deployed
+explorer's public fixtures: payment signature valid; eight bundle signatures
+valid/intact chain; tamperedfirstgate invalid/brokenchain. These are subset
+checks rather than protocol verdict or payment-finality proof.
+
+New independent-adoption packet d942b1c was clean-extracted and reviewed by
+primary:27/27sourcehashes,16actiontests,freshCLIassessment and replayrefusal.
+Handoff instructions were corrected and released on Sangha#500. The real
+independent-admin return and the separate W2 Linux capture remain open.
+
+Currentreceiptpytest163passed59skipped16subtests. Revised CI explicitly runs
+client, pilot and synthetic recovery tests and verifies installed imports from
+outside the checkout. See NEXT_PHASE_EXECUTION_2026-10-01.md and ops evidence.
+Federated gateway scope collision is a response-label defect; inner arguments
+are preserved. Direct endpoint claims/freeze scopes were verified before WMv9
+integration. A bounded response annotation fix 6f1a6f is retained as a reviewed isolated
+source candidate, with patch and primary test evidence; no merge or deployment.

@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "path": "/info",
+      "status": 200,
+      "top_level_fields": [
+        "conformance",
+        "crystals",
+        "endpoints",
+        "erc8004",
+        "implementation",
+        "limits",
+        "privacy",
+        "service",
+        "spec_versions",
+        "verdicts",
+        "verification_receipt",
+        "verifier_version"
+      ],
+      "verifier_version": "0.5.0",
+      "spec_versions": [
+        "continuity-receipt/0.1",
+        "continuity-receipt/0.2",
+        "continuity-receipt/0.3",
+        "continuity-receipt/0.4",
+        "continuity-receipt/0.5",
+        "continuity-receipt/0.6"
+      ]
+    },
+    {
+      "path": "/openapi.json",
+      "status": 200
+    },
+    {
+      "path": "/crystals/owner-locator",
+      "status": 402,
+      "cache_control": "private, no-store"
+    }
+  ],
+  "credentials_used": false,
+  "customer_data_accessed": false
+}

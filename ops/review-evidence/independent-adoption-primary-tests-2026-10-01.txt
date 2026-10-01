@@ -1,0 +1,21 @@
+test_concurrent_callers_record_only_once (test_run_action.PilotActionTests.test_concurrent_callers_record_only_once) ... ok
+test_denied_issuer_refuses_before_output (test_run_action.PilotActionTests.test_denied_issuer_refuses_before_output) ... ok
+test_expired_fixture_and_stale_receipt_refuse (test_run_action.PilotActionTests.test_expired_fixture_and_stale_receipt_refuse) ... ok
+test_installed_mode_refuses_cached_checkout_consumer (test_run_action.PilotActionTests.test_installed_mode_refuses_cached_checkout_consumer) ... ok
+test_interrupted_prepared_operation_never_resumes (test_run_action.PilotActionTests.test_interrupted_prepared_operation_never_resumes) ... ok
+test_malformed_caller_time_and_bool_age_refuse (test_run_action.PilotActionTests.test_malformed_caller_time_and_bool_age_refuse) ... ok
+test_missing_required_record_refuses_before_output (test_run_action.PilotActionTests.test_missing_required_record_refuses_before_output) ... ok
+test_output_directory_symlink_and_untracked_output_refuse (test_run_action.PilotActionTests.test_output_directory_symlink_and_untracked_output_refuse) ... ok
+test_oversize_file_refuses_at_boundary (test_run_action.PilotActionTests.test_oversize_file_refuses_at_boundary) ... ok
+test_positive_assessment_is_actual_fixed_file_write (test_run_action.PilotActionTests.test_positive_assessment_is_actual_fixed_file_write) ... ok
+test_replay_refuses_after_first_record (test_run_action.PilotActionTests.test_replay_refuses_after_first_record) ... ok
+test_source_import_does_not_mutate_sys_path (test_run_action.PilotActionTests.test_source_import_does_not_mutate_sys_path) ... ok
+test_source_mode_refuses_cached_installed_consumer (test_run_action.PilotActionTests.test_source_mode_refuses_cached_installed_consumer) ... ok
+test_tampered_output_refuses_on_replay_check (test_run_action.PilotActionTests.test_tampered_output_refuses_on_replay_check) ... ok
+test_unsupported_spec_refuses_before_output (test_run_action.PilotActionTests.test_unsupported_spec_refuses_before_output) ... ok
+test_wrong_raw_pin_refuses_without_state (test_run_action.PilotActionTests.test_wrong_raw_pin_refuses_without_state) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.280s
+
+OK

@@ -1,0 +1,133 @@
+{
+  "service": "continuity-receipt-verify",
+  "implementation": "python-reference",
+  "verifier_version": "0.5.0",
+  "spec_versions": [
+    "continuity-receipt/0.1",
+    "continuity-receipt/0.2",
+    "continuity-receipt/0.3",
+    "continuity-receipt/0.4",
+    "continuity-receipt/0.5",
+    "continuity-receipt/0.6"
+  ],
+  "verdicts": [
+    "TRUSTED",
+    "PROVISIONAL",
+    "INSUFFICIENT_EVIDENCE",
+    "UNTRUSTED"
+  ],
+  "endpoints": {
+    "POST /verify": "bundle -> verdict (?require_anchor=1, ?receipt=1, ?cache=1; {\"bundles\": [...]} batch)",
+    "POST /verify-receipt": "verification receipt -> validity (+ optional bundle digest check, optional revocations)",
+    "POST /verify-anchor": "OpenTimestamps detached proof + digest + header(s) -> proof status",
+    "POST /anchors": "store an OTS proof for a digest (keyed)",
+    "POST /conformance": "grade a verifier submission over the pinned corpus -> signed conformance report",
+    "GET /anchors/<digest>": "fetch a stored anchor proof (keyless)",
+    "POST /payment-receipts": "internal: sign + store a content-free settlement receipt (X-Internal-Token)",
+    "GET /receipts/<tx>": "fetch a gateway-emitted settlement receipt (keyless)",
+    "GET /revocations/<issuer>": "stored revocation document for an issuer (keyless)",
+    "POST /mcp": "MCP surface: verify_bundle / verify_anchor / get_revocations",
+    "POST /erc8004/validate": "Derive an outcome from the core verifier verdict and task binding; issuer policy is not evaluated and anchors are not required. Returns an Ed25519-signed canonical JSON statement; this service does not relay it onchain.",
+    "POST /crystals": "store sealed Memory Crystal ciphertext (2 MiB max; ChaCha20-Poly1305 / AES-256-GCM)",
+    "GET /crystals/owner-locator": "authenticated bootstrap; return the owner locator assigned by the gateway registry",
+    "GET /crystals/<id>": "fetch a crystal in the authenticated owner's scope",
+    "GET /crystals/lineage": "fetch lineage in the authenticated owner's scope",
+    "POST /notarize": "sign caller-supplied context/prompt digests and bounded claims; service does not observe the underlying context or execution",
+    "GET /notarize/<digest>": "fetch stored caller-claim attestation (keyless)",
+    "GET /openapi.json": "OpenAPI 3.1 contract",
+    "GET /info": "this document",
+    "GET /health": "liveness"
+  },
+  "verification_receipt": {
+    "kind": "continuity-receipt-verification",
+    "version": 1,
+    "requested_with": "?receipt=1 on POST /verify, or receipt: true on MCP verify_bundle",
+    "digest_rule": "sha256 of the JCS-canonical bytes of the verified bundle object",
+    "records": [
+      "verdict",
+      "error_codes",
+      "errors",
+      "provisional_reasons",
+      "insufficient_reasons",
+      "summary"
+    ],
+    "consistency": "error_codes equals the codes in errors; verdict equals the class implied by the errors/reasons",
+    "verify_offline": "signature over JCS canonical bytes minus sig; use a compatible continuity-receipt implementation and check /info for the running verifier version and supported specs",
+    "docs": "https://github.com/lbailey94/continuity-receipt/blob/main/VERIFICATION_RECEIPTS.md",
+    "kit": "https://github.com/lbailey94/continuity-receipt/blob/main/VERIFY_IN_5_MIN.md",
+    "issuer": "did:key:z6MkmKSaKjTr2DPJEHG6aZVGmX6JkWsWiYtuD9c73ReRGdfW"
+  },
+  "conformance": {
+    "endpoint": "POST /conformance",
+    "kind": "continuity-receipt-conformance",
+    "version": 1,
+    "verdicts": [
+      "CONFORMANT",
+      "PARTIAL",
+      "NONCONFORMANT"
+    ],
+    "submission": "implementation metadata + verifier outputs over the pinned corpus; build one with tools/conformance_submit.py",
+    "corpus": {
+      "bundles": {
+        "vectors": 40,
+        "manifest_digest": "sha256:eac2c24d88129f19efed9ecf3712d33a537e651ba964e524d0725b0aa8a618b3"
+      },
+      "verification_receipts": {
+        "vectors": 21,
+        "manifest_digest": "sha256:e6ecb5b1ab65a6980260291f75c29af790a0fbdc660732fb086f4ffda0aad007"
+      },
+      "hostile_inputs": {
+        "vectors": 208,
+        "manifest_digest": "sha256:2a6af64f34aa4904774398211c51e6d9de60980be675f6fe8f37d6725360aa03"
+      }
+    }
+  },
+  "erc8004": {
+    "endpoint": "POST /erc8004/validate",
+    "specification": "ERC-8004 Validation Registry Adapter",
+    "target_rail": "Base Mainnet (eip155:8453)",
+    "outcomes": {
+      "0": "REJECT",
+      "1": "ACCEPT",
+      "2": "NEEDS_EVIDENCE"
+    },
+    "registry_default": "0x8004A15217B1B1E19d7b43851b9eEbFA40306E78",
+    "chain_id_default": 8453,
+    "checks": "The core verdict and task binding drive the outcome. chain_integrity, signatures_valid, resource_caps_respected, issuer policy, and anchor status are not reported as per-check successes by this adapter; their check fields are null. termination_present only checks for a receipts-list item with type exactly task.termination.",
+    "issuer_policy": "Not evaluated: no relying-party issuer allowlist or consumer profile is applied.",
+    "anchors": "Not required for the adapter outcome; no independent anchor status is reported. The core verifier may inspect supplied anchor evidence.",
+    "attestation": "Ed25519 signature over a canonical JSON message; no EVM-compatible signature or onchain relay is performed by this service.",
+    "docs": "https://api.whitemagic.dev/docs",
+    "validator_address": "did:key:z6MkmKSaKjTr2DPJEHG6aZVGmX6JkWsWiYtuD9c73ReRGdfW"
+  },
+  "crystals": {
+    "specification": "wm-crystal/1.0",
+    "endpoints": {
+      "write": "POST /crystals (or PUT /crystals/<id>)",
+      "read": "GET /crystals/<id> (authenticated owner scope)",
+      "lineage": "GET /crystals/lineage (authenticated owner scope)"
+    },
+    "supported_ciphers": [
+      "chacha20-poly1305",
+      "aes-256-gcm"
+    ],
+    "max_crystal_size_bytes": 2097152,
+    "isolation": "candidate routes derive storage scope from an authenticated gateway assertion mapped through the explicit owner registry; legacy ownerless data must be quarantined",
+    "access_model": "all crystal reads and writes require an authenticated owner assertion; GET /crystals/owner-locator returns the registry-mapped locator; no first-reader ownership claim",
+    "envelope_compatibility": "wm-crystal/1.0 envelope/AAD retained; new clients may bootstrap and use the registry locator; legacy public-salt locators are not automatically migrated",
+    "assertion_replay": "SQLite nonce ledger is persistent across API restarts and shared across worker processes; nonce is retained through exp plus clock-skew allowance",
+    "assertion_key_rotation": "keyring carries active_kid and keys; issuer uses active_kid, verifier accepts retained overlap keys until removed",
+    "content_addressing": "sha256:hex(sha256(ciphertext))"
+  },
+  "limits": {
+    "max_body_bytes": 1048576,
+    "max_batch": 50,
+    "digest_cache": {
+      "opt_in": "?cache=1 (single-bundle requests)",
+      "ttl_s": 900,
+      "max_entries": 256,
+      "stores": "digest + verdict payload in memory only; never on disk"
+    }
+  },
+  "privacy": "POST /verify evaluates bundles in memory and does not store or log them. Persistent data also includes revocation documents, hosted anchors, payment receipts, caller-claim notarizations, sealed crystals, assertion replay nonces, and the service signing key. Crystal routes require an authenticated owner assertion; legacy ownerless crystals remain quarantined until an explicit operator mapping is established. ?cache=1 opts into an in-memory digest->verdict cache."
+}

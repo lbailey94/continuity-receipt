@@ -1,0 +1,18 @@
+{
+  "merge_commit": "5d14b6f1670bcdf8ca894c61dd42d42ee3927e5b",
+  "state": "READY",
+  "checks": [
+    {
+      "path": "/hosted",
+      "assertions": "PASS"
+    },
+    {
+      "path": "/zh/hosted",
+      "assertions": "PASS"
+    },
+    {
+      "path": "/llms-full.txt",
+      "assertions": "PASS"
+    }
+  ]
+}

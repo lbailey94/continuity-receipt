@@ -20,6 +20,12 @@ jobs:
         run: pip install 'cryptography>=42' jsonschema
       - name: Conformance suite (vectors + schema + primitives)
         run: python3 -m unittest discover -s tests -v
+      - name: Independent-agent pilot regressions
+        run: python3 -m unittest discover -s examples/independent-agent-pilot -p 'test_*.py' -v
+      - name: Crystal client boundary regressions
+        run: python3 -m unittest discover -s ops/crystal-ownership-candidate/tests -p 'test_*.py' -v
+      - name: Synthetic customer-recovery regressions
+        run: python3 -m unittest discover -s ops/crystal-customer-recovery -v
       - name: Verify each vector via the CLI surface
         run: |
           python3 - <<'PY'
@@ -71,17 +77,48 @@ jobs:
           python3 -m venv /tmp/cr-venv
           . /tmp/cr-venv/bin/activate
           pip install dist/*.whl
-          continuity-receipt-verify vectors/02_happy_full.json > /tmp/trusted.json
+          cd /tmp
+          continuity-receipt-verify "$GITHUB_WORKSPACE/vectors/02_happy_full.json" > /tmp/trusted.json
           python3 -c "import json; assert json.load(open('/tmp/trusted.json'))['verdict'] == 'TRUSTED'"
-          if continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor; then
+          if continuity-receipt-verify "$GITHUB_WORKSPACE/vectors/10b_anchor_missing.json" --require-anchor; then
             echo "expected nonzero exit for anchor-missing with --require-anchor" >&2
             exit 1
           fi
           continuity-receipt-disclose --help > /dev/null
           continuity-receipt-verify --help > /dev/null
-          continuity-receipt-verify-receipt vectors/verification/01_valid.json \
-            --bundle vectors/verification/bundle.json > /tmp/vreceipt.json
+          continuity-receipt-anchor --help > /dev/null
+          continuity-verify --help > /dev/null
+          continuity-receipt-disclose verify \
+            --bundle "$GITHUB_WORKSPACE/vectors/08_redacted_disclosed.json" > /tmp/disclosed.json
+          python3 -c "import json; assert json.load(open('/tmp/disclosed.json'))['verdict'] == 'TRUSTED'"
+          if continuity-receipt-anchor verify \
+            "$GITHUB_WORKSPACE/vectors/anchor/hello-world.txt.ots" \
+            --digest sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340 \
+            --json > /tmp/anchor.json; then
+            echo "expected unverified without the Bitcoin header" >&2
+            exit 1
+          fi
+          python3 -c "import json; assert json.load(open('/tmp/anchor.json'))['code'] == 'anchor_unverified'"
+          continuity-receipt-verify-receipt "$GITHUB_WORKSPACE/vectors/verification/01_valid.json" \
+            --bundle "$GITHUB_WORKSPACE/vectors/verification/bundle.json" > /tmp/vreceipt.json
           python3 -c "import json; assert json.load(open('/tmp/vreceipt.json'))['valid'] is True"
+          continuity-consumer "$GITHUB_WORKSPACE/examples/independent-agent-pilot/bundle.json" \
+            --policy "$GITHUB_WORKSPACE/examples/independent-agent-pilot/policy.json" > /tmp/consumer.json
+          python3 -c "import json; assert json.load(open('/tmp/consumer.json'))['outcome'] == 'ACCEPT'"
+          /tmp/cr-venv/bin/python "$GITHUB_WORKSPACE/examples/independent-agent-pilot/run_pilot.py" \
+            --installed-package > /tmp/pilot.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads(Path('/tmp/pilot.json').read_text())
+          assert report['status'] == 'LOCAL_DRY_RUN_ONLY'
+          assert len(report['cases']) == 8
+          source = Path(report['source_pins_observed_locally']['imported_consumer_path']).resolve()
+          assert source.is_relative_to(Path('/tmp/cr-venv').resolve()), source
+          assert not source.is_relative_to(Path(os.environ['GITHUB_WORKSPACE']).resolve()), source
+          print(f"bounded installed-package pilot cases: {len(report['cases'])}")
+          PY
 
   rust:
     runs-on: ubuntu-latest

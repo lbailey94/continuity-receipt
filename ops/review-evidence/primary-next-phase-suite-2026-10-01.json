@@ -1,0 +1,10 @@
+{
+  "command": "python3 -m pytest -q",
+  "passed": 163,
+  "skipped": 59,
+  "subtests_passed": 16,
+  "seconds": 17.08,
+  "primary_recovery_unittest": 3,
+  "primary_recovery_subprocess_crash_rehearsal": "PASS",
+  "core_runtime_delta_from_d942b1c": false
+}

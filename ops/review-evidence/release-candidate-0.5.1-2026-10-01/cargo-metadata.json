@@ -1,0 +1,97 @@
+{
+  "package": "continuity-receipt",
+  "version": "0.5.1",
+  "manifest_path": "/tmp/continuity-receipt-051-candidate-2026-10-01/rust/Cargo.toml",
+  "targets": [
+    {
+      "name": "continuity_receipt",
+      "kind": [
+        "lib"
+      ],
+      "crate_types": [
+        "lib"
+      ]
+    },
+    {
+      "name": "continuity-receipt-anchor",
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "continuity-receipt-disclose",
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "continuity-receipt-verify",
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "continuity-receipt-verify-receipt",
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "anchor",
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "disclose",
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "fuzz_corpus",
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "vectors",
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    },
+    {
+      "name": "verification",
+      "kind": [
+        "test"
+      ],
+      "crate_types": [
+        "bin"
+      ]
+    }
+  ]
+}
