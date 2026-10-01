@@ -4,7 +4,7 @@
 demonstrated.** This packet asks an external agent/operator to evaluate a
 disclosed Continuity Receipt bundle as a relying party using its own explicit
 policy and refusal controls. It does not ask the operator to execute the
-bundle’s claimed action. No one has been contacted as part of preparing it.
+bundle’s claimed action. Sangha preparation notices #456 and #486 were posted to the Mac/fleet; the primary releases the tested archive separately. No returned Mac run is yet evidenced.
 
 The profile in scope accepts receipt specifications 0.1–0.4. The pilot uses a
 real signed 0.4 conformance vector and the offline Python consumer. The
@@ -73,9 +73,9 @@ python3 -m continuity_receipt.consumer \
   --policy examples/independent-agent-pilot/policy.json
 ```
 
-The harness reads local files only (maximum 1 MiB each), uses no network, and
-has no action/actuator code. It emits a JSON summary and checks these expected
-assessment outcomes:
+The dry-demo harness reads local files only (maximum 1 MiB each), uses no
+network, and has no action/actuator code. It emits a JSON summary and checks
+these expected assessment outcomes:
 
 | Scenario | Consumer result | Harness result |
 | --- | --- | --- |
@@ -94,8 +94,85 @@ with its separate expected hash in `artifact-manifest.json`. Neither file is
 signed or referenced by the receipt bundle. They exercise only a caller-side
 hash comparison. Likewise, replay and interrupted-recovery controls in the
 script are simulated harness facts, not features of the consumer or core
-protocol. Even if every hypothetical gate were marked complete, the harness
-returns `OPERATOR_REVIEW_REQUIRED` and still performs no action.
+protocol. Even if every hypothetical gate were marked complete, the dry-demo
+harness returns `OPERATOR_REVIEW_REQUIRED` and performs no action.
+
+## Opt-in local assessment write
+
+The separate `examples/independent-agent-pilot/run_action.py` script performs
+one actual local action: it writes a fixed `assessment.json` into a caller-
+selected evidence directory. It does not execute the receipt's claimed action,
+invoke tools, contact a network, pay, or change an external service. It
+requires explicit expected raw SHA-256 pins for both the bundle and policy,
+the actual consumer outcome `ACCEPT`, an existing owner-only output directory,
+and caller freshness inputs (`--now-utc` plus `--max-age-seconds`). It checks
+every signed `issued_at`, session pass `expires_at`, and agreement offer
+`valid_until`. The report distinguishes the completed local file write from
+execution of the receipt's claim and labels the supplied time as unauthenticated
+operator input, not a trusted clock or oracle.
+
+The old checked-in fixture and policy remain byte-for-byte preserved. Its
+receipts are stale and its session pass is expired, so action mode refuses it.
+The new `make_fresh_fixture.py` creates a reproducible synthetic signed 0.4
+agreement bundle and policy for tests and a clean-host local reproduction. Its
+deterministic public test keys are not real identity or authority. The runner's
+Python tests independently exercise positive file write, issuer/spec/evidence
+refusals, freshness refusal, replay, changed output, untracked output,
+symlinked directory, interrupted `PREPARED` state, and concurrent callers.
+
+### macOS source checkout procedure
+
+Use the reviewed, committed handoff snapshot that includes the packet, the
+pilot scripts, `tools/make_vectors.py`, and the hardened consumer source. The
+consumer hardening is committed at `e03a268` but is not present in the
+published 0.5.0 wheel; a package version alone is not an acceptable source
+pin. Python 3.11 or later is required by `pyproject.toml`. From the clean
+checkout root in macOS Terminal:
+
+```sh
+sw_vers
+python3.11 --version
+python3.11 -m venv .venv
+.venv/bin/python -m pip install .
+git rev-parse HEAD
+git status --short
+shasum -a 256 continuity_receipt/consumer.py continuity_receipt/verify.py continuity_receipt/canon.py continuity_receipt/strict_json.py continuity_receipt/records.py continuity_receipt/keys.py continuity_receipt/agreements.py continuity_receipt/bundle.py continuity_receipt/revocations.py
+.venv/bin/python examples/independent-agent-pilot/run_pilot.py
+.venv/bin/python examples/independent-agent-pilot/test_run_action.py
+mkdir -m 700 -p /tmp/cr-pilot-input /tmp/cr-pilot-output
+.venv/bin/python examples/independent-agent-pilot/make_fresh_fixture.py --output-dir /tmp/cr-pilot-input
+date -u '+%Y-%m-%dT%H:%M:%SZ'
+shasum -a 256 /tmp/cr-pilot-input/bundle.json /tmp/cr-pilot-input/policy.json
+```
+
+Copy the exact hashes and UTC reading from those commands into this action
+command; do not substitute example values:
+
+```sh
+.venv/bin/python examples/independent-agent-pilot/run_action.py \
+  --record-assessment \
+  --bundle /tmp/cr-pilot-input/bundle.json \
+  --policy /tmp/cr-pilot-input/policy.json \
+  --bundle-sha256 sha256:<bundle-hash> \
+  --policy-sha256 sha256:<policy-hash> \
+  --now-utc <operator-UTC-reading> \
+  --max-age-seconds 86400 \
+  --output-dir /tmp/cr-pilot-output
+```
+
+Repeat the same command once. The first must write `/tmp/cr-pilot-output/assessment.json`;
+the second must refuse as a replay. Preserve both command outputs and exit
+codes, the JSON result and its SHA-256, the input bytes/hashes, OS/Python
+versions, repository commit/status, and imported consumer path/source hashes.
+The script's report captures its actual imported module path and source file
+hashes. To demonstrate interrupted recovery, the test suite injects a failure
+after durable `PREPARED`; the next attempt must refuse and must not recreate
+the assessment output. The operator-selected output directory must already
+exist with mode `700`; its final path must not be a symlink, and the operator
+must trust its parent path and local filesystem. State and output files use
+mode `600`, and SQLite's immediate transaction serializes simultaneous
+attempts. These controls apply only to that one local directory and are not a
+multi-host ledger.
 
 For an installed-package reproduction, use a non-editable isolated install and
 run the wrapper outside the checkout:
@@ -117,12 +194,13 @@ imported package path.
    full Git commit, whether the tree is clean, and the signed `v0.5.0` tag
    verification result. Do not call the producer’s current working tree an
    independent source.
-2. In an isolated Python environment install exactly
-   `continuity-receipt==0.5.0`, or use the agreed committed source snapshot.
-   Retain the downloaded wheel/sdist and compute its SHA-256. Record Python
-   version, OS, `continuity_receipt.consumer.__file__`, and SHA-256 of that
-   imported module plus its verifier dependencies. Confirm the imported code
-   is the code being claimed; package metadata alone is insufficient.
+2. Use the committed, reviewed consumer source snapshot in an isolated Python
+   3.11+ environment. The hardening at source commit `e03a268` is not present
+   in the published `continuity-receipt==0.5.0` wheel; do not claim that wheel
+   includes it. Record Python and OS versions, installed `cryptography`
+   version, `continuity_receipt.consumer.__file__`, and SHA-256 of that module
+   plus its verifier dependencies. The action runner captures imported paths
+   and hashes. Package metadata alone is not a source pin.
 3. Preserve exact raw `bundle.json` and `policy.json` bytes. Verify sizes and
    hashes above before assessment. Run the CLI and harness from outside the
    producer’s execution environment where practical. Retain the exact
@@ -143,8 +221,9 @@ operator/agent identifier:
 operator relationship to producer/maintainer:
 host and OS/kernel:
 Python version:
-package artifact filename and SHA-256:
+source snapshot/archive filename and SHA-256:
 installed distribution version:
+cryptography version:
 imported consumer module path and SHA-256:
 verifier dependency file hashes:
 source repository commit and clean/dirty result:
@@ -153,6 +232,8 @@ raw policy SHA-256 and bytes:
 commands, exit codes, stdout/stderr artifact paths:
 positive and negative scenario results:
 reviewer and independent reproduction method:
+caller-supplied freshness time and maximum age:
+fixed local assessment output path and SHA-256:
 unresolved deviations or limitations:
 ```
 
