@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import importlib
 import importlib.metadata
+import importlib.util
 import json
 import os
 import platform
@@ -20,6 +21,7 @@ import sqlite3
 import stat
 import subprocess
 import sys
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +31,14 @@ OUTPUT_NAME = "assessment.json"
 STATE_NAME = "replay-state.sqlite3"
 TEMP_NAME = ".assessment.json.tmp"
 MAX_INPUT_BYTES = 1024 * 1024
+SOURCE_MODULES = (
+    "continuity_receipt.consumer", "continuity_receipt.verify",
+    "continuity_receipt.canon", "continuity_receipt.strict_json",
+    "continuity_receipt.records", "continuity_receipt.keys",
+    "continuity_receipt.agreements", "continuity_receipt.bundle",
+    "continuity_receipt.revocations",
+)
+_IMPORT_LOCK = threading.RLock()
 
 
 class ActionRefused(RuntimeError):
@@ -37,6 +47,69 @@ class ActionRefused(RuntimeError):
 
 def digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _within_checkout(path: str | Path) -> bool:
+    try:
+        Path(path).resolve().relative_to(ROOT)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def load_consumer(*, installed_package: bool):
+    """Load the requested consumer without mutating sys.path.
+
+    Source mode loads the checkout package by its explicit package location and
+    rejects any already-cached Continuity Receipt module imported from outside
+    the checkout. Installed mode rejects a cached or resolved checkout import.
+    """
+    with _IMPORT_LOCK:
+        cached = {
+            name: module for name, module in tuple(sys.modules.items())
+            if name == "continuity_receipt" or name.startswith("continuity_receipt.")
+        }
+        if installed_package:
+            consumer = importlib.import_module("continuity_receipt.consumer")
+            if not _within_checkout(consumer.__file__):
+                return consumer
+            raise ActionRefused("installed_consumer_resolves_to_source_checkout")
+
+        for name, module in cached.items():
+            module_path = getattr(module, "__file__", None)
+            if module_path is None:
+                locations = getattr(module, "__path__", None)
+                if locations:
+                    if any(not _within_checkout(location) for location in locations):
+                        raise ActionRefused(f"source_import_cached_outside_checkout:{name}")
+                    continue
+                raise ActionRefused(f"source_import_cached_without_path:{name}")
+            if not _within_checkout(module_path):
+                raise ActionRefused(f"source_import_cached_outside_checkout:{name}")
+
+        if "continuity_receipt" not in sys.modules:
+            package_path = ROOT / "continuity_receipt" / "__init__.py"
+            package_spec = importlib.util.spec_from_file_location(
+                "continuity_receipt", package_path,
+                submodule_search_locations=[str(package_path.parent)],
+            )
+            if package_spec is None or package_spec.loader is None:
+                raise ActionRefused("source_package_spec_unavailable")
+            package = importlib.util.module_from_spec(package_spec)
+            sys.modules["continuity_receipt"] = package
+            try:
+                package_spec.loader.exec_module(package)
+            except Exception:
+                sys.modules.pop("continuity_receipt", None)
+                raise
+
+        consumer = importlib.import_module("continuity_receipt.consumer")
+        for name in SOURCE_MODULES:
+            module = importlib.import_module(name)
+            module_path = getattr(module, "__file__", None)
+            if module_path is None or not _within_checkout(module_path):
+                raise ActionRefused(f"source_import_resolved_outside_checkout:{name}")
+        return consumer
 
 
 def read_pinned(path: Path, expected: str, label: str) -> bytes:
@@ -56,13 +129,7 @@ def read_pinned(path: Path, expected: str, label: str) -> bytes:
 
 def source_pins(consumer) -> dict:
     files = {}
-    for module_name in (
-        "continuity_receipt.consumer", "continuity_receipt.verify",
-        "continuity_receipt.canon", "continuity_receipt.strict_json",
-        "continuity_receipt.records", "continuity_receipt.keys",
-        "continuity_receipt.agreements", "continuity_receipt.bundle",
-        "continuity_receipt.revocations",
-    ):
+    for module_name in SOURCE_MODULES:
         module = importlib.import_module(module_name)
         path = Path(module.__file__).resolve()
         files[str(path)] = digest(path.read_bytes())
@@ -268,11 +335,7 @@ def record_assessment(*, bundle_raw: bytes, policy_raw: bytes, now_utc: str,
         raise ActionRefused(f"bundle_raw_pin_mismatch:{observed_bundle_pin}")
     if observed_policy_pin != expected_policy_sha256:
         raise ActionRefused(f"policy_raw_pin_mismatch:{observed_policy_pin}")
-    if not installed_package:
-        sys.path.insert(0, str(ROOT))
-    consumer = importlib.import_module("continuity_receipt.consumer")
-    if installed_package and Path(consumer.__file__).resolve().is_relative_to(ROOT):
-        raise ActionRefused("installed_consumer_resolves_to_source_checkout")
+    consumer = load_consumer(installed_package=installed_package)
     bundle = consumer._parse_raw(bundle_raw, "bundle")
     policy = consumer._parse_raw(policy_raw, "policy")
     freshness = check_caller_freshness(bundle, now_utc=now_utc, max_age_seconds=max_age_seconds)

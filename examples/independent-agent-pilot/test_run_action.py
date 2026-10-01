@@ -8,6 +8,7 @@ import json
 import sys
 import tempfile
 import threading
+import types
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -200,6 +201,41 @@ class PilotActionTests(unittest.TestCase):
         path.write_bytes(b" " * (action.MAX_INPUT_BYTES + 1))
         with self.assertRaisesRegex(action.ActionRefused, "too_large"):
             action.read_pinned(path, raw_digest(path.read_bytes()), "bundle")
+
+    def test_source_import_does_not_mutate_sys_path(self):
+        before = list(sys.path)
+        consumer = action.load_consumer(installed_package=False)
+        self.assertTrue(action._within_checkout(consumer.__file__))
+        self.assertEqual(sys.path, before)
+
+    def test_source_mode_refuses_cached_installed_consumer(self):
+        old_modules = {
+            name: module for name, module in tuple(sys.modules.items())
+            if name == "continuity_receipt" or name.startswith("continuity_receipt.")
+        }
+        for name in old_modules:
+            sys.modules.pop(name, None)
+        external_root = Path(self.tmp.name) / "installed-package"
+        external_root.mkdir()
+        fake_package = types.ModuleType("continuity_receipt")
+        fake_package.__file__ = str(external_root / "__init__.py")
+        fake_package.__path__ = [str(external_root)]
+        fake_consumer = types.ModuleType("continuity_receipt.consumer")
+        fake_consumer.__file__ = str(external_root / "consumer.py")
+        sys.modules["continuity_receipt"] = fake_package
+        sys.modules["continuity_receipt.consumer"] = fake_consumer
+        try:
+            with self.assertRaisesRegex(action.ActionRefused, "source_import_cached_outside_checkout"):
+                action.load_consumer(installed_package=False)
+        finally:
+            for name in tuple(sys.modules):
+                if name == "continuity_receipt" or name.startswith("continuity_receipt."):
+                    sys.modules.pop(name, None)
+            sys.modules.update(old_modules)
+
+    def test_installed_mode_refuses_cached_checkout_consumer(self):
+        with self.assertRaisesRegex(action.ActionRefused, "installed_consumer_resolves_to_source_checkout"):
+            action.load_consumer(installed_package=True)
 
 
 if __name__ == "__main__":
