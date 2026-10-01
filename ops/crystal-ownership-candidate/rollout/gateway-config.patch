@@ -1,0 +1,22 @@
+--- a/Caddyfile
++++ b/Caddyfile
+@@ -172,7 +172,7 @@
+ 		reverse_proxy 127.0.0.1:18792
+ 	}
+ 
+-	# Keyed/x402 write, keyless read: Memory Crystals (Wedge B)
++	# Authenticated owner-bound Memory Crystals (candidate rollout)
+ 	handle /crystals {
+ 		reverse_proxy 127.0.0.1:18792
+ 	}
+--- a/whitemagic-api-gateway.service
++++ b/whitemagic-api-gateway.service
+@@ -6,7 +6,7 @@
+ [Service]
+ User=whitemagic
+ Group=whitemagic
+-ExecStart=/usr/bin/python3 /etc/whitemagic-hosted/authd.py --listen 127.0.0.1:18792 --upstream http://127.0.0.1:18791 --state /var/lib/whitemagic-hosted-api --keyless-paths /health,/info,/revocations/*,/anchors/*,/receipts/*,/crystals/*,/notarize* --x402 --x402-version 2 --x402-facilitator http://127.0.0.1:18794 --x402-pay-to 0x213b6bB4fB073E86167c58DA6Cb6E9477557DaA8 --x402-asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 --x402-asset-name "USD Coin" --x402-asset-version 2 --x402-network eip155:8453 --x402-price 10000 --x402-resource https://api.whitemagic.dev/verify --payment-receipts-url http://127.0.0.1:18791/payment-receipts --internal-token-file /var/lib/whitemagic-hosted-api/payment_internal.token
++ExecStart=/usr/bin/python3 /etc/whitemagic-hosted/authd.py --listen 127.0.0.1:18792 --upstream http://127.0.0.1:18791 --state /var/lib/whitemagic-hosted-api --keyless-paths /health,/info,/revocations/*,/anchors/*,/receipts/*,/notarize* --x402 --x402-version 2 --x402-facilitator http://127.0.0.1:18794 --x402-pay-to 0x213b6bB4fB073E86167c58DA6Cb6E9477557DaA8 --x402-asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 --x402-asset-name "USD Coin" --x402-asset-version 2 --x402-network eip155:8453 --x402-price 10000 --x402-resource https://api.whitemagic.dev/verify --payment-receipts-url http://127.0.0.1:18791/payment-receipts --internal-token-file /var/lib/whitemagic-hosted-api/payment_internal.token
+ Restart=on-failure
+ RestartSec=5
+ NoNewPrivileges=yes

@@ -1,0 +1,10 @@
+{
+  "import": {
+    "imported_consumer_path": "/tmp/continuity-receipt-release-audit-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/consumer.py",
+    "source_hash_matches_reviewed_candidate": true
+  },
+  "pilot_status": "LOCAL_DRY_RUN_ONLY",
+  "pilot_cases": 8,
+  "source_commit": "d942b1c",
+  "publication": false
+}

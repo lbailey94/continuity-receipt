@@ -11,7 +11,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import records, strict_json
+from . import strict_json
 from .canon import canonical_bytes, sha256_prefixed
 from .verify import MAX_BUNDLE_BYTES, VerifyResult, verify_bundle
 
@@ -22,9 +22,16 @@ PROFILE_SPECS = (
     "continuity-receipt/0.3",
     "continuity-receipt/0.4",
 )
-PROFILE_RECORD_TYPES = tuple(
-    record_type for record_type in records.RECORD_TYPES
-    if record_type not in ("state.commitment", "authority.grant")
+PROFILE_RECORD_TYPES = (
+    "session.pass.created",
+    "task.decision",
+    "task.execution",
+    "delivery.attestation",
+    "task.termination",
+    "settlement",
+    "authority.succession",
+    "agreement.offer",
+    "agreement.accept",
 )
 OUTCOMES = ("ACCEPT", "NEEDS_EVIDENCE", "REJECT")
 
@@ -112,7 +119,7 @@ def assess_bundle(bundle: dict, policy: dict | None) -> Assessment:
     core: VerifyResult = verify_bundle(bundle)
     try:
         bundle_digest = sha256_prefixed(canonical_bytes(bundle))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, RecursionError):
         bundle_digest = None
     if policy is None:
         if core.verdict == "UNTRUSTED":
@@ -123,7 +130,7 @@ def assess_bundle(bundle: dict, policy: dict | None) -> Assessment:
     specs, issuers, required = _validate_policy(policy)
     try:
         policy_digest = sha256_prefixed(canonical_bytes(policy))
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, RecursionError) as exc:
         raise InputError("policy_not_canonicalizable") from exc
     reasons: list[str] = []
     receipts = bundle.get("receipts", []) if isinstance(bundle, dict) else []

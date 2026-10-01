@@ -1,0 +1,14 @@
+{
+  "id": "continuity-receipt-demo-v0.4",
+  "accepted_specs": [
+    "continuity-receipt/0.4"
+  ],
+  "trusted_issuers": [
+    "did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb",
+    "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+  ],
+  "required_record_types": [
+    "agreement.offer",
+    "agreement.accept"
+  ]
+}

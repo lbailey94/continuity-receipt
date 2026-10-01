@@ -1,10 +1,12 @@
 # Continuity Receipt 0.6 candidate — authority
 
-**Status:** development candidate in this checkout. Spec 0.4 remains the
-published release and the hosted surface; the 0.5 candidate is unchanged and
-still awaits external review. Python and Rust prerelease builds here accept
-0.1–0.6. Neither the hosted service nor the published packages are claimed to
-support 0.5 or 0.6.
+**Status:** development draft; there is no standalone 0.6 specification or
+package release. The published 0.5.0 Python and Rust packages already contain
+experimental verifier support for 0.6; `SPEC.md` remains the published 0.5
+specification. The 0.6 schema and 10-vector corpus are included in the signed
+`v0.5.0` source tag. The hosted service self-description and dated observations
+are summarized in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md);
+they do not close external review or independent adopter qualification.
 
 All 0.4 and 0.5 rules remain in force. A 0.6 receipt uses the same envelope,
 canonical view, signatures, verdicts, agreement binding, and 0.5 vocabulary.
@@ -108,5 +110,7 @@ manifests remain byte-for-byte unchanged.
 - Whether `gate_ref` should carry a digest instead of a label.
 - Which independent principal-to-signer trust mechanism and action-binding
   inputs a future authority-required profile should consume.
-- 0.5 freeze timing: 0.6 stacks on the unreleased 0.5 candidate; do not
-  publish either without the external review gate in `ROADMAP.md`.
+- Whether/how to gate the experimental 0.6 implementation already exposed by
+  the 0.5.0 packages is a compatibility decision; evaluate it with explicit
+  Python/Rust parity coverage. The normative 0.6 specification remains draft
+  pending external review and a release decision in `ROADMAP.md`.

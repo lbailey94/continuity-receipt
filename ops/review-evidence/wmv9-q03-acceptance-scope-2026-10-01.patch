@@ -1,0 +1,37 @@
+--- a/scripts/q03_acceptance.py
++++ b/scripts/q03_acceptance.py
+@@ -102,15 +102,32 @@
+                                     ('federated', 'http://127.0.0.1:18795', 'wmv9')]:
+         lease = 'q03-acceptance/' + str(uuid.uuid4())
+         claim = {'scope': lease, 'owner_session': args.owner_session, 'intent': 'Q03 disposable scope-passthrough regression', 'ttl_secs': 120}
++        claim_succeeded = False
+         try:
+             response = rpc(endpoint, 'code.claim', claim, scope)
+             record['results'].append({'path': label, 'response': response})
+             assert response.get('status') == 'success', response
+-            assert response.get('scope') == lease or response.get('lease_id') == lease, response
++            assert response.get('scope') == lease, response
++            if label == 'federated':
++                assert response.get('gateway_scope') == 'wmv9', response
++
++            # Verify the actual direct backing ledger, not an echoed gateway
++            # label or a lease_id that can hide a clobbered response scope.
++            checked = rpc('http://127.0.0.1:18790', 'code.check', {'scope': lease})
++            record['results'].append({'path': label + '-backing-check', 'response': checked})
++            assert checked.get('status') == 'success', checked
++            assert checked.get('scope') == lease, checked
++            assert checked.get('state') == 'claimed', checked
++            assert checked.get('holder') == args.owner_session, checked
++            claim_succeeded = True
+         finally:
+-            # Direct cleanup also works if an old gateway strips the inner scope.
++            # Cleanup always targets the direct backing ledger.
+             released = rpc('http://127.0.0.1:18790', 'code.release', {'scope': lease, 'owner_session': args.owner_session})
+             record['results'].append({'path': label + '-cleanup', 'response': released})
++            if claim_succeeded:
++                assert released.get('status') == 'success', released
++                assert released.get('scope') == lease, released
++                assert released.get('state') == 'released', released
+             dump(args.out / 'gateway-acceptance.json', record)
+     record['valid'] = True
+     dump(args.out / 'gateway-acceptance.json', record)

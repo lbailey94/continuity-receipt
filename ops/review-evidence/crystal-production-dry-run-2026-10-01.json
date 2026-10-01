@@ -1,0 +1,12 @@
+{
+  "protected_manifest": "/root/continuity-rollouts/crystal-review-qjI5Ho5P/legacy-dry-run.json",
+  "manifest_sha256": "de5f53492f552672db0c3225c305ff67c8fcd4e610a681c12ca6c72e9ab5081c",
+  "entry_count": 1,
+  "candidate_api_sha256": "aeb3f3e4834db13e497ada7f04c26fe11df977ec02da6041c02e2233551ac173",
+  "source_byte_hashes": [
+    "f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae"
+  ],
+  "mode": "dry-run",
+  "actual_quarantine_applied": false,
+  "owner_assignment": null
+}

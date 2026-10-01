@@ -1,0 +1,66 @@
+{
+  "mode": "production",
+  "base": "https://www.whitemagic.dev",
+  "checks": [
+    {
+      "path": "/hosted",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/zh/hosted",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/receipts",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/zh/receipts",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/trust",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/zh/trust",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/.well-known/agent.json",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/.well-known/agent-economy.json",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/.well-known/api-catalog",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/llms.txt",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/llms-full.txt",
+      "status": 200,
+      "assertions": "PASS"
+    },
+    {
+      "path": "/ai-agent.json",
+      "status": 200,
+      "assertions": "PASS"
+    }
+  ]
+}

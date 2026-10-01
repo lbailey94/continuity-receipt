@@ -1,0 +1,21 @@
+{
+  "board": 495,
+  "archive_sha256": "35a874012ba72667c62504db2e7ee430efd5da997752e69ccc5ee23407c902d8",
+  "verified_evidence_files": 23,
+  "consumer_recomputed_matches": true,
+  "summary": {
+    "result": "LOCAL_SYNTHETIC_REHEARSAL_PASS",
+    "source_snapshot": {
+      "source_commit": "c255661dc07ed6c33c8dc16a38b74f05cea81fdc",
+      "runtime_hardening_commit": "e03a2686ccc94b4f49d8deef711e8d726ecf258c",
+      "distribution_version_label": "0.5.0",
+      "scope": "Reviewed source snapshot; hardened consumer is not the published 0.5.0 wheel; deterministic synthetic test keys are public; no independence claim"
+    },
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "cryptography": "50.0.1",
+    "caller_time_utc": "2026-10-01T04:45:45Z",
+    "limitations": "Synthetic public test keys; caller time is not trusted; local filesystem action only; second-host and administrative independence require actual operator facts"
+  },
+  "administrative_independence": false
+}

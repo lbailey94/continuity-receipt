@@ -1,0 +1,132 @@
+From 6f1a6feb65736b12bef72ce286605b73675a43b2 Mon Sep 17 00:00:00 2001
+From: WhiteMagic AI <lbailey94@protonmail.com>
+Date: Thu, 1 Oct 2026 13:30:41 -0400
+Subject: [PATCH] fix(gateway): preserve backing scope labels
+
+---
+ crates/wm-mcp/src/gateway.rs                 | 39 ++++++++++++++++++--
+ crates/wm-mcp/tests/federated_gateway_e2e.rs | 16 ++++----
+ 2 files changed, 43 insertions(+), 12 deletions(-)
+
+diff --git a/crates/wm-mcp/src/gateway.rs b/crates/wm-mcp/src/gateway.rs
+index 7657229..2f87cad 100644
+--- a/crates/wm-mcp/src/gateway.rs
++++ b/crates/wm-mcp/src/gateway.rs
+@@ -15,7 +15,9 @@
+ //!   scope (`WM_PROJECT`), else fail-closed
+ //!
+ //! v26 lessons enforced here: backing envelopes pass through untouched
+-//! (scope labels only — the stable-envelope rule); scope discovery comes
++//! except for the gateway's additive `gateway_scope` routing label when a
++//! backing already owns `scope` (or a compatibility `scope` fallback when
++//! it does not); scope discovery comes
+ //! from the backings' own disclosures, never a hand-maintained list (the
+ //! grimoire-drift lesson); the gateway contract is probed live at startup
+ //! and persisted (the profile-contract pattern, one altitude up; the
+@@ -304,8 +306,10 @@ impl Gateway {
+     /// `resolve_pinned`. Inner `args` pass through untouched — a tool's
+     /// own `args.scope` (e.g. the code.claim lease scope) is tool
+     /// payload, not routing, and must reach the backing intact. The
+-    /// backing envelope passes through except for the `scope` label
+-    /// (the stable-envelope rule); a read-only refusal keeps its hint.
++    /// backing envelope passes through except for an additive `gateway_scope`
++    /// label when the backing already owns `scope`. If it has no `scope`, the
++    /// gateway uses that field for the store label to preserve older clients.
++    /// A read-only refusal keeps its hint.
+     fn proxy(&self, scope_name: &str, route: &str, arguments: &Value) -> Result<Value, String> {
+         let inner = arguments.get("args").cloned().unwrap_or_else(|| json!({}));
+         let backing_args = json!({"route": route, "args": inner});
+@@ -344,7 +348,11 @@ impl Gateway {
+         let mut envelope: Value = serde_json::from_str(text)
+             .map_err(|e| format!("backing envelope parse failed: {e}"))?;
+         if let Some(obj) = envelope.as_object_mut() {
+-            obj.insert("scope".into(), json!(scope_name));
++            if obj.contains_key("scope") {
++                obj.insert("gateway_scope".into(), json!(scope_name));
++            } else {
++                obj.insert("scope".into(), json!(scope_name));
++            }
+         }
+         Ok(envelope)
+     }
+@@ -1036,6 +1044,10 @@ mod tests {
+             envelope["status"], "success",
+             "forward must succeed: {envelope}"
+         );
++        assert_eq!(
++            envelope["scope"], "dev",
++            "backings that omit their own scope retain the legacy store label"
++        );
+         let (scope, forwarded) = calls
+             .lock()
+             .unwrap()
+@@ -1052,6 +1064,25 @@ mod tests {
+         assert_eq!(inner["intent"], "test intent");
+     }
+ 
++    #[test]
++    fn pinned_proxy_preserves_backing_scope_and_adds_gateway_scope() {
++        let mock = MockBacking::new().with_envelope(
++            "dev",
++            json!({"status": "success", "scope": "WMv9/release-freeze", "state": "free"}),
++        );
++        let gw = gateway_with(mock, &[spec("dev"), spec("vault")], Some("dev"));
++        let response = gw.handle_request(
++            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"wm","arguments":{"route":"code.check","args":{"scope":"WMv9/release-freeze"}}}}"#,
++        );
++        let parsed: Value = serde_json::from_str(&response).unwrap();
++        let text = parsed["result"]["content"][0]["text"].as_str().unwrap();
++        let envelope: Value = serde_json::from_str(text).unwrap();
++
++        assert_eq!(envelope["scope"], "WMv9/release-freeze");
++        assert_eq!(envelope["gateway_scope"], "dev");
++        assert_eq!(envelope["state"], "free");
++    }
++
+     #[test]
+     fn inner_args_scope_is_not_routing() {
+         // An inner args.scope naming another scope must NOT re-route and
+diff --git a/crates/wm-mcp/tests/federated_gateway_e2e.rs b/crates/wm-mcp/tests/federated_gateway_e2e.rs
+index 7c9b113..a1d706c 100644
+--- a/crates/wm-mcp/tests/federated_gateway_e2e.rs
++++ b/crates/wm-mcp/tests/federated_gateway_e2e.rs
+@@ -292,10 +292,10 @@ fn federated_gateway_e2e_pins_scopes_and_preserves_inner_payload() {
+         Some("dev"),
+     );
+     assert_eq!(claim["status"], "success", "claim: {claim}");
+-    let claim_text = claim.to_string();
+-    assert!(
+-        claim_text.contains(&lease),
+-        "claim must echo the lease: {claim}"
++    assert_eq!(claim["scope"], lease, "backing lease scope: {claim}");
++    assert_eq!(
++        claim["gateway_scope"], "dev",
++        "gateway store label: {claim}"
+     );
+ 
+     let direct = call_wm(
+@@ -305,10 +305,9 @@ fn federated_gateway_e2e_pins_scopes_and_preserves_inner_payload() {
+         None,
+     );
+     assert_eq!(direct["status"], "success", "direct check: {direct}");
+-    assert_ne!(
+-        direct["state"], "free",
+-        "the lease must be held on the `dev` backing: {direct}"
+-    );
++    assert_eq!(direct["scope"], lease, "direct scope: {direct}");
++    assert_eq!(direct["state"], "claimed", "dev backing lease: {direct}");
++    assert_eq!(direct["holder"], owner, "dev backing owner: {direct}");
+     let other = call_wm(
+         port_b,
+         "code.check",
+@@ -331,6 +330,7 @@ fn federated_gateway_e2e_pins_scopes_and_preserves_inner_payload() {
+         None,
+     );
+     assert_eq!(released["status"], "success", "release: {released}");
++    assert_eq!(released["state"], "released", "release state: {released}");
+ 
+     // 4. Unknown pinned scope fails closed, naming the reachable scopes.
+     let refused = call_wm(
+-- 
+2.43.0
+

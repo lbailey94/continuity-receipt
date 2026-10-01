@@ -1,0 +1,14 @@
+{
+  "archive_sha256": "85613674eca722fc2e91992513374b34b0f6e542bd85fd1127e8028bee5fec95",
+  "source_commit": "d942b1c1fff6e8d153e04c31e3327b4ca7c8ee56",
+  "source_hashes_verified": 27,
+  "tests_passed": 16,
+  "positive_cli_exit": 0,
+  "replay_cli_exit": 1,
+  "positive_stdout": "{\"path\": \"/tmp/cr-adoption-primary-gllhv_wv/continuity-receipt-d942b1c/../positive/assessment.json\", \"result\": \"LOCAL_ASSESSMENT_RECORDED_NOT_AUTHORIZATION\", \"status\": \"RECORDED\"}\n",
+  "replay_stdout": "{\"reason\": \"assessment_replay_refused\", \"status\": \"REFUSED\"}\n",
+  "scope": "primary same-host synthetic rehearsal only; independent administration/adoption open",
+  "primary_instruction_correction": "create ../input and ../positive after cd into extracted source, matching command paths",
+  "sangha_handoff": 500,
+  "preserved_archive": "/home/lucas/SharedWorkspace/uploads/t4800-s/continuity-receipt-independent-adoption-d942b1c-2026-10-01/continuity-receipt-d942b1c-independent-adoption.tar.gz"
+}

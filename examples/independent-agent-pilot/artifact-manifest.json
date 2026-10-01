@@ -1,0 +1,11 @@
+{
+  "format": "local-pilot-artifact-manifest/1",
+  "files": [
+    {
+      "path": "sample-input.txt",
+      "size": 71,
+      "sha256": "sha256:e70e7352cbecd5e41708cd37bc1a4bccaab8287a4677ae1dd1fc7059e5db0b1e"
+    }
+  ],
+  "notice": "Local harness fixture only. This manifest is not signed or committed to the Continuity Receipt bundle."
+}

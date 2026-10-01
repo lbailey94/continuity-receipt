@@ -52,12 +52,47 @@ class ConsumerAssessmentTests(unittest.TestCase):
         self.assertEqual(len(issuers), 2)
         self.assertTrue(result["bundle_digest"].startswith("sha256:"))
 
+    def test_documented_04_policy_accepts_its_vector(self):
+        bundle_path = ROOT / "vectors" / "17_agreement_bound.json"
+        policy_path = ROOT / "examples" / "consumer-policy-0.4.json"
+        run = subprocess.run(
+            [sys.executable, "-m", "continuity_receipt.consumer", str(bundle_path), "--policy", str(policy_path)],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertEqual(run.returncode, 0, run.stderr)
+        result = json.loads(run.stdout)
+        self.assertEqual(result["outcome"], "ACCEPT")
+        self.assertEqual(result["bundle_digest"], "sha256:6ec87ad89b003b998178f4bbdc72d5c521a6b8de37c2839ed0a743844bcd9767")
+
     def test_required_unpublished_record_types_are_rejected(self):
         for record_type in ("state.commitment", "authority.grant"):
             with self.subTest(record_type=record_type), self.assertRaisesRegex(
                 InputError, "policy_record_types_invalid"
             ):
                 assess_bundle(self.bundle, dict(self.policy, required_record_types=[record_type]))
+
+    def test_profile_record_vocabulary_is_fixed_through_04(self):
+        from continuity_receipt.consumer import PROFILE_RECORD_TYPES
+        self.assertEqual(
+            PROFILE_RECORD_TYPES,
+            (
+                "session.pass.created", "task.decision", "task.execution",
+                "delivery.attestation", "task.termination", "settlement",
+                "authority.succession", "agreement.offer", "agreement.accept",
+            ),
+        )
+
+    def test_deep_direct_bundle_returns_structured_rejection(self):
+        bundle = {}
+        cursor = bundle
+        for _ in range(1500):
+            child = {}
+            cursor["nested"] = child
+            cursor = child
+        result = assess_bundle(bundle, None).as_dict()
+        self.assertEqual(result["outcome"], "REJECT")
+        self.assertIn("nesting_too_deep", [entry["code"] for entry in result["core"]["errors"]])
+        self.assertIsNone(result["bundle_digest"])
 
     def test_policy_absent_does_not_accept(self):
         result = assess_bundle(self.bundle, None).as_dict()

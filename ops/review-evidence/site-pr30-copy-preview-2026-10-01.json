@@ -1,0 +1,17 @@
+{
+  "deployment": "https://whitemagic-site-e2mih5jmh-lbailey94s-projects.vercel.app",
+  "checks": [
+    {
+      "path": "/hosted",
+      "assertions": "PASS"
+    },
+    {
+      "path": "/zh/hosted",
+      "assertions": "PASS"
+    },
+    {
+      "path": "/llms-full.txt",
+      "assertions": "PASS"
+    }
+  ]
+}

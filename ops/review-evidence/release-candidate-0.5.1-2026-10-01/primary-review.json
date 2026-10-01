@@ -1,0 +1,96 @@
+{
+  "status": "PASS",
+  "metadata_files": [
+    "continuity_receipt/_version.py",
+    "pyproject.toml",
+    "rust/Cargo.lock",
+    "rust/Cargo.toml"
+  ],
+  "checks": [
+    {
+      "name": "version/runtime report",
+      "returncode": 0,
+      "stdout": "{\n  \"distribution_version\": \"0.5.1\",\n  \"runtime_version\": \"0.5.1\",\n  \"verification_receipt_runtime_version\": \"0.5.1\",\n  \"imported_module\": \"/tmp/continuity-receipt-051-evidence-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/__init__.py\",\n  \"outside_candidate_checkout\": true,\n  \"issued_receipt_valid\": true\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-verify help",
+      "returncode": 0,
+      "stdout": "usage: continuity-receipt-verify [-h] [--require-anchor]\n                                 [--revocations PATH|URL]\n                                 bundle\n\npositional arguments:\n  bundle                path to a bundle JSON file\n\noptions:\n  -h, --help            show this help message and exit\n  --require-anchor\n  --revocations PATH|URL\n                        external revocation list (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-consumer help",
+      "returncode": 0,
+      "stdout": "usage: python -m continuity_receipt.consumer [-h] [--policy POLICY] bundle\n\npositional arguments:\n  bundle           raw bundle JSON path\n\noptions:\n  -h, --help       show this help message and exit\n  --policy POLICY  consumer policy JSON path\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-receipt-verify help",
+      "returncode": 0,
+      "stdout": "usage: continuity-receipt-verify [-h] [--require-anchor]\n                                 [--revocations PATH|URL]\n                                 bundle\n\npositional arguments:\n  bundle                path to a bundle JSON file\n\noptions:\n  -h, --help            show this help message and exit\n  --require-anchor\n  --revocations PATH|URL\n                        external revocation list (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-receipt-disclose help",
+      "returncode": 0,
+      "stdout": "usage: continuity-receipt-disclose [-h] {redact,verify,reveal,check} ...\n\npositional arguments:\n  {redact,verify,reveal,check}\n\noptions:\n  -h, --help            show this help message and exit\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-receipt-anchor help",
+      "returncode": 0,
+      "stdout": "usage: continuity-receipt-anchor [-h] {verify} ...\n\nVerify an OpenTimestamps (.ots) proof against a receipt digest.\n\npositional arguments:\n  {verify}\n    verify    verify a detached .ots proof\n\noptions:\n  -h, --help  show this help message and exit\n",
+      "stderr": ""
+    },
+    {
+      "name": "continuity-receipt-verify-receipt help",
+      "returncode": 0,
+      "stdout": "usage: continuity-receipt-verify-receipt [-h] [--bundle PATH]\n                                         [--revocations PATH|URL] [--digest]\n                                         [--canonical PATH]\n                                         receipt\n\npositional arguments:\n  receipt               path to a verification receipt JSON file\n\noptions:\n  -h, --help            show this help message and exit\n  --bundle PATH         bundle JSON file to check bundle_digest against\n  --revocations PATH|URL\n                        revocation list (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n  --digest              print the receipt digest (for anchoring) instead of\n                        verifying\n  --canonical PATH      write the canonical view (object minus sig) to PATH\n                        and print the digest\n",
+      "stderr": ""
+    },
+    {
+      "name": "verify 0.4 positive",
+      "returncode": 0,
+      "stdout": "{\n  \"verdict\": \"TRUSTED\",\n  \"errors\": [],\n  \"provisional_reasons\": [],\n  \"insufficient_reasons\": [],\n  \"summary\": {\n    \"receipts\": 6,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"delivery.attestation\",\n      \"settlement\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": true,\n    \"attestations\": [\n      {\n        \"receipt_id\": \"urn:uuid:01a0cffe-3173-7eb2-964e-3c4ffb51ac99\",\n        \"counterparty\": \"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\n        \"attestation\": \"absent\"\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "verify 0.5 positive",
+      "returncode": 0,
+      "stdout": "{\n  \"verdict\": \"TRUSTED\",\n  \"errors\": [],\n  \"provisional_reasons\": [],\n  \"insufficient_reasons\": [],\n  \"summary\": {\n    \"receipts\": 5,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"state.commitment\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB\"\n    ],\n    \"terminated\": true,\n    \"settled\": false\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "require-anchor refusal",
+      "returncode": 1,
+      "stdout": "{\n  \"verdict\": \"PROVISIONAL\",\n  \"errors\": [],\n  \"provisional_reasons\": [\n    \"anchor_missing\"\n  ],\n  \"insufficient_reasons\": [],\n  \"summary\": {\n    \"receipts\": 4,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": false\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "consumer profile positive",
+      "returncode": 0,
+      "stdout": "{\"bundle_digest\":\"sha256:6ec87ad89b003b998178f4bbdc72d5c521a6b8de37c2839ed0a743844bcd9767\",\"core\":{\"errors\":[],\"insufficient_reasons\":[],\"provisional_reasons\":[],\"summary\":{\"attestations\":[{\"attestation\":\"absent\",\"counterparty\":\"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\"receipt_id\":\"urn:uuid:01a0d12f-c327-7244-9e3b-3ae003aabe78\"}],\"issuers\":[\"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\"did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1\"],\"receipts\":8,\"settled\":true,\"terminated\":true,\"types\":[\"session.pass.created\",\"agreement.offer\",\"agreement.accept\",\"task.decision\",\"task.execution\",\"delivery.attestation\",\"settlement\",\"task.termination\"]},\"verdict\":\"TRUSTED\"},\"kind\":\"continuity-receipt-consumer-assessment\",\"outcome\":\"ACCEPT\",\"policy\":{\"digest\":\"sha256:4cc427db5aee6c057f725975bc8c5e236add0c497e28da822a31459655949c8c\",\"id\":\"independent-agent-pilot-0.4-v1\"},\"reason_codes\":[\"policy_satisfied\"],\"version\":1}\n",
+      "stderr": ""
+    },
+    {
+      "name": "disclosure positive",
+      "returncode": 0,
+      "stdout": "{\n  \"verdict\": \"TRUSTED\",\n  \"errors\": [],\n  \"provisional_reasons\": [],\n  \"insufficient_reasons\": [],\n  \"summary\": {\n    \"receipts\": 6,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"delivery.attestation\",\n      \"settlement\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": true,\n    \"attestations\": [\n      {\n        \"receipt_id\": \"urn:uuid:01a0cffe-3178-7dc8-be5a-30b69e740ac9\",\n        \"counterparty\": \"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\n        \"attestation\": \"absent\"\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "verification receipt positive",
+      "returncode": 0,
+      "stdout": "{\n  \"valid\": true,\n  \"errors\": [],\n  \"issuer\": \"did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK\",\n  \"verdict\": \"TRUSTED\",\n  \"verified_at\": \"2026-09-23T21:00:00Z\",\n  \"bundle_digest\": \"sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9\",\n  \"digest_match\": true\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "anchor without header is unverified",
+      "returncode": 1,
+      "stdout": "{\n  \"status\": \"unverified\",\n  \"code\": \"anchor_unverified\",\n  \"detail\": \"proof reaches a Bitcoin attestation; supply the 80-byte block header to confirm\",\n  \"file_digest\": \"sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340\",\n  \"attestations\": [\n    {\n      \"kind\": \"bitcoin\",\n      \"value\": 358391\n    }\n  ]\n}\n",
+      "stderr": ""
+    }
+  ],
+  "candidate_artifacts_published": false
+}

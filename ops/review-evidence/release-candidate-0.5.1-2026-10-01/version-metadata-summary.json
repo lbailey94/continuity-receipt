@@ -1,0 +1,25 @@
+{
+  "base_commit": "d942b1c1fff6e8d153e04c31e3327b4ca7c8ee56",
+  "patch_files": [
+    "continuity_receipt/_version.py",
+    "pyproject.toml",
+    "rust/Cargo.lock",
+    "rust/Cargo.toml"
+  ],
+  "patch_sha256": "c4715d3309a4ae2f4c1e81edeb2954b3e4eb325d83197e003ff60b6e6bbfcfb7",
+  "protocol_specs_changed": false,
+  "schemas_changed": false,
+  "vectors_changed": false,
+  "rust_source_changed": false,
+  "python_version_sources": [
+    "pyproject.toml",
+    "continuity_receipt/_version.py"
+  ],
+  "rust_package_version_sources": [
+    "rust/Cargo.toml",
+    "rust/Cargo.lock"
+  ],
+  "python_distribution_version": "0.5.1",
+  "python_runtime_version": "0.5.1",
+  "cargo_package_version": "0.5.1"
+}

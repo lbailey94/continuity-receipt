@@ -154,7 +154,7 @@ def assess(bundle_path, state_path, metadata_path, artifact_root, python_cmd, ru
     report = {"format": "continuity-receipt-other-host-assessment/1", "status": "INCOMPLETE",
               "evidence_class": "candidate only until a real independent-host capture is reviewed",
               "checks": {}, "caveats": ["Does not prove independent administration, sandbox enforcement, or live-network safety.",
-              "Current Mandala gate-lite pins receipt spec 0.4 and has no 0.5 state.commitment emitter; this packet applies only after a real 0.5 producer capture exists."]}
+              "Current Mandala public gate-lite remains on receipt spec 0.4; private candidate 8ea8c7eb17d576efdbfa0d311b007dd7b95f8389 pins package 0.5.0 and emits spec 0.5. This packet requires a newly captured independent-host artifact; existing same-host evidence is not independent qualification."]}
     required = (bundle_path, state_path, metadata_path, artifact_root, python_cmd, rust_cmd)
     if any(x is None for x in required):
         report["checks"]["inputs"] = "missing required input; supply bundle, referenced state, metadata, artifact root, and both verifier commands"
@@ -220,6 +220,9 @@ def assess(bundle_path, state_path, metadata_path, artifact_root, python_cmd, ru
     except FileNotFoundError as exc:
         report["status"] = "INCOMPLETE"
         report["checks"]["input_validation"] = str(exc)
+    except RecursionError:
+        report["status"] = "FAIL"
+        report["checks"]["input_validation"] = "input_nesting_too_deep"
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
         report["status"] = "FAIL"
         report["checks"]["input_validation"] = str(exc)

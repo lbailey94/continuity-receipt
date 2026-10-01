@@ -1,0 +1,10 @@
+stdout:
+object ff008888af6f225077b0661aa5b2d88da843839c
+type commit
+tag v0.5.0
+tagger WhiteMagic AI <lbailey94@protonmail.com> 1790737272 -0400
+
+continuity-receipt 0.5.0 release (spec 0.5) — local authority, runner profiles, state commitments, hardened duplicate-member rejection, and consumer profile assessment.
+
+stderr:
+Good "git" signature for lbailey94@protonmail.com with ED25519 key SHA256:cbHGzhbKM5Y73C9fOTzg0BlsjLwu4gi04K6+V1PnPrk

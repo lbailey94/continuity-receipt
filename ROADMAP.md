@@ -1,42 +1,64 @@
 # Roadmap
 
-## 0.6 development candidate (unpublished)
+**Current published specification:** `continuity-receipt/0.5` (2026-09-30).
+**Current published packages:** Python and Rust `continuity-receipt` 0.5.0.
+Both package implementations accept core verifier specs 0.1–0.6; 0.6 remains
+an experimental draft specification with no standalone 0.6 release. The
+Python-only consumer policy profile remains fixed at 0.1–0.4. See
+[`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) for dated source,
+corpus, package, hosted, and adopter evidence.
+
+**Versioning policy:** additive fields within 0.x; breaking changes require a
+new minor plus a new vector set; the verifier refuses unknown spec versions.
+**Selection rule:** a change lands only if it is testable — every change ships
+with a vector, an acceptance test, or a documented negative case. Failures and
+rejected designs are published, not hidden.
+
+## 0.6 development draft — implementation shipped experimentally
 
 - [x] `authority.grant` shape and `authority_ref` binding implemented in both
-  verifiers, schema 0.6, and a separate candidate vector corpus (24–24j).
-  Verifier rules are shape/signature/reference only; identity, scope, and
-  policy enforcement are explicitly out of scope.
+  0.5.0 package verifiers, with schema 0.6 and a 10-vector development corpus
+  included in the signed 0.5.0 source tag. Rules are shape/signature/reference
+  only; identity,
+  scope, and policy enforcement remain out of scope.
 - [ ] `review.record` shape and `review_policy` enforcement design.
-- [ ] External review of the 0.5 + 0.6 stack, then freeze/publish (the 0.5
-  gate below stays authoritative).
+- [ ] External review of the 0.6 specification and implementation. There is
+  no standalone 0.6 specification or package release. The 0.5.0 packages
+  already accept 0.6 envelopes; deciding whether/how to gate that behavior is
+  a compatibility change and requires explicit Python/Rust parity evidence.
 
-## 0.5 development candidate (unpublished)
+## 0.5 release and remaining qualification
 
-- [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,
-  legacy/combined `bwrap-landlock`, and honest unconfined `none`) implemented
-  in both verifiers, schema 0.5, and separate signed candidate vectors. Values
-  validate issuer claims only and do not prove runtime confinement.
-- [x] State commitment shape implemented with explicit validation and
-  non-verification limits (see `SPEC_0.5_DRAFT.md`). The WhiteMagic karma-head
-  bundle supplies the initial captured use case; vector 22 is modeled.
-- [x] Adopter guide and file-snapshot producer example distinguish verification,
-  local issuance, runtime capture, and independent corroboration.
-- [x] Capture a second producer use case — MandalaOS gate-lite emits
-  `state.commitment` after `task.execution` (`codex/gate-lite-05-profile`
-  `cb0f721`; example `examples/02_gate_lite_state_commitment`). Same-host
-  capture on the unpublished candidate; independent adoption remains open.
-- [x] Resolve the candidate design questions D1–D4 (2026-09-28; vectors 22r,
-  22s; `REVIEW_NOTES_05.md` §Design resolves).
-- [ ] Obtain adversarial review (internal review receipt filed 2026-09-28;
-  external review pending), then freeze/publish a 0.5 release. The hosted
-  referee and published 0.4.0 packages are unchanged.
+Spec 0.5 and package version 0.5.0 were published on 2026-09-30. The signed
+`v0.5.0` tag points to `ff008888af6f225077b0661aa5b2d88da843839c`; the 21-vector
+0.5 corpus is in that tag. Publication happened before the independent
+adversarial-review and adopter gates closed; it must not be read as proof that
+they passed.
 
+- [x] Local pass class, execution sandbox vocabulary, runner-profile binding,
+  state commitments, and duplicate-member raw CLI parsing shipped in 0.5.0.
+  These verify signed claims and shape; they do not prove runtime confinement
+  or state completeness.
+- [x] Python consumer policy assessment shipped in 0.5.0. It supports only
+  specs 0.1–0.4; there is no Rust consumer-policy counterpart.
+- [x] The private Mandala gate-lite candidate at
+  `8ea8c7eb17d576efdbfa0d311b007dd7b95f8389` pins the published 0.5.0 package
+  and emits spec 0.5. The public gate-lite line remains the published 0.4
+  lane. A 2026-09-28 same-host producer capture exists; independent-host
+  qualification remains open.
+- [ ] Complete independent 0.5 adversarial review and an independent-host
+  adopter qualification. Neither is implied by publication, package tests,
+  or the same-host capture.
 
-**Current release:** spec `continuity-receipt/0.4` (2026-09-24; Python tooling
-0.4.0 on PyPI, Rust crate 0.4.0 on crates.io). Spec `0.1`–`0.3` remain
-supported.
-**Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
-**Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
+## Hosted observation (2026-09-30)
+
+The approved hosted source/package/ERC delta is deployed. Public `/info`
+reports package 0.5.0 and specs 0.1–0.6; installed Python module hashes match
+the reviewed PyPI wheel. Post-deployment 82 loopback matrix cases, 13
+authenticated public `/verify` cases and 4 loopback ERC cases passed.
+No paid settlement or EVM relay was attempted. Public ERC POST, explicit
+issuer policy and Crystal ownership enforcement remain open. See the
+capability matrix and `ops/HOSTED_STAGING_2026-09-30.md` for exact bounds.
 
 ## Shipped
 
