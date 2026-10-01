@@ -1,6 +1,6 @@
 [package]
 name = "continuity-receipt"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "Independent Rust verifier for continuity-receipt/0.1-0.6 bundles (the Python implementation remains the reference)"
