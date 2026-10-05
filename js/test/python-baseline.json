@@ -1107,5 +1107,92 @@
     "receipt_id": "urn:uuid:6efa0beb-141a-531e-95d4-7e0333f6aede"
    }
   ]
+ },
+ {
+  "file": "25a_head_valid.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "25b_head_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "head_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "head_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "head_mismatch",
+    "detail": "chain_head does not match the final receipt",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "25c_head_seq_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "head_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "head_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "head_mismatch",
+    "detail": "chain_head does not match the final receipt",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "25d_head_anchor_missing.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "anchor_missing",
+   "head_anchor_missing"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "25e_head_anchor_invalid.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "head_anchor_invalid",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "head_anchor_invalid"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "head_anchor_invalid",
+    "detail": "chain_head anchored entry is invalid",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "25f_head_anchor_valid.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
  }
 ]

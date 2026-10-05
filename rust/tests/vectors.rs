@@ -76,13 +76,53 @@ fn all_vectors_match_manifest() {
     for entry in candidate["vectors"].as_array().expect("candidate vectors") {
         let file = entry["file"].as_str().expect("vector file name");
         let expected = entry["expected_verdict"].as_str().expect("verdict");
+        let require_anchor = entry["require_anchor"]
+            .as_bool()
+            .expect("require_anchor flag");
         let bundle = read_json(&vectors.join(file));
-        let result = verify_bundle(&bundle, false);
+        let result = verify_bundle(&bundle, require_anchor);
         assert_eq!(result.verdict(), expected, "candidate {file}: {:?}", result.errors);
         if let Some(code) = entry["expected_code"].as_str() {
             assert!(result.codes().contains(&code), "candidate {file}: {:?}", result.codes());
         }
     }
+}
+
+/// Mirrors the Python `TestChainHead` semantics beyond the verdict table.
+#[test]
+fn chain_head_semantics_match_python() {
+    let vectors = repo_root().join("vectors");
+
+    let bundle = read_json(&vectors.join("25d_head_anchor_missing.json"));
+    let result = verify_bundle(&bundle, true);
+    assert_eq!(result.verdict(), "PROVISIONAL");
+    assert!(
+        result.provisional_reasons.iter().any(|reason| reason == "head_anchor_missing"),
+        "{:?}",
+        result.provisional_reasons
+    );
+
+    let bundle = read_json(&vectors.join("24_authority_grant.json"));
+    let result = verify_bundle(&bundle, false);
+    assert_eq!(result.verdict(), "TRUSTED");
+    assert!(!result.summary.contains_key("chain_head"));
+
+    let bundle = read_json(&vectors.join("25f_head_anchor_valid.json"));
+    let result = verify_bundle(&bundle, false);
+    assert_eq!(result.verdict(), "TRUSTED");
+    assert_eq!(
+        result
+            .summary
+            .get("chain_head")
+            .and_then(|head| head.get("anchored")),
+        Some(&serde_json::json!("opentimestamps"))
+    );
+
+    let mut bundle = read_json(&vectors.join("25a_head_valid.json"));
+    bundle["chain_head"] = serde_json::json!("not-an-object");
+    let result = verify_bundle(&bundle, false);
+    assert_eq!(result.verdict(), "UNTRUSTED");
+    assert!(result.codes().contains(&"malformed"));
 }
 
 #[test]
