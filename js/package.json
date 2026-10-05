@@ -1,6 +1,6 @@
 {
   "name": "continuity-receipt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Offline verifier for continuity-receipt bundles (spec 0.1-0.6), with verdict parity against the Python reference implementation.",
   "license": "Apache-2.0",
   "repository": {

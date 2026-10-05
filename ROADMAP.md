@@ -11,9 +11,9 @@ lands with a vector, an acceptance test, or a documented negative case.
   matching the Python 0.5.1 reference). Publish after review; this is the
   missing third implementation and the browser-side verifier story.
 - [x] **Final chain-head commitment (truncation/equivocation closure)** —
-  `chain_head` member implemented in the 0.6 candidate: Python verifier +
-  schema + vectors 25a–25f; Rust and JS ports follow in the same cycle.
-  Design note: `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`. An anchored head
+  `chain_head` member implemented in the 0.6 candidate across all three
+  verifiers (Python, Rust, JS): schema + vectors 25a–25f, differential
+  parity in CI. Design note: `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`. An anchored head
   digest closes the rebuilt-truncated-chain gap every local hash chain
   shares (AER-1 documents the same limit; `draft-fassbender-scitt-time-anchor`
   is the profile to map against).
