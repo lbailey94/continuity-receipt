@@ -467,6 +467,11 @@ fn check_shape(result: &mut VerifyResult, bundle_object: &Map<String, Value>, re
             fatal(result, "malformed", "disclosure_map is not an object", None);
         }
     }
+    if let Some(chain_head) = bundle_object.get("chain_head") {
+        if !chain_head.is_null() && !chain_head.is_object() {
+            fatal(result, "malformed", "chain_head is not an object", None);
+        }
+    }
 }
 
 /// Verify a parsed bundle (Python `verify_bundle`).
@@ -704,6 +709,7 @@ pub fn verify_bundle(bundle: &Value, require_anchor: bool) -> VerifyResult {
     check_provenance(&mut result, receipts);
     check_revocations(&mut result, bundle_object, receipts);
     check_anchors(&mut result, bundle_object, receipts, require_anchor);
+    check_chain_head(&mut result, bundle_object, receipts, require_anchor);
 
     let summary = build_summary(receipts, &type_by_seq);
     let extras = std::mem::take(&mut result.summary);
@@ -1763,6 +1769,85 @@ fn check_anchors(
         .insert("anchors".to_string(), Value::Array(summary_kinds));
 }
 
+/// 0.6 `chain_head`: optional bundle-level commitment to the final receipt.
+///
+/// Absence is not an error. When present, `seq`, `receipt_id`, and the
+/// canonical digest must match the final receipt, else `head_mismatch`
+/// (fatal). An optional `anchored {type, proof_ref}` reuses the anchor type
+/// vocabulary and is reported in the summary; an unknown type or missing
+/// `proof_ref` is `head_anchor_invalid` (fatal). Under `require_anchor`, an
+/// unanchored head adds the provisional reason `head_anchor_missing`.
+fn check_chain_head(
+    result: &mut VerifyResult,
+    bundle: &Map<String, Value>,
+    receipts: &[Value],
+    require_anchor: bool,
+) {
+    let Some(head) = bundle.get("chain_head").filter(|value| !value.is_null()) else {
+        return; // absence is fine; a wrong shape was recorded as malformed
+    };
+    let Some(head) = head.as_object() else {
+        return;
+    };
+    let Some(last) = receipts.iter().rev().find_map(Value::as_object) else {
+        return; // empty/ill-formed chains already carry their own error
+    };
+    let Ok(digest) = receipt_digest(last) else {
+        return; // not canonically encodable; already recorded
+    };
+    let digest_value = Value::String(digest);
+    if !python_eq(py_get(head, "seq"), py_get(last, "seq"))
+        || !python_eq(py_get(head, "receipt_id"), py_get(last, "receipt_id"))
+        || !python_eq(py_get(head, "digest"), Some(&digest_value))
+    {
+        fatal(
+            result,
+            "head_mismatch",
+            "chain_head does not match the final receipt",
+            None,
+        );
+        return;
+    }
+    let Some(anchored) = head.get("anchored").filter(|value| !value.is_null()) else {
+        if require_anchor {
+            result
+                .provisional_reasons
+                .push("head_anchor_missing".to_string());
+        }
+        return;
+    };
+    let anchored_object = anchored.as_object();
+    let anchor_type = anchored_object
+        .and_then(|object| object.get("type"))
+        .and_then(Value::as_str)
+        .filter(|name| ANCHOR_TYPES.contains(name));
+    let proof_ref_ok = anchored_object
+        .and_then(|object| object.get("proof_ref"))
+        .and_then(Value::as_str)
+        .is_some_and(|proof| !proof.is_empty());
+    let (Some(anchor_type), true) = (anchor_type, proof_ref_ok) else {
+        fatal(
+            result,
+            "head_anchor_invalid",
+            "chain_head anchored entry is invalid",
+            None,
+        );
+        return;
+    };
+    let mut head_summary = Map::new();
+    head_summary.insert(
+        "seq".to_string(),
+        last.get("seq").cloned().unwrap_or(Value::Null),
+    );
+    head_summary.insert(
+        "anchored".to_string(),
+        Value::String(anchor_type.to_string()),
+    );
+    result
+        .summary
+        .insert("chain_head".to_string(), Value::Object(head_summary));
+}
+
 /// Last-receipt-wins lookup by `receipt_id`, mirroring the Python dict build.
 fn find_receipt_by_id<'a>(
     receipts: &'a [Value],
@@ -1864,6 +1949,51 @@ fn py_int(value: &Value) -> Option<i128> {
             .or_else(|| number.to_string().parse::<i128>().ok()),
         Value::String(text) => text.trim().parse::<i128>().ok(),
         _ => None,
+    }
+}
+
+/// Python `dict.get()` for equality comparisons: a missing key and an
+/// explicit JSON `null` both read as absent (`None`).
+fn py_get<'a>(object: &'a Map<String, Value>, key: &str) -> Option<&'a Value> {
+    object.get(key).filter(|value| !value.is_null())
+}
+
+/// Python `==` for the JSON shapes: `True == 1`, `4 == 4.0`, recursive
+/// container equality. Used by `check_chain_head` so the comparison matches
+/// the reference implementation's `!=` exactly.
+fn python_eq(left: Option<&Value>, right: Option<&Value>) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(left), Some(right)) => python_value_eq(left, right),
+        _ => false,
+    }
+}
+
+fn python_value_eq(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Null, Value::Null) => true,
+        (Value::Bool(left), Value::Bool(right)) => left == right,
+        (Value::Number(left), Value::Number(right)) => match (left.as_f64(), right.as_f64()) {
+            (Some(left), Some(right)) => left == right,
+            _ => left.to_string() == right.to_string(),
+        },
+        // Python's bool is an int subclass.
+        (Value::Bool(flag), Value::Number(number)) | (Value::Number(number), Value::Bool(flag)) => {
+            number.as_f64() == Some(f64::from(*flag))
+        }
+        (Value::String(left), Value::String(right)) => left == right,
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len() && left.iter().zip(right).all(|(a, b)| python_value_eq(a, b))
+        }
+        (Value::Object(left), Value::Object(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|(key, value)| {
+                    right
+                        .get(key)
+                        .is_some_and(|other| python_value_eq(value, other))
+                })
+        }
+        _ => false,
     }
 }
 

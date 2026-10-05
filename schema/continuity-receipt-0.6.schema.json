@@ -46,6 +46,48 @@
       "items": {
         "$ref": "#/$defs/revocation"
       }
+    },
+    "chain_head": {
+      "type": "object",
+      "required": [
+        "seq",
+        "receipt_id",
+        "digest"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/urn"
+        },
+        "digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "anchored": {
+          "type": "object",
+          "required": [
+            "type",
+            "proof_ref"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "opentimestamps",
+                "public-chain",
+                "custom"
+              ]
+            },
+            "proof_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true,

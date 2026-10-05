@@ -47,6 +47,35 @@ class TestVectors(unittest.TestCase):
         self.assertIn("version_unsupported", result.codes())
 
 
+class TestChainHead(unittest.TestCase):
+    """0.6 chain_head: commitment semantics beyond the verdict table."""
+
+    def test_head_anchor_missing_is_provisional(self):
+        bundle = json.loads((VECTORS / "25d_head_anchor_missing.json").read_text(encoding="utf-8"))
+        result = verify_bundle(bundle, require_anchor=True)
+        self.assertEqual(result.verdict, "PROVISIONAL")
+        self.assertIn("head_anchor_missing", result.provisional_reasons)
+
+    def test_head_absent_makes_no_claim(self):
+        bundle = json.loads((VECTORS / "24_authority_grant.json").read_text(encoding="utf-8"))
+        result = verify_bundle(bundle)
+        self.assertEqual(result.verdict, "TRUSTED")
+        self.assertNotIn("chain_head", result.summary)
+
+    def test_head_anchored_reports_summary(self):
+        bundle = json.loads((VECTORS / "25f_head_anchor_valid.json").read_text(encoding="utf-8"))
+        result = verify_bundle(bundle)
+        self.assertEqual(result.verdict, "TRUSTED")
+        self.assertEqual(result.summary.get("chain_head", {}).get("anchored"), "opentimestamps")
+
+    def test_head_shape_refused(self):
+        bundle = json.loads((VECTORS / "25a_head_valid.json").read_text(encoding="utf-8"))
+        bundle["chain_head"] = "not-an-object"
+        result = verify_bundle(bundle)
+        self.assertEqual(result.verdict, "UNTRUSTED")
+        self.assertIn("malformed", result.codes())
+
+
 class TestPrimitives(unittest.TestCase):
     def test_raw_json_rejects_duplicate_members_and_cli_inputs(self):
         from continuity_receipt import strict_json, verify

@@ -26,6 +26,7 @@
     "authority_binding",
     "revocations",
     "anchors",
+    "chain_head",
     "redactions_erasure"
   ],
   "error_codes": [
@@ -57,14 +58,17 @@
     "authority_expired",
     "too_many_receipts",
     "nesting_too_deep",
-    "bundle_too_large"
+    "bundle_too_large",
+    "head_mismatch",
+    "head_anchor_invalid"
   ],
   "provisional_reasons": [
     "anchor_missing",
     "redacted_without_disclosure:<path>",
     "agreement_unreferenced:<path>",
     "missing_agreement_ref:<path>",
-    "authority_unreferenced:<path>"
+    "authority_unreferenced:<path>",
+    "head_anchor_missing"
   ],
   "insufficient_reasons": [
     "erased_content:<path>",

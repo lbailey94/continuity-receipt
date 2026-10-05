@@ -80,6 +80,54 @@
       "require_anchor": false,
       "note": "0.6 refuses an empty authority scope list",
       "schema_valid": false
+    },
+    {
+      "file": "25a_head_valid.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 chain_head matching the final receipt verifies",
+      "schema_valid": true
+    },
+    {
+      "file": "25b_head_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_mismatch",
+      "require_anchor": false,
+      "note": "0.6 chain_head digest mismatch is refused",
+      "schema_valid": true
+    },
+    {
+      "file": "25c_head_seq_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_mismatch",
+      "require_anchor": false,
+      "note": "0.6 chain_head seq must match the final receipt",
+      "schema_valid": true
+    },
+    {
+      "file": "25d_head_anchor_missing.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": true,
+      "note": "require_anchor: head present without an anchor disclosure",
+      "schema_valid": true
+    },
+    {
+      "file": "25e_head_anchor_invalid.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_anchor_invalid",
+      "require_anchor": false,
+      "note": "0.6 chain_head refuses an unknown anchor type",
+      "schema_valid": false
+    },
+    {
+      "file": "25f_head_anchor_valid.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 chain_head with an anchored disclosure verifies",
+      "schema_valid": true
     }
   ]
 }

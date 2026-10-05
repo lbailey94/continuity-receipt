@@ -10,12 +10,13 @@ lands with a vector, an acceptance test, or a documented negative case.
   corpus-verified in this checkout (`js/`; 71/71 vectors, codes and reasons
   matching the Python 0.5.1 reference). Publish after review; this is the
   missing third implementation and the browser-side verifier story.
-- [ ] **Final chain-head commitment (truncation/equivocation closure).**
-  Design note: `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`. A signed head digest
-  anchored via OpenTimestamps (and optionally SCITT) closes the rebuilt-
-  truncated-chain gap that every local hash chain shares (AER-1 documents
-  the same limit; `draft-fassbender-scitt-time-anchor` is the profile to
-  map against).
+- [x] **Final chain-head commitment (truncation/equivocation closure)** —
+  `chain_head` member implemented in the 0.6 candidate: Python verifier +
+  schema + vectors 25a–25f; Rust and JS ports follow in the same cycle.
+  Design note: `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`. An anchored head
+  digest closes the rebuilt-truncated-chain gap every local hash chain
+  shares (AER-1 documents the same limit; `draft-fassbender-scitt-time-anchor`
+  is the profile to map against).
 - [ ] **Agent-payments interop profile.** Design note:
   `docs/INTEROP_AGENT_PAYMENTS.md`. Map x402 offer/receipt, AP2
   mandates/receipts, and MPP payment receipts onto `agreement.offer`,

@@ -178,6 +178,10 @@ function checkShape(result: VerifyResult, bundle: Receipt, receipts: unknown[]):
   if (disclosureMap !== null && disclosureMap !== undefined && !isPlainObject(disclosureMap)) {
     fatal(result, "malformed", "disclosure_map is not an object");
   }
+  const chainHead = bundle["chain_head"];
+  if (chainHead !== null && chainHead !== undefined && !isPlainObject(chainHead)) {
+    fatal(result, "malformed", "chain_head is not an object");
+  }
 }
 
 export async function verifyBundle(
@@ -323,6 +327,7 @@ export async function verifyBundle(
   checkProvenance(result, wellFormed);
   await checkRevocations(result, bundle, wellFormed, externalRevocations);
   await checkAnchors(result, bundle, wellFormed, requireAnchor);
+  await checkChainHead(result, bundle, wellFormed, requireAnchor);
 
   const types = wellFormed.map((receipt) => receipt["type"] ?? null);
   const issuers = new Set<string>();
@@ -1132,6 +1137,58 @@ async function checkAnchors(
   if (anchors.length > 0) {
     result.summary["anchors"] = kinds.length > 0 ? kinds : ["hash-only"];
   }
+}
+
+/**
+ * Optional bundle-level commitment to the final receipt (`chain_head`).
+ *
+ * Absence is not an error. When present it must match the final receipt's
+ * seq, receipt_id, and canonical digest; an optional `anchored` disclosure
+ * reuses the anchor type vocabulary.
+ */
+async function checkChainHead(
+  result: VerifyResult,
+  bundle: Receipt,
+  receipts: Receipt[],
+  requireAnchor: boolean,
+): Promise<void> {
+  const head = bundle["chain_head"];
+  if (head === null || head === undefined || !isPlainObject(head)) {
+    return; // absence is fine; a wrong shape was recorded as malformed
+  }
+  const last = receipts.length > 0 ? receipts[receipts.length - 1] : null;
+  if (!isPlainObject(last)) {
+    return; // empty/ill-formed chains already carry their own error
+  }
+  const digest = await tryDigest(last);
+  if (digest === null) {
+    return; // not canonically encodable; already recorded
+  }
+  if (
+    (head["seq"] ?? null) !== (last["seq"] ?? null) ||
+    (head["receipt_id"] ?? null) !== (last["receipt_id"] ?? null) ||
+    (head["digest"] ?? null) !== digest
+  ) {
+    fatal(result, "head_mismatch", "chain_head does not match the final receipt");
+    return;
+  }
+  const anchored = head["anchored"] ?? null;
+  if (anchored === null) {
+    if (requireAnchor) {
+      result.provisional_reasons.push("head_anchor_missing");
+    }
+    return;
+  }
+  if (
+    !isPlainObject(anchored) ||
+    !ANCHOR_TYPES.includes(anchored["type"] as string) ||
+    typeof anchored["proof_ref"] !== "string" ||
+    anchored["proof_ref"] === ""
+  ) {
+    fatal(result, "head_anchor_invalid", "chain_head anchored entry is invalid");
+    return;
+  }
+  result.summary["chain_head"] = { seq: last["seq"] ?? null, anchored: anchored["type"] };
 }
 
 function requiredFieldForPath(path: string, receipts: Receipt[]): string | null {
