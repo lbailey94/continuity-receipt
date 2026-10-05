@@ -110,3 +110,12 @@ cargo test --manifest-path rust/Cargo.toml          # second implementation
 
 The candidate corpus is `vectors/manifest-0.5.json`. The published
 `vectors/manifest.json` remains 40 cases for the hosted conformance referee.
+
+## G. Spec 0.6 development candidate — chain_head
+
+| Rule | Python | Rust | Positive | Negative | Limit |
+|---|---|---|---|---|---|
+| Optional bundle-level `chain_head` must match the final receipt (`seq`, `receipt_id`, canonical digest) | `_check_chain_head` | `check_chain_head` | 25a | 25b, 25c | Absence is not an error; an unanchored head is unsigned metadata, not evidence. |
+| `chain_head.anchored` reuses the anchor type vocabulary and requires a `proof_ref` | `_check_chain_head` | `check_chain_head` | 25f | 25e | Proof verification is the companion tool's job. |
+| `--require-anchor` with a head present but unanchored adds `head_anchor_missing` (PROVISIONAL) | `_check_chain_head` | `check_chain_head` | 25d | — | Anchoring the head is recommended, not required, in the base spec. |
+| Whole-shape pass rejects a non-object `chain_head` as `malformed` | `_check_shape` | `check_shape` | 25a | unit test (`test_head_shape_refused`) | — |

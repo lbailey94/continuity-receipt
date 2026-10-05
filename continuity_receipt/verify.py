@@ -116,6 +116,9 @@ def _check_shape(result: VerifyResult, bundle: dict, receipts: list) -> None:
     disclosure_map = bundle.get("disclosure_map")
     if disclosure_map is not None and not isinstance(disclosure_map, dict):
         _fatal(result, "malformed", "disclosure_map is not an object")
+    chain_head = bundle.get("chain_head")
+    if chain_head is not None and not isinstance(chain_head, dict):
+        _fatal(result, "malformed", "chain_head is not an object")
 
 
 def verify_bundle(
@@ -225,6 +228,7 @@ def verify_bundle(
     _check_provenance(result, well_formed)
     _check_revocations(result, bundle, well_formed, external_revocations)
     _check_anchors(result, bundle, well_formed, require_anchor)
+    _check_chain_head(result, bundle, well_formed, require_anchor)
 
     types = [r.get("type") for r in well_formed]
     summary = {
@@ -919,6 +923,50 @@ def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_a
             kinds.append(meta.get("type"))
     if anchors:
         result.summary["anchors"] = kinds or ["hash-only"]
+
+
+def _check_chain_head(
+    result: VerifyResult, bundle: dict, receipts: list, require_anchor: bool
+) -> None:
+    """Optional bundle-level commitment to the final receipt.
+
+    Absence is not an error: the bundle simply makes no truncation
+    commitment. When present, the head must match the final receipt (seq,
+    receipt_id, and the canonical digest). An optional ``anchored`` entry
+    reuses the anchor type vocabulary; an unanchored head is unsigned
+    metadata — it discloses intent, and only an anchor (or a transparency
+    registration) turns it into evidence.
+    """
+    head = bundle.get("chain_head")
+    if head is None or not isinstance(head, dict):
+        return  # absence is fine; a wrong shape was recorded as malformed
+    last = receipts[-1] if receipts else None
+    if not isinstance(last, dict):
+        return  # empty/ill-formed chains already carry their own error
+    digest = _try_digest(last)
+    if digest is None:
+        return  # not canonically encodable; already recorded
+    if (
+        head.get("seq") != last.get("seq")
+        or head.get("receipt_id") != last.get("receipt_id")
+        or head.get("digest") != digest
+    ):
+        _fatal(result, "head_mismatch", "chain_head does not match the final receipt")
+        return
+    anchored = head.get("anchored")
+    if anchored is None:
+        if require_anchor:
+            result.provisional_reasons.append("head_anchor_missing")
+        return
+    if (
+        not isinstance(anchored, dict)
+        or anchored.get("type") not in ANCHOR_TYPES
+        or not isinstance(anchored.get("proof_ref"), str)
+        or not anchored.get("proof_ref")
+    ):
+        _fatal(result, "head_anchor_invalid", "chain_head anchored entry is invalid")
+        return
+    result.summary["chain_head"] = {"seq": last.get("seq"), "anchored": anchored.get("type")}
 
 
 def _finish(result: VerifyResult) -> VerifyResult:
