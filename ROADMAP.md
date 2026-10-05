@@ -1,5 +1,48 @@
 # Roadmap
 
+## Next (updated 2026-10-05, after the external-landscape research pass)
+
+The 0.5/0.5.1 line is shipped; the items below are the current queue, in
+rough priority order. Every item still obeys the selection rule below: it
+lands with a vector, an acceptance test, or a documented negative case.
+
+- [ ] **JS verifier package (`continuity-receipt` on npm).** Built and
+  corpus-verified in this checkout (`js/`; 71/71 vectors, codes and reasons
+  matching the Python 0.5.1 reference). Publish after review; this is the
+  missing third implementation and the browser-side verifier story.
+- [ ] **Final chain-head commitment (truncation/equivocation closure).**
+  Design note: `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`. A signed head digest
+  anchored via OpenTimestamps (and optionally SCITT) closes the rebuilt-
+  truncated-chain gap that every local hash chain shares (AER-1 documents
+  the same limit; `draft-fassbender-scitt-time-anchor` is the profile to
+  map against).
+- [ ] **Agent-payments interop profile.** Design note:
+  `docs/INTEROP_AGENT_PAYMENTS.md`. Map x402 offer/receipt, AP2
+  mandates/receipts, and MPP payment receipts onto `agreement.offer`,
+  `authority.grant`, `settlement`, and the external-evidence member; add
+  interop vectors once the external-evidence shape lands.
+- [ ] **Demand crosswalk (insurance/procurement/regulation).** Design note:
+  `docs/CROSSWALK_DEMAND_2026-10.md`. AIUC-1 E015.2/E015.4 alternative
+  evidence, Drata's five procurement questions, GSA GSAR agent-audit fields,
+  FINRA 3110/4510 + IOSCO recordkeeping, SEC 17a-4 audit-trail standard, EU
+  AI Act Art. 50 (live) and Arts. 12/19/26 (from Dec 2027).
+- [ ] **External review of the 0.5 + 0.6 stack, then freeze/publish 0.6**
+  (the gate below stays authoritative).
+- [ ] **SCITT individual draft** under a non-colliding title ("Agent Session
+  Continuity Receipt: A SCITT Profile"), reusing the RFC 9942 receipt
+  envelope; plan: `docs/SCITT_PROFILE_PLAN.md`. SCITT may recharter for
+  payload conventions ahead of IETF 127 — the window is open now.
+- [ ] **CTQ bridge:** declare verdict-enum alignment and make a continuity
+  chain consumable as a CTQ `chain_ref` (and vice versa). Cheap, high-signal.
+- [ ] **Conformance referee promotion:** the hosted `/conformance` referee is
+  live; promote it on the site + llms surfaces and solicit one third-party
+  verifier report (positive or negative).
+- [ ] **Anchored example bundle:** anchor `examples/01_wm_governed_session`
+  via the hosted `/anchors` lane and publish the five-minute verification
+  path (the roadmap's "first real bundle" artifact).
+- [ ] **RaaS design note** (third-party x402 sellers issue/host receipts)
+  once the payments interop profile lands.
+
 ## 0.6 development candidate (unpublished)
 
 - [x] `authority.grant` shape and `authority_ref` binding implemented in both
@@ -10,7 +53,7 @@
 - [ ] External review of the 0.5 + 0.6 stack, then freeze/publish (the 0.5
   gate below stays authoritative).
 
-## 0.5 development candidate (unpublished)
+## 0.5 (published 2026-09-30; tooling 0.5.1 on PyPI + crates.io)
 
 - [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,
   legacy/combined `bwrap-landlock`, and honest unconfined `none`) implemented
@@ -27,14 +70,16 @@
   capture on the unpublished candidate; independent adoption remains open.
 - [x] Resolve the candidate design questions D1–D4 (2026-09-28; vectors 22r,
   22s; `REVIEW_NOTES_05.md` §Design resolves).
-- [ ] Obtain adversarial review (internal review receipt filed 2026-09-28;
-  external review pending), then freeze/publish a 0.5 release. The hosted
-  referee and published 0.4.0 packages are unchanged.
+- [x] Freeze and publish 0.5 (2026-09-30) after the internal review receipt
+  (filed 2026-09-28). External adversarial review remains open and is
+  welcome retrospectively; tooling 0.5.1 (packaging alignment + consumer
+  hardening) published 2026-10-01 on PyPI and crates.io.
 
 
-**Current release:** spec `continuity-receipt/0.4` (2026-09-24; Python tooling
-0.4.0 on PyPI, Rust crate 0.4.0 on crates.io). Spec `0.1`–`0.3` remain
-supported.
+**Current release:** spec `continuity-receipt/0.5` (published 2026-09-30;
+Python tooling and Rust crate 0.5.1 on PyPI + crates.io). Specs `0.1`–`0.4`
+remain supported. The hosted verifier reports 0.5.1 and accepts 0.1–0.6
+(0.6 experimental; the hosted range is broader than the published spec).
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
 

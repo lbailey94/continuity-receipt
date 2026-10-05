@@ -1,0 +1,52 @@
+{
+  "name": "continuity-receipt",
+  "version": "0.1.0",
+  "description": "Offline verifier for continuity-receipt bundles (spec 0.1-0.6), with verdict parity against the Python reference implementation.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lbailey94/continuity-receipt.git",
+    "directory": "js"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "continuity-receipt-verify": "./dist/cli.js",
+    "continuity-receipt-verify-receipt": "./dist/verify-receipt-cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "continuity-receipt",
+    "receipt",
+    "verification",
+    "ed25519",
+    "did:key",
+    "jcs",
+    "rfc8785"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "npm run build && node --test \"test/*.test.mjs\"",
+    "parity": "npm run build && node tools/parity.mjs",
+    "parity:receipts": "npm run build && node tools/parity-receipts.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

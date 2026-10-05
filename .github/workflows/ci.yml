@@ -112,3 +112,19 @@ jobs:
         run: |
           python3 tools/hostile_input_probe.py --sample 300 --require-parity
           python3 tools/hostile_input_probe.py --vector-manifest vectors/manifest-0.5.json --sample 100 --require-parity
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - name: Install
+        run: cd js && npm ci --no-audit --no-fund
+      - name: Build and test
+        run: cd js && npm test
+      - name: Python parity harness (JS vs recorded Python 0.5.1 baseline)
+        run: cd js && node tools/parity.mjs --strict

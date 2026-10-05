@@ -1,10 +1,10 @@
 # Continuity Receipt 0.6 candidate — authority
 
-**Status:** development candidate in this checkout. Spec 0.4 remains the
-published release and the hosted surface; the 0.5 candidate is unchanged and
-still awaits external review. Python and Rust prerelease builds here accept
-0.1–0.6. Neither the hosted service nor the published packages are claimed to
-support 0.5 or 0.6.
+**Status:** development candidate in this checkout. Spec 0.5 is the published
+release (2026-09-30; tooling 0.5.1), and the hosted verifier (0.5.1) accepts
+0.1–0.6 with 0.6 experimental. The published Python and Rust packages support
+spec 0.5; the 0.6 rules below ship in the prerelease builds in this checkout
+until 0.6 is frozen. External review of the 0.5 + 0.6 stack remains open.
 
 All 0.4 and 0.5 rules remain in force. A 0.6 receipt uses the same envelope,
 canonical view, signatures, verdicts, agreement binding, and 0.5 vocabulary.

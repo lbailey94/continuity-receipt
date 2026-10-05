@@ -1,0 +1,324 @@
+[
+ {
+  "file": "01_valid.json",
+  "expected_valid": true,
+  "expected_errors": [],
+  "valid": true,
+  "errors": [],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": true
+ },
+ {
+  "file": "02_tampered_signature.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_signature"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_signature"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "03_tampered_verdict.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_signature",
+   "verdict_mismatch"
+  ],
+  "valid": false,
+  "errors": [
+   "verdict_mismatch",
+   "bad_signature"
+  ],
+  "verdict": "UNTRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "04_wrong_bundle.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bundle_digest_mismatch"
+  ],
+  "valid": false,
+  "errors": [
+   "bundle_digest_mismatch"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": false
+ },
+ {
+  "file": "05_bad_kind.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_kind",
+   "bad_signature"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_kind",
+   "bad_signature"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "06_bad_version.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_version",
+   "bad_signature"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_version",
+   "bad_signature"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "07_bad_verdict.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_verdict"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_verdict"
+  ],
+  "verdict": "MAYBE",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "08_bad_verified_at.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_verified_at"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_verified_at"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23 21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "09_missing_sig.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_signature_shape"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_signature_shape"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "10_wrong_issuer.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_signature"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_signature"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6Mkn4trn4a3koGqeirK9w5jYF5R2m9nJrnDFrTCsmjdY5Aq",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "11_bad_digest_shape.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_bundle_digest"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_bundle_digest"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:not-hex",
+  "digest_match": null
+ },
+ {
+  "file": "12_revoked_issuer.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "key_revoked"
+  ],
+  "valid": false,
+  "errors": [
+   "key_revoked"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": true
+ },
+ {
+  "file": "13_unknown_member.json",
+  "expected_valid": true,
+  "expected_errors": [],
+  "valid": true,
+  "errors": [],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": true
+ },
+ {
+  "file": "14_bad_error_codes.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_error_codes"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_error_codes"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "15_provisional_anchor_missing.json",
+  "expected_valid": true,
+  "expected_errors": [],
+  "valid": true,
+  "errors": [],
+  "verdict": "PROVISIONAL",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": true
+ },
+ {
+  "file": "16_insufficient_erased.json",
+  "expected_valid": true,
+  "expected_errors": [],
+  "valid": true,
+  "errors": [],
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:9410c4707a3c305e9b42ef4e41bc8ec5dd08f5d0703bd5ca147ca291bcc3c8ea",
+  "digest_match": true
+ },
+ {
+  "file": "17_verdict_mismatch.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "verdict_mismatch"
+  ],
+  "valid": false,
+  "errors": [
+   "verdict_mismatch"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "18_error_codes_mismatch.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "error_codes_mismatch"
+  ],
+  "valid": false,
+  "errors": [
+   "error_codes_mismatch"
+  ],
+  "verdict": "UNTRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "19_bad_errors.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_errors"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_errors"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "20_bad_summary.json",
+  "expected_valid": false,
+  "expected_errors": [
+   "bad_summary"
+  ],
+  "valid": false,
+  "errors": [
+   "bad_summary"
+  ],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": null
+ },
+ {
+  "file": "21_valid_statement_after_verified_at.json",
+  "expected_valid": true,
+  "expected_errors": [],
+  "valid": true,
+  "errors": [],
+  "verdict": "TRUSTED",
+  "issuer": "did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK",
+  "verified_at": "2026-09-23T21:00:00Z",
+  "bundle_digest": "sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9",
+  "digest_match": true
+ }
+]
