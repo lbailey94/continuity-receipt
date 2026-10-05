@@ -9,9 +9,8 @@
 import { parseStrictJson, StrictJsonError, StrictJsonNestingError } from "./strict_json.js";
 import {
   MAX_BUNDLE_BYTES,
-  MAX_DOCUMENT_BYTES,
   RevocationError,
-  statementsFromDocument,
+  loadRevocationStatements,
   verifyBundle,
 } from "./index.js";
 
@@ -77,71 +76,6 @@ function parseArgs(argv: string[]): CliOptions | null {
     return null;
   }
   return options;
-}
-
-async function loadRevocationStatements(source: string): Promise<unknown[]> {
-  let text: string;
-  const httpMatch = /^http:\/\/([^/:]+)/i.exec(source);
-  if (/^https:\/\//i.test(source) || httpMatch !== null) {
-    const host = httpMatch?.[1]?.toLowerCase() ?? "";
-    if (httpMatch !== null && host !== "127.0.0.1" && host !== "localhost" && host !== "::1") {
-      throw new RevocationError(
-        "revocations_insecure_url",
-        `refusing plain http for non-loopback host: ${source}`,
-      );
-    }
-    let response: Response;
-    try {
-      response = await fetch(source);
-    } catch (error) {
-      throw new RevocationError(
-        "revocations_unreachable",
-        `cannot fetch ${source}: ${(error as Error).message}`,
-      );
-    }
-    if (!response.ok) {
-      throw new RevocationError(
-        "revocations_unreachable",
-        `cannot fetch ${source}: HTTP ${response.status}`,
-      );
-    }
-    const buffer = new Uint8Array(await response.arrayBuffer());
-    if (buffer.length > MAX_DOCUMENT_BYTES) {
-      throw new RevocationError(
-        "revocations_too_large",
-        `document exceeds ${MAX_DOCUMENT_BYTES} bytes`,
-      );
-    }
-    text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
-  } else {
-    const fs = await import("node:fs/promises");
-    let bytes: Uint8Array;
-    try {
-      bytes = new Uint8Array(await fs.readFile(source));
-    } catch (error) {
-      throw new RevocationError(
-        "revocations_unreachable",
-        `cannot read ${source}: ${(error as Error).message}`,
-      );
-    }
-    if (bytes.length > MAX_DOCUMENT_BYTES) {
-      throw new RevocationError(
-        "revocations_too_large",
-        `document exceeds ${MAX_DOCUMENT_BYTES} bytes`,
-      );
-    }
-    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  }
-  let document: unknown;
-  try {
-    document = parseStrictJson(text);
-  } catch (error) {
-    throw new RevocationError(
-      "bad_revocations_document",
-      `${source} is not valid JSON: ${(error as Error).message}`,
-    );
-  }
-  return statementsFromDocument(document);
 }
 
 async function main(argv: string[]): Promise<number> {

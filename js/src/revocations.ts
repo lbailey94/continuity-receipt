@@ -4,6 +4,7 @@ import { canonicalBytes, isPlainObject, CanonicalizationError } from "./canon.js
 import { toHex } from "./hash.js";
 import { verifyEd25519 } from "./keys.js";
 import { parseTimestamp, validateTimestamp } from "./records.js";
+import { parseStrictJson } from "./strict_json.js";
 
 export const DOCUMENT_KIND = "continuity-receipt-revocations";
 export const DOCUMENT_VERSION = 1;
@@ -124,6 +125,75 @@ export async function verifyStatements(statements: unknown[]): Promise<Revocatio
     revoked.push({ key: keyId, revokedAt: parsed });
   }
   return { revoked, errors };
+}
+
+/**
+ * Read, parse, and shape-check a revocation list document from a filesystem
+ * path or URL, mirroring Python's `revocations.load_statements`.
+ */
+export async function loadRevocationStatements(source: string): Promise<unknown[]> {
+  let text: string;
+  const httpMatch = /^http:\/\/([^/:]+)/i.exec(source);
+  if (/^https:\/\//i.test(source) || httpMatch !== null) {
+    const host = httpMatch?.[1]?.toLowerCase() ?? "";
+    if (httpMatch !== null && host !== "127.0.0.1" && host !== "localhost" && host !== "::1") {
+      throw new RevocationError(
+        "revocations_insecure_url",
+        `refusing plain http for non-loopback host: ${source}`,
+      );
+    }
+    let response: Response;
+    try {
+      response = await fetch(source);
+    } catch (error) {
+      throw new RevocationError(
+        "revocations_unreachable",
+        `cannot fetch ${source}: ${(error as Error).message}`,
+      );
+    }
+    if (!response.ok) {
+      throw new RevocationError(
+        "revocations_unreachable",
+        `cannot fetch ${source}: HTTP ${response.status}`,
+      );
+    }
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    if (buffer.length > MAX_DOCUMENT_BYTES) {
+      throw new RevocationError(
+        "revocations_too_large",
+        `document exceeds ${MAX_DOCUMENT_BYTES} bytes`,
+      );
+    }
+    text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } else {
+    const fs = await import("node:fs/promises");
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(await fs.readFile(source));
+    } catch (error) {
+      throw new RevocationError(
+        "revocations_unreachable",
+        `cannot read ${source}: ${(error as Error).message}`,
+      );
+    }
+    if (bytes.length > MAX_DOCUMENT_BYTES) {
+      throw new RevocationError(
+        "revocations_too_large",
+        `document exceeds ${MAX_DOCUMENT_BYTES} bytes`,
+      );
+    }
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  }
+  let document: unknown;
+  try {
+    document = parseStrictJson(text);
+  } catch (error) {
+    throw new RevocationError(
+      "bad_revocations_document",
+      `${source} is not valid JSON: ${(error as Error).message}`,
+    );
+  }
+  return statementsFromDocument(document);
 }
 
 /** Shape-check a revocation list document and return its statements. */

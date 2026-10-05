@@ -42,12 +42,21 @@ export {
   mergeStatements,
   verifyStatements,
   statementsFromDocument,
+  loadRevocationStatements,
   RevocationError,
   DOCUMENT_KIND,
   DOCUMENT_VERSION,
   MAX_DOCUMENT_BYTES,
 } from "./revocations.js";
 export type { RevokedKey, RevocationVerification } from "./revocations.js";
+export {
+  verifyVerificationReceipt,
+  verificationReceiptDigest,
+  VerificationReceiptResult,
+  KIND as VERIFICATION_KIND,
+  VERSION as VERIFICATION_VERSION,
+  VERDICTS as VERIFICATION_VERDICTS,
+} from "./verification.js";
 export {
   verifyBundle,
   verifyFile,

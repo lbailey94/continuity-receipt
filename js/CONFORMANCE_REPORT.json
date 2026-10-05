@@ -1,0 +1,49 @@
+{
+  "kind": "continuity-receipt-conformance",
+  "version": 1,
+  "implementation": {
+    "name": "continuity-receipt",
+    "version": "0.1.0",
+    "language": "typescript"
+  },
+  "submission_digest": "sha256:fa3492c3d0827c8b7a66b739905e82121b8543f9ea205704fe0018426b2772c6",
+  "corpus": {
+    "bundles": {
+      "vectors": 40,
+      "manifest_digest": "sha256:eac2c24d88129f19efed9ecf3712d33a537e651ba964e524d0725b0aa8a618b3"
+    },
+    "verification_receipts": {
+      "vectors": 21,
+      "manifest_digest": "sha256:e6ecb5b1ab65a6980260291f75c29af790a0fbdc660732fb086f4ffda0aad007"
+    },
+    "hostile_inputs": {
+      "vectors": 208,
+      "manifest_digest": "sha256:2a6af64f34aa4904774398211c51e6d9de60980be675f6fe8f37d6725360aa03"
+    }
+  },
+  "results": {
+    "bundles": {
+      "matched": 40,
+      "total": 40,
+      "mismatches": []
+    },
+    "verification_receipts": {
+      "matched": 21,
+      "total": 21,
+      "mismatches": []
+    },
+    "hostile_inputs": {
+      "matched": 208,
+      "total": 208,
+      "mismatches": []
+    }
+  },
+  "verdict": "CONFORMANT",
+  "issued_at": "2026-10-05T03:22:28Z",
+  "issuer": "did:key:z6MkmKSaKjTr2DPJEHG6aZVGmX6JkWsWiYtuD9c73ReRGdfW",
+  "sig": {
+    "alg": "ed25519",
+    "key": "did:key:z6MkmKSaKjTr2DPJEHG6aZVGmX6JkWsWiYtuD9c73ReRGdfW",
+    "value": "-0iGoQlojS7tMW4kbRd1t0EzUnAfxvw1TrzFj_wRV4QkPLv6o1LP63pf9tl81ZnK_DMakQTmCCAKiGyV0ApiBw"
+  }
+}

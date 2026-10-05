@@ -13,6 +13,7 @@ submission JSON the referee accepts:
     python3 tools/conformance_submit.py --python --version 0.4.0 > submission.json
     python3 tools/conformance_submit.py --rust-bin rust/target/release/continuity-receipt-verify \
         --name continuity-receipt --version 0.4.0 --language rust > submission.json
+    python3 tools/conformance_submit.py --js --version 0.1.0 --language typescript > submission.json
 
     # verify a returned report offline (signature + shape)
     python3 tools/conformance_submit.py --verify-report report.json
@@ -146,6 +147,7 @@ def main(argv=None) -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--python", action="store_true", help="run the Python verifier CLI")
     mode.add_argument("--rust-bin", metavar="PATH", help="run a Rust verifier CLI binary")
+    mode.add_argument("--js", action="store_true", help="run the JS verifier CLI (js/dist)")
     mode.add_argument("--verify-report", metavar="PATH", help="verify a conformance report")
     parser.add_argument("--name", default="continuity-receipt")
     parser.add_argument("--version", default="")
@@ -164,6 +166,16 @@ def main(argv=None) -> int:
         prefix = [sys.executable, "-m", "continuity_receipt.verify"]
         receipt_prefix = [sys.executable, "-m", "continuity_receipt.verification"]
         default_language = "python"
+    elif args.js:
+        js_cli = ROOT / "js" / "dist" / "cli.js"
+        js_receipt_cli = ROOT / "js" / "dist" / "verify-receipt-cli.js"
+        if not js_cli.is_file() or not js_receipt_cli.is_file():
+            raise SystemExit(
+                "js/dist is not built; run: cd js && npm ci && npm run build"
+            )
+        prefix = ["node", str(js_cli)]
+        receipt_prefix = ["node", str(js_receipt_cli)]
+        default_language = "typescript"
     else:
         prefix = [args.rust_bin]
         derived = args.rust_bin.replace(

@@ -18,7 +18,8 @@
     }
   },
   "bin": {
-    "continuity-receipt-verify": "./dist/cli.js"
+    "continuity-receipt-verify": "./dist/cli.js",
+    "continuity-receipt-verify-receipt": "./dist/verify-receipt-cli.js"
   },
   "files": [
     "dist",
@@ -41,7 +42,8 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "test": "npm run build && node --test \"test/*.test.mjs\"",
-    "parity": "npm run build && node tools/parity.mjs"
+    "parity": "npm run build && node tools/parity.mjs",
+    "parity:receipts": "npm run build && node tools/parity-receipts.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
