@@ -1,0 +1,1111 @@
+[
+ {
+  "file": "01_happy_minimal.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "02_happy_full.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "03_tampered_body.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "bad_signature",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "bad_signature",
+   "chain_break"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "bad_signature",
+    "detail": "signature does not verify",
+    "receipt_id": "urn:uuid:01a0cffe-3174-7545-b63d-ac2cf9ae21ab"
+   },
+   {
+    "code": "chain_break",
+    "detail": "prev digest mismatch",
+    "receipt_id": "urn:uuid:01a0cffe-3174-7bb2-bb7d-7feca50a49fd"
+   }
+  ]
+ },
+ {
+  "file": "04_missing_termination.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "missing_termination",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "missing_termination"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "missing_termination",
+    "detail": "task has no termination receipt",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "05_cap_exceeded.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "cap_exceeded",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "cap_exceeded"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "cap_exceeded",
+    "detail": "settlement {'minor': 5000, 'currency': 'USD'} exceeds cap {'minor': 100, 'currency': 'USD'}",
+    "receipt_id": "urn:uuid:01a0cffe-3176-7165-b002-c0a34afa3267"
+   }
+  ]
+ },
+ {
+  "file": "06_delivery_before_settlement.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "delivery_before_settlement",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "delivery_before_settlement"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "delivery_before_settlement",
+    "detail": "gated settlement recorded before any delivery attestation",
+    "receipt_id": "urn:uuid:01a0cffe-3177-7f71-a181-9ea7cf864280"
+   }
+  ]
+ },
+ {
+  "file": "07_redacted_no_disclosure.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "redacted_without_disclosure:receipts[3].body.quality_flags"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "08_redacted_disclosed.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "09_erased_content.json",
+  "expected_verdict": "INSUFFICIENT_EVIDENCE",
+  "expected_code": null,
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [
+   "erased_content:receipts[3].body.quality_flags"
+  ],
+  "errors": []
+ },
+ {
+  "file": "10a_anchor_invalid.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "anchor_invalid",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "anchor_invalid"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "anchor_invalid",
+    "detail": "anchor invalid for urn:uuid:01a0cffe-317b-72cf-9706-e6b405dbc2fb",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "10b_anchor_missing.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "anchor_missing"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "11_succession_handoff.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "12_ms_timestamps.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "13_attestation_valid.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "13b_attestation_tampered.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "bad_attestation",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "bad_attestation"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "bad_attestation",
+    "detail": "counterparty attestation does not verify",
+    "receipt_id": "urn:uuid:01a0cffe-3180-70d3-b99f-a33922a28f15"
+   }
+  ]
+ },
+ {
+  "file": "14a_revoked_key.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "key_revoked",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "key_revoked",
+   "key_revoked",
+   "key_revoked",
+   "key_revoked"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "key_revoked",
+    "detail": "issuer key did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1 was revoked at 2020-01-01T00:00:00+00:00",
+    "receipt_id": "urn:uuid:01a0cffe-3181-7e6e-9199-fb158eae8acb"
+   },
+   {
+    "code": "key_revoked",
+    "detail": "issuer key did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1 was revoked at 2020-01-01T00:00:00+00:00",
+    "receipt_id": "urn:uuid:01a0cffe-3181-78df-ad92-d6aba840860a"
+   },
+   {
+    "code": "key_revoked",
+    "detail": "issuer key did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1 was revoked at 2020-01-01T00:00:00+00:00",
+    "receipt_id": "urn:uuid:01a0cffe-3181-7efa-ada0-65e98a87650b"
+   },
+   {
+    "code": "key_revoked",
+    "detail": "issuer key did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1 was revoked at 2020-01-01T00:00:00+00:00",
+    "receipt_id": "urn:uuid:01a0cffe-3181-7333-8837-5b322bf2f12a"
+   }
+  ]
+ },
+ {
+  "file": "14b_revocation_after_issue.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "15_merkle_provenance.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "15b_provenance_invalid.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "provenance_invalid",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "provenance_invalid"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "provenance_invalid",
+    "detail": "observed_sources_hash has unsupported form: 'blake3:abababababababababababababababababababababababababababababababab'",
+    "receipt_id": "urn:uuid:01a0cffe-3183-7133-a151-6af0a5dfd9b6"
+   }
+  ]
+ },
+ {
+  "file": "10c_anchor_unknown_type.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "anchor_invalid",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "anchor_invalid"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "anchor_invalid",
+    "detail": "unknown anchor type: 'quantum-teleport'",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "16_offer_accept.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "16b_offer_terms_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "offer_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "offer_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "offer_mismatch",
+    "detail": "accept does not match the referenced offer",
+    "receipt_id": "urn:uuid:01a0cffe-3186-7ec7-a304-ca936853ffc2"
+   }
+  ]
+ },
+ {
+  "file": "16c_offer_expired.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "offer_expired",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "offer_expired"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "offer_expired",
+    "detail": "accept issued after offer valid_until 2020-01-01T00:00:00Z",
+    "receipt_id": "urn:uuid:01a0cffe-3187-7767-ba20-fd06f300f41b"
+   }
+  ]
+ },
+ {
+  "file": "16d_accept_without_offer.json",
+  "expected_verdict": "INSUFFICIENT_EVIDENCE",
+  "expected_code": null,
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [
+   "missing_offer:urn:uuid:01a0cffe-3188-7239-bd9c-d7f6d4344219"
+  ],
+  "errors": []
+ },
+ {
+  "file": "16e_offer_terms_redacted.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "redacted_without_disclosure:receipts[1].body.terms_ref"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "16f_offer_terms_disclosed.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "17_agreement_bound.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "17b_offeree_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "offeree_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "offeree_mismatch",
+   "agreement_issuer_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "offeree_mismatch",
+    "detail": "accept offeree 'did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1' does not match the signer 'did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb' / offer",
+    "receipt_id": "urn:uuid:01a0d12f-c329-722d-9c5d-7d68f690c5f3"
+   },
+   {
+    "code": "agreement_issuer_mismatch",
+    "detail": "bound receipt issuer 'did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb' is not the offeree",
+    "receipt_id": "urn:uuid:01a0d12f-c329-7130-80da-aea4727c381e"
+   }
+  ]
+ },
+ {
+  "file": "17c_accept_wrong_signer.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "offeree_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "offeree_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "offeree_mismatch",
+    "detail": "accept offeree 'did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb' does not match the signer 'did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1' / offer",
+    "receipt_id": "urn:uuid:01a0d12f-c32a-7918-80d6-b618f43fba03"
+   }
+  ]
+ },
+ {
+  "file": "17d_accept_before_offer.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "accept_before_offer",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "accept_before_offer"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "accept_before_offer",
+    "detail": "accept issued before offer urn:uuid:01a0d12f-c32b-7d6a-a841-698617f5389a",
+    "receipt_id": "urn:uuid:01a0d12f-c32b-7d01-9c2f-ad1838e23593"
+   }
+  ]
+ },
+ {
+  "file": "17e_bound_before_accept.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "agreement_before_accept",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "agreement_before_accept"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "agreement_before_accept",
+    "detail": "bound receipt issued before its accept urn:uuid:01a0d12f-c32d-7d51-b50d-0a684c4fa986",
+    "receipt_id": "urn:uuid:01a0d12f-c32d-725d-891b-ac8889faa0a8"
+   }
+  ]
+ },
+ {
+  "file": "17f_bound_wrong_issuer.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "agreement_issuer_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "agreement_issuer_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "agreement_issuer_mismatch",
+    "detail": "bound receipt issuer 'did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1' is not the offeree",
+    "receipt_id": "urn:uuid:01a0d12f-c32f-77e2-a987-a72e93027742"
+   }
+  ]
+ },
+ {
+  "file": "17g_missing_agreement.json",
+  "expected_verdict": "INSUFFICIENT_EVIDENCE",
+  "expected_code": null,
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "codes": [],
+  "provisional": [
+   "agreement_unreferenced:urn:uuid:01a0d12f-c330-7716-85c3-059e23ba1087"
+  ],
+  "insufficient": [
+   "missing_agreement:urn:uuid:01a0d12f-c331-7550-aee1-4f23b5223d5b"
+  ],
+  "errors": []
+ },
+ {
+  "file": "17h_agreement_unreferenced.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "agreement_unreferenced:urn:uuid:01a0d12f-c332-7692-932d-233890ecaff5",
+   "missing_agreement_ref:urn:uuid:01a0d12f-c332-7087-a658-5a226f724cfe"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "17i_missing_agreement_ref.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "missing_agreement_ref:urn:uuid:01a0d12f-c333-7d4a-8dd1-32d84767ee16"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "17j_duplicate_offer_ids.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "18_legacy_agreement_ref_ignored.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "19_policy_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "policy_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "policy_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "policy_mismatch",
+    "detail": "decision policy '2026-09-17.2' != pass policy '2026-09-17.1'",
+    "receipt_id": "urn:uuid:01a0d142-b568-7040-b47d-8684cfad3363"
+   }
+  ]
+ },
+ {
+  "file": "20_redacted_required.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "redacted_required",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "redacted_required"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "redacted_required",
+    "detail": "required field redacted at receipts[3].body.reason",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "21_commit_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "commit_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "commit_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "commit_mismatch",
+    "detail": "commit mismatch at receipts[3].body.quality_flags",
+    "receipt_id": null
+   }
+  ]
+ },
+ {
+  "file": "22_local_state_commitment.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22b_unknown_local_class.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "mandala_class must be gate-lite, gate-hard, or local",
+    "receipt_id": "urn:uuid:c01cb0d7-6c79-5d2c-9293-be11b6d84e0d"
+   }
+  ]
+ },
+ {
+  "file": "22h_bwrap_sandbox.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22o_bwrap_missing_runner_profile.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "bwrap execution requires runner_profile",
+    "receipt_id": "urn:uuid:777e18fe-8d96-5d80-8e10-1cae0d07e2c2"
+   }
+  ]
+ },
+ {
+  "file": "22p_bwrap_bad_runner_profile_digest.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest",
+    "receipt_id": "urn:uuid:473474b4-b4bf-5551-907b-eac3ce348962"
+   }
+  ]
+ },
+ {
+  "file": "22q_runner_profile_extra_field.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest",
+    "receipt_id": "urn:uuid:47ce90ce-9ccf-5ee3-bd9d-0f96e2b31818"
+   }
+  ]
+ },
+ {
+  "file": "22i_landlock_sandbox.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22j_legacy_combined_sandbox.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22c_unknown_sandbox.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "sandbox_class is unknown",
+    "receipt_id": "urn:uuid:f1d0e051-db5c-5b5e-85d6-5a94886279a8"
+   }
+  ]
+ },
+ {
+  "file": "22k_empty_sandbox.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "sandbox_class is unknown",
+    "receipt_id": "urn:uuid:50cf121c-9554-5cd3-a83d-b190c1dd0362"
+   }
+  ]
+ },
+ {
+  "file": "22l_non_string_sandbox.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "sandbox_class is unknown",
+    "receipt_id": "urn:uuid:2ab099f2-a235-5d8b-855e-bd4b71baefba"
+   }
+  ]
+ },
+ {
+  "file": "22d_bad_state_count.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "count must be an exact JSON integer from 0 through 2^53-1",
+    "receipt_id": "urn:uuid:a4cd1129-3b4c-5f9c-a538-5d5e5d53c1a5"
+   }
+  ]
+ },
+ {
+  "file": "22g_count_overflow.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "count must be an exact JSON integer from 0 through 2^53-1",
+    "receipt_id": "urn:uuid:6a5f8bfe-825f-5dc0-bf70-916dd00906dd"
+   }
+  ]
+ },
+ {
+  "file": "22m_count_unsafe_json_integer.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "count must be an exact JSON integer from 0 through 2^53-1",
+    "receipt_id": "urn:uuid:887bb286-c96b-5441-9188-7dab7f576594"
+   }
+  ]
+ },
+ {
+  "file": "22n_count_safe_integer_limit.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22e_bad_head_digest.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "head_digest must be a sha256 digest",
+    "receipt_id": "urn:uuid:bb0dea69-068b-5bd9-ae77-e747f011c901"
+   }
+  ]
+ },
+ {
+  "file": "22r_empty_scope.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "scope must be nonempty text",
+    "receipt_id": "urn:uuid:6fd6a4ff-ed75-5e2d-9c95-237a7949cda0"
+   }
+  ]
+ },
+ {
+  "file": "22s_file_snapshot_state_kind.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "22f_legacy_state_type.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "unknown_type",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "unknown_type",
+   "chain_break"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "unknown_type",
+    "detail": "type='state.commitment'",
+    "receipt_id": "urn:uuid:bf2c2288-ad7b-5a4a-bf35-51d5c439403e"
+   },
+   {
+    "code": "chain_break",
+    "detail": "prev digest mismatch",
+    "receipt_id": "urn:uuid:6fcf4f49-b025-541b-8f28-b1eb16025379"
+   }
+  ]
+ },
+ {
+  "file": "23_agreement_binding_carried.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "23b_missing_carried_agreement_ref.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "missing_agreement_ref:urn:uuid:258b9eed-0434-56d1-bf5b-a0b53f4adb40"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "24_authority_grant.json",
+  "expected_verdict": "TRUSTED",
+  "expected_code": null,
+  "verdict": "TRUSTED",
+  "codes": [],
+  "provisional": [],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "24b_missing_authority.json",
+  "expected_verdict": "INSUFFICIENT_EVIDENCE",
+  "expected_code": null,
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "codes": [],
+  "provisional": [
+   "authority_unreferenced:urn:uuid:0152b4a6-1266-510f-99a7-28e9c44e295f"
+  ],
+  "insufficient": [
+   "missing_authority:urn:uuid:a5cec7c2-a810-53bd-ad3f-36c57174260b",
+   "missing_authority:urn:uuid:963e2f7d-c323-52c2-99bb-2dccc634d677"
+  ],
+  "errors": []
+ },
+ {
+  "file": "24c_authority_before_grant.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "authority_before_grant",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "authority_before_grant",
+   "authority_before_grant"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "authority_before_grant",
+    "detail": "bound receipt issued before its authority grant urn:uuid:9326953b-7c18-5198-a2c6-e620a07b8ce8",
+    "receipt_id": "urn:uuid:a082229c-b6f0-5ea0-a730-ef7ac27bc6e4"
+   },
+   {
+    "code": "authority_before_grant",
+    "detail": "bound receipt issued before its authority grant urn:uuid:9326953b-7c18-5198-a2c6-e620a07b8ce8",
+    "receipt_id": "urn:uuid:b6dbd65a-f8f8-5ece-a531-5dcf6a3e0d50"
+   }
+  ]
+ },
+ {
+  "file": "24d_authority_expired.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "authority_expired",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "authority_expired"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "authority_expired",
+    "detail": "bound receipt issued after the authority window 2026-09-28T18:00:02Z",
+    "receipt_id": "urn:uuid:a47afd79-0f90-5d0a-8b0f-c3cff2f794a4"
+   }
+  ]
+ },
+ {
+  "file": "24e_authority_agent_mismatch.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "authority_agent_mismatch",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "authority_agent_mismatch",
+   "authority_agent_mismatch"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "authority_agent_mismatch",
+    "detail": "bound receipt issuer 'did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn' is not the grant's agent",
+    "receipt_id": "urn:uuid:a3d4f7bb-b6cd-5210-9cf6-c9dfbbed0072"
+   },
+   {
+    "code": "authority_agent_mismatch",
+    "detail": "bound receipt issuer 'did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn' is not the grant's agent",
+    "receipt_id": "urn:uuid:b15983c0-6873-5486-b07d-ad413c126607"
+   }
+  ]
+ },
+ {
+  "file": "24f_authority_unreferenced.json",
+  "expected_verdict": "PROVISIONAL",
+  "expected_code": null,
+  "verdict": "PROVISIONAL",
+  "codes": [],
+  "provisional": [
+   "authority_unreferenced:urn:uuid:a7638b20-f21f-5430-9152-adbd95c6bfc5"
+  ],
+  "insufficient": [],
+  "errors": []
+ },
+ {
+  "file": "24g_legacy_authority_type.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "unknown_type",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "unknown_type",
+   "chain_break"
+  ],
+  "provisional": [
+   "authority_unreferenced:urn:uuid:aebd35a0-0cb7-58e0-bd4f-af9044c94543"
+  ],
+  "insufficient": [
+   "missing_authority:urn:uuid:9f3f4b30-6b1a-50a1-80f6-b3c6f9966d13",
+   "missing_authority:urn:uuid:0e15e0e1-b9fa-5152-a8d8-04a343efb7de"
+  ],
+  "errors": [
+   {
+    "code": "unknown_type",
+    "detail": "type='authority.grant'",
+    "receipt_id": "urn:uuid:aebd35a0-0cb7-58e0-bd4f-af9044c94543"
+   },
+   {
+    "code": "chain_break",
+    "detail": "prev digest mismatch",
+    "receipt_id": "urn:uuid:9f3f4b30-6b1a-50a1-80f6-b3c6f9966d13"
+   }
+  ]
+ },
+ {
+  "file": "24h_bad_review_policy.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "review_policy must be none, flagged, or full",
+    "receipt_id": "urn:uuid:8b0588e0-53aa-516a-8ce2-cf2d7501896a"
+   }
+  ]
+ },
+ {
+  "file": "24i_bad_principal_assurance.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "principal must name an id and an assurance of self_asserted or issuer_verified",
+    "receipt_id": "urn:uuid:f0b9c35e-9b74-59cc-875f-0f66d950bcdb"
+   }
+  ]
+ },
+ {
+  "file": "24j_empty_scope.json",
+  "expected_verdict": "UNTRUSTED",
+  "expected_code": "malformed",
+  "verdict": "UNTRUSTED",
+  "codes": [
+   "malformed"
+  ],
+  "provisional": [],
+  "insufficient": [],
+  "errors": [
+   {
+    "code": "malformed",
+    "detail": "scope must be a nonempty list of nonempty strings",
+    "receipt_id": "urn:uuid:6efa0beb-141a-531e-95d4-7e0333f6aede"
+   }
+  ]
+ }
+]
