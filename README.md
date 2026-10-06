@@ -56,6 +56,7 @@ schema/                    JSON Schema (2020-12): bundles + verification receipt
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
 OPEN_DATA_ANSWER_RECEIPT.md  worked example: an AI answer over an open-data portal
+examples/03_public_text_claim_review/  bounded text-grading, provenance, artifact hashes, and receipt verification fixture
 CONTRIBUTING.md            DCO, test rules, scope
 ROADMAP.md                 what lands in 0.4 and beyond, and the selection rule
 docs/                      crosswalks (sahu; ACTA/asqav; AER-1/AADP/SCITT) + design notes + consumer profile
