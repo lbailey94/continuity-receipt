@@ -1,0 +1,2 @@
+**Spec version:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
+remain supported (open items listed in `SPEC.md` §11).

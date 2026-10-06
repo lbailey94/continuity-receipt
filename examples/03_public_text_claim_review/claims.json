@@ -1,0 +1,28 @@
+{
+  "kind": "public-text-claim-review-fixture",
+  "version": 1,
+  "source": {
+    "url": "https://github.com/lbailey94/continuity-receipt/blob/f208268e7c706ebaed6968a694615c1ad94cb3c0/README.md",
+    "snapshot_path": "source_excerpt.txt",
+    "snapshot_commit": "f208268e7c706ebaed6968a694615c1ad94cb3c0",
+    "capture_note": "A short excerpt copied from the pinned public README for a runnable fixture; it was not fetched live by this program."
+  },
+  "claims": [
+    {
+      "id": "readme-publication-wording",
+      "claim": "The README labels continuity-receipt/0.5 as published on 2026-09-30.",
+      "grade": "supported_by_excerpt",
+      "supporting_text": "`continuity-receipt/0.5` — published 2026-09-30.",
+      "rationale": "The supplied snapshot contains this exact text.",
+      "limit": "This grades text presence only; it does not independently verify package registry availability or the publication event."
+    },
+    {
+      "id": "adopter-installability",
+      "claim": "An adopter can install and use the published package today.",
+      "grade": "not_established_by_excerpt",
+      "supporting_text": null,
+      "rationale": "The excerpt contains no install command, registry lookup, or adopter run.",
+      "limit": "Absence from this short excerpt is not evidence that installation fails."
+    }
+  ]
+}
