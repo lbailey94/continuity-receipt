@@ -58,7 +58,7 @@ lands with a vector, an acceptance test, or a documented negative case.
 
 - [x] Local pass class and execution sandbox vocabulary (`bwrap`, `landlock`,
   legacy/combined `bwrap-landlock`, and honest unconfined `none`) implemented
-  in both verifiers, schema 0.5, and separate signed candidate vectors. Values
+  in both verifiers, schema 0.5, and separate signed 0.5 vectors. Values
   validate issuer claims only and do not prove runtime confinement.
 - [x] State commitment shape implemented with explicit validation and
   non-verification limits (see `SPEC_0.5_DRAFT.md`). The WhiteMagic karma-head
@@ -79,8 +79,9 @@ lands with a vector, an acceptance test, or a documented negative case.
 
 **Current release:** spec `continuity-receipt/0.5` (published 2026-09-30;
 Python tooling and Rust crate 0.5.1 on PyPI + crates.io). Specs `0.1`–`0.4`
-remain supported. The hosted verifier reports 0.5.1 and accepts 0.1–0.6
-(0.6 experimental; the hosted range is broader than the published spec).
+remain supported alongside 0.5; `0.6` is an experimental candidate. The hosted
+verifier reports 0.5.1 and accepts 0.1–0.6 (0.6 experimental; the hosted range
+is broader than the published spec).
 **Versioning policy:** additive fields within 0.x; breaking changes require a new minor plus a new vector set; the verifier refuses unknown spec versions.
 **Selection rule:** a change lands only if it is testable — every change ships with a vector, an acceptance test, or a documented negative case. Failures and rejected designs are published, not hidden.
 

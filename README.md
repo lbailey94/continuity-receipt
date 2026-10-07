@@ -3,7 +3,8 @@
 **An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
 
 **Spec version:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
-remain supported (open items listed in `SPEC.md` §11).
+remain supported; `0.6` is an experimental development candidate
+(`SPEC_0.6_DRAFT.md`). Open items are listed in `SPEC.md` §11.
 **License:** Apache-2.0 (specification text, code, and vectors).
 
 **Checkout development:** [SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
@@ -42,7 +43,7 @@ Verification verdicts (IETF CTQ-aligned):
 ## Layout
 
 ```
-SPEC.md                    the v0.5 specification (normative; 0.1-0.4 supported)
+SPEC.md                    the v0.5 specification (normative; 0.1-0.5 supported)
 VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
@@ -63,7 +64,7 @@ docs/                      crosswalks (sahu; ACTA/asqav; AER-1/AADP/SCITT) + des
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
 vectors/                   40 bundle vectors + 21 verification-receipt vectors
-vectors/manifest-0.5.json  separate, unpublished candidate corpus
+vectors/manifest-0.5.json  separate 0.5 corpus (21 vectors; outside the pinned referee set)
 vectors/manifest-0.6.json  authority candidate corpus (additive over 0.5)
 tools/make_vectors.py      regenerates the vectors (fresh ids/timestamps; published fixtures stay frozen)
 tools/hostile_input_probe.py  malformed-input corpus, structured outcomes + parity

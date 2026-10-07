@@ -7,7 +7,7 @@ call — and that key is free and instant.
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt==0.4.0
+pip install continuity-receipt==0.5.1
 ```
 
 ## 1. Verify a bundle offline (30 seconds)
@@ -98,7 +98,7 @@ the evidence about the task.
 
 ## What you can claim now
 
-> "This bundle verified as TRUSTED under continuity-receipt 0.4, at time T,
+> "This bundle verified as TRUSTED under continuity-receipt 0.5, at time T,
 > by implementation X version Y — and here is the signed statement, checkable
 > offline."
 

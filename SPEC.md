@@ -1,7 +1,8 @@
 # Continuity Receipt — v0.5 Specification
 
 **Status:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
-remain supported by the verifier. Open items in §11.
+remain supported by the verifier; `0.6` is an experimental development
+candidate (`SPEC_0.6_DRAFT.md`). Open items in §11.
 **Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
 0.4 released 2026-09-24; 0.5 released 2026-09-30.
 **Home:** this repository — versioned independently of any product release
@@ -160,7 +161,7 @@ the wider project suite.
 `?`. Fields marked **grounded** must be hashes/signatures, not prose.
 
 ### 4.1 `session.pass.created`
-`gate_id`, `mandala_class` (`gate-lite|gate-hard`), `quotas`
+`gate_id`, `mandala_class` (`gate-lite|gate-hard`; 0.5 adds `local`), `quotas`
 {`cpu_ms`,`mem_mb`,`disk_mb`,`wall_ms`}, `expires_at`, `policy_version`,
 `mandate_ref` (hash), `agent_id`, `principal_id`, `pass_token_id`.
 **Quotas convention:** a zero-valued quota field means "not enforced" — a
@@ -175,8 +176,9 @@ them and checks cross-record structure). Recorded usage lives in
 ### 4.3 `task.execution`
 `tool_calls[]` {`name`, `args_hash`, `result_hash`, `denied`?}, `egress[]`
 {`destination`, `bytes`, `allowed`}, `resources` {`cpu_ms`, `mem_peak_mb`,
-`disk_peak_mb`}, `sandbox_class` (`bwrap-landlock|microvm-ch|microvm-fc`),
-`denials[]`?
+`disk_peak_mb`}, `sandbox_class` (`bwrap|landlock|bwrap-landlock|microvm-ch|microvm-fc|none`
+— the 0.5 vocabulary; `bwrap` requires `runner_profile`, and 0.1–0.4 carry
+free-form labels), `denials[]`?
 ### 4.4 `delivery.attestation`
 `request_hash`, `response_hash`, `counterparty` {`id`, `attestation`? (sig)},
 `spec_ref`? (what "done" means), `quality_flags[]`?.
@@ -330,7 +332,11 @@ Error codes: `malformed`, `unknown_type`, `bad_signature`, `chain_break`,
 `offeree_mismatch`, `accept_before_offer`, `agreement_before_accept`,
 `agreement_issuer_mismatch` (`missing_offer` and `missing_agreement` are
 insufficient-evidence reasons, not errors; `agreement_unreferenced` and
-`missing_agreement_ref` are PROVISIONAL reasons).
+`missing_agreement_ref` are PROVISIONAL reasons). 0.5 adds no new error
+codes; its vocabulary and shape failures are reported as `malformed`. The 0.6
+candidate adds `authority_before_grant`, `authority_agent_mismatch`,
+`authority_expired`, `head_mismatch`, and `head_anchor_invalid`
+(experimental; `SPEC_0.6_DRAFT.md`).
 
 ## 8. Interop mapping (informative)
 
@@ -348,7 +354,7 @@ The full set ships with the verifier:
 **machine-readable expectations** in `vectors/manifest.json` (file → expected
 verdict → expected error code → anchor requirement), and a human index in
 `vectors/INDEX.md`. The JSON Schemas are
-`schema/continuity-receipt-0.4.schema.json` (0.4) and its predecessors; every
+`schema/continuity-receipt-0.5.schema.json` (0.5) and its predecessors; every
 schema-valid vector is validated against the schema for its spec version in
 CI.
 
@@ -399,7 +405,7 @@ termination, cap/delivery ordering, redaction/erasure, anchors.
 
 ## 10. Versioning
 
-`spec: continuity-receipt/0.4` in new envelopes; `0.1`–`0.3` remain supported
+`spec: continuity-receipt/0.5` in new envelopes; `0.1`–`0.4` remain supported
 (bundle-level and per-receipt). Additive fields within 0.x; breaking changes
 require a new minor version plus a new vector set. The verifier refuses
 unknown spec versions (`version_unsupported`); unknown *additional* members
@@ -411,7 +417,7 @@ envelope the bundle was written for; every receipt carries its own `spec` and
 is verified under that version's rules. A member that a receipt's version does
 not define — for example `agreement_ref` on a 0.3 record — is an additional
 member and is ignored, exactly like any other unknown member. This keeps
-published 0.1–0.3 bundles verifying unchanged while upgrade-period bundles mix
+published 0.1–0.4 bundles verifying unchanged while upgrade-period bundles mix
 versions without ambiguity (compatibility vector
 `18_legacy_agreement_ref_ignored.json`).
 

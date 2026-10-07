@@ -1,13 +1,13 @@
 # Adoption and evidence guide
 
-## 1. Verify an existing bundle (published 0.4)
+## 1. Verify an existing bundle (published 0.5)
 
 Clone this repository for the frozen vectors, or install the published package. Pin the implementation if results will be cited:
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-pip install continuity-receipt==0.4.0
+pip install continuity-receipt==0.5.1
 continuity-receipt-verify vectors/02_happy_full.json
 ```
 
@@ -54,4 +54,4 @@ A locally developed cross-generation example contains one captured WhiteMagic Ge
 
 ## 4. Conformance and version boundaries
 
-Published spec 0.4 has 40 bundle vectors in vectors/manifest.json and 21 verification-receipt vectors. The separate vectors/manifest-0.5.json is the unpublished candidate corpus. The public hosted conformance referee is pinned to the 0.4 corpus; do not submit the 0.5 vectors as though the service supports them. See SPEC_0.5_DRAFT.md and CONFORMANCE_TABLE.md for the candidate rules and their limits.
+Published spec 0.5 (2026-09-30; tooling 0.5.1) reuses the 0.1–0.4 rules and adds the 0.5 vocabulary. The frozen `vectors/manifest.json` holds 40 bundle vectors for specs 0.1–0.4 plus 21 verification-receipt vectors; `vectors/manifest-0.5.json` is the separate 21-vector 0.5 corpus. The public hosted conformance referee is pinned to the 40-case manifest.json corpus, so do not submit the 0.5 vectors as though the referee's pinned corpus includes them. See SPEC.md and CONFORMANCE_TABLE.md for the rules and their limits.

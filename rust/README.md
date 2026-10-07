@@ -1,9 +1,11 @@
 # continuity-receipt (Rust)
 
 Second, independent implementation of the Continuity Receipt verifier for
-`continuity-receipt/0.1`-`0.5` bundles in this prerelease checkout and
-verification receipts (companion v1), including the 0.4 agreement-binding
-rules carried into 0.5. Published crate 0.4.0 supports specs 0.1–0.4.
+`continuity-receipt/0.1`-`0.6` bundles and verification receipts
+(companion v1), including the 0.4 agreement-binding rules carried into 0.5.
+Published crate 0.5.1 supports specs 0.1–0.5 and accepts the experimental 0.6
+candidate (the chain-head rules landed after 0.5.1; this checkout carries
+them).
 The Python implementation in `../continuity_receipt/` remains the
 reference; this crate exists for the two-independent-implementations bar,
 native embedding, and single-binary deployment.
@@ -17,12 +19,13 @@ error codes, verdict precedence, and JSON output shape as
 ## Install
 
 ```sh
-cargo add continuity-receipt@=0.4.0        # published library
-cargo install continuity-receipt --version 0.4.0  # published CLIs
+cargo add continuity-receipt@=0.5.1        # published library
+cargo install continuity-receipt --version 0.5.1  # published CLIs
 ```
 
-The 0.5.0-alpha.0 checkout candidate tracks the unpublished
-`SPEC_0.5_DRAFT.md` changes. Publication runbook: [`PUBLISH.md`](PUBLISH.md).
+The published 0.5 line is frozen; this checkout additionally tracks the
+experimental 0.6 candidate (`SPEC_0.6_DRAFT.md`). Publication runbook:
+[`PUBLISH.md`](PUBLISH.md).
 
 ## Run
 

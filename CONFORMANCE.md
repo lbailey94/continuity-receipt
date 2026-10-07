@@ -10,11 +10,12 @@ vectors — see [`CONFORMANCE_TABLE.md`](CONFORMANCE_TABLE.md).
 
 ## Supported spec versions
 
-`continuity-receipt/0.1`, `continuity-receipt/0.2`, `continuity-receipt/0.3`,
-and `continuity-receipt/0.4`. Unknown versions are refused
-(`version_unsupported`) rather than guessed at. Each receipt carries its own
-`spec` and is verified under that version's rules; mixed-version bundles are
-legal (SPEC §10).
+`continuity-receipt/0.1` through `continuity-receipt/0.5` (0.5 published
+2026-09-30; tooling 0.5.1). `continuity-receipt/0.6` is accepted as an
+experimental development candidate, not a published spec
+(`SPEC_0.6_DRAFT.md`). Unknown versions are refused (`version_unsupported`)
+rather than guessed at. Each receipt carries its own `spec` and is verified
+under that version's rules; mixed-version bundles are legal (SPEC §10).
 
 ## Checks, in order of exposition (all failures are collected)
 
@@ -45,6 +46,10 @@ legal (SPEC §10).
 8. **Redactions and erasure** — required fields may not be redacted; redacted
    values without disclosure are provisional; erased payloads are
    insufficient evidence, not failures.
+
+The list above describes the published 0.1–0.5 surface. The 0.6 development
+candidate adds shape-only `authority.grant` / `authority_ref` binding and the
+optional bundle-level `chain_head` commitment (`SPEC_0.6_DRAFT.md`).
 
 ## Verification receipts (companion, version 1)
 
@@ -102,13 +107,17 @@ contract in the service docs (`api.whitemagic.dev/docs`).
 `bad_attestation`, `bad_revocation`, `key_revoked`, `provenance_invalid`,
 `offer_mismatch`, `offer_expired`, `offeree_mismatch`, `accept_before_offer`,
 `agreement_before_accept`, `agreement_issuer_mismatch`, `too_many_receipts`,
-`nesting_too_deep`, `bundle_too_large`.
+`nesting_too_deep`, `bundle_too_large`. The 0.6 candidate adds
+`authority_before_grant`, `authority_agent_mismatch`, `authority_expired`,
+`head_mismatch`, and `head_anchor_invalid`.
 
 **PROVISIONAL reasons (bundle):** `anchor_missing`,
 `redacted_without_disclosure:<path>`, `agreement_unreferenced:<path>`,
-`missing_agreement_ref:<path>`.
+`missing_agreement_ref:<path>`. The 0.6 candidate adds
+`authority_unreferenced:<path>` and `head_anchor_missing`.
 **INSUFFICIENT_EVIDENCE reasons (bundle):** `erased_content:<path>`,
-`missing_offer:<receipt_id>`, `missing_agreement:<receipt_id>`.
+`missing_offer:<receipt_id>`, `missing_agreement:<receipt_id>`. The 0.6
+candidate adds `missing_authority:<receipt_id>`.
 
 **Revocation lists (CLI):** `bad_revocations_document`,
 `revocations_unreachable`, `revocations_insecure_url`,

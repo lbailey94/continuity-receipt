@@ -1,9 +1,11 @@
 # Spec 0.5 integration readiness gate (development)
 
-**Status:** open. A passing test suite is evidence for a particular source tree,
-not proof that a producer enforced its recorded claims. Spec 0.4 remains the
-published and hosted surface. This gate does not authorize a tag, package
-upload, hosted rollout, or website claim.
+**Status:** open — the 0.5.0/0.5.1 publications (2026-09-30 / 2026-10-01)
+happened before this gate closed; see the gate ledger below. Spec 0.5 is
+published (tooling 0.5.1); 0.6 remains an experimental candidate. A passing
+test suite is evidence for a particular source tree, not proof that a producer
+enforced its recorded claims. This gate does not authorize any further tag,
+package upload, hosted rollout, or website claim.
 
 ## Candidate identity
 
@@ -28,6 +30,20 @@ All rows must pass to call the candidate **integration ready**. A red row or
 missing evidence is reported as open with the exact failing command or missing
 artifact. Published-package, hosted-service, and site readiness are separate
 decisions after this gate.
+
+## Gate ledger
+
+Status of the two open rows as of **2026-10-06**:
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Second producer capture | **open** | Same-host MandalaOS gate-lite capture recorded (`examples/02_gate_lite_state_commitment`, `cb0f721`), but no unrelated operator or runtime has emitted its own 0.5 bundle. A fixture modeled from that runtime does not close this row. |
+| Independent adversarial review | **open** | Maintainer-side review only (`REVIEW_NOTES_05.md`, 2026-09-24/28). `REVIEW_BRIEF_05.md` is prepared; no reviewer independent of the implementation has reported findings. |
+
+**Publication timing:** spec 0.5.0 shipped 2026-09-30 and tooling 0.5.1 on
+2026-10-01 while both rows above were — and remain — open. The gate is
+retrospective evidence for the 0.5 line; closing these rows still strengthens
+the published record, and both remain prerequisites for freezing 0.6.
 
 ## Reproduce the local portion
 
