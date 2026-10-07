@@ -1,0 +1,5 @@
+Query: "red block bay" (1 results)
+
+[1] Record #0 (score: 1.0000)
+    Source:  operator:cli
+    Content: The red block belongs in bay 3

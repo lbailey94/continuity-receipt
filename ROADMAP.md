@@ -69,6 +69,13 @@ lands with a vector, an acceptance test, or a documented negative case.
   `state.commitment` after `task.execution` (`codex/gate-lite-05-profile`
   `cb0f721`; example `examples/02_gate_lite_state_commitment`). Same-host
   capture on the unpublished candidate; independent adoption remains open.
+- [x] Second producer gate row closed (2026-10-07) — the
+  `trust-without-cloud` gated-flow harness (producer commit `5ef0949`) emits
+  its own 0.5 bundle from the WhiteMagic Gen3 kernel with a
+  `file-snapshot-v1` `state.commitment`;
+  `tools/qualify_adopter_capture.py` PASS at cr-main `2212281`
+  (`docs/evidence/second-producer-trust-without-cloud-2026-10-07/`). Distinct
+  runtime/repo, same host/operator; independent adoption remains open.
 - [x] Resolve the candidate design questions D1–D4 (2026-09-28; vectors 22r,
   22s; `REVIEW_NOTES_05.md` §Design resolves).
 - [x] Freeze and publish 0.5 (2026-09-30) after the internal review receipt

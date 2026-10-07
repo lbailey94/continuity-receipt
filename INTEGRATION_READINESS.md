@@ -2,10 +2,13 @@
 
 **Status:** open — the 0.5.0/0.5.1 publications (2026-09-30 / 2026-10-01)
 happened before this gate closed; see the gate ledger below. Spec 0.5 is
-published (tooling 0.5.1); 0.6 remains an experimental candidate. A passing
-test suite is evidence for a particular source tree, not proof that a producer
-enforced its recorded claims. This gate does not authorize any further tag,
-package upload, hosted rollout, or website claim.
+published (tooling 0.5.1); 0.6 remains an experimental candidate. As of
+2026-10-07 the second-producer capture row is **done** (trust-without-cloud
+gated-flow, distinct runtime/repo, same host/operator); independent
+adversarial review remains open. A passing test suite is evidence for a
+particular source tree, not proof that a producer enforced its recorded
+claims. This gate does not authorize any further tag, package upload, hosted
+rollout, or website claim.
 
 ## Candidate identity
 
@@ -33,11 +36,11 @@ decisions after this gate.
 
 ## Gate ledger
 
-Status of the two open rows as of **2026-10-06**:
+Status of the rows as of **2026-10-07**:
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Second producer capture | **open** | Same-host MandalaOS gate-lite capture recorded (`examples/02_gate_lite_state_commitment`, `cb0f721`), but no unrelated operator or runtime has emitted its own 0.5 bundle. A fixture modeled from that runtime does not close this row. |
+| Second producer capture | **done** (2026-10-07) | The `trust-without-cloud` gated-flow harness (repo `lbailey94/trust-without-cloud`, producer commit `5ef0949`, branch `feat/second-producer-05`) emitted its own 0.5 bundle from the WhiteMagic Gen3 kernel on T4800-S: `docs/evidence/second-producer-trust-without-cloud-2026-10-07/` (bundle sha256 `a4e1f5fe…24ce39`, `state.commitment` `file-snapshot-v1` count 3, head `sha256:b6bfd995…f32a55`). `tools/qualify_adopter_capture.py` reports **PASS** (`qualification.json`): state recomputed from preserved files, verifier source pinned at `2212281` clean, Python/Rust both TRUSTED with equal error codes, tamper twin UNTRUSTED. Distinct runtime and repository, but same host and operator as the MandalaOS gate-lite capture; independent adoption remains open. |
 | Independent adversarial review | **open** | Maintainer-side review only (`REVIEW_NOTES_05.md`, 2026-09-24/28). `REVIEW_BRIEF_05.md` is prepared; no reviewer independent of the implementation has reported findings. |
 
 **Publication timing:** spec 0.5.0 shipped 2026-09-30 and tooling 0.5.1 on

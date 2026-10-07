@@ -1,0 +1,22 @@
+<frozen runpy>:128: RuntimeWarning: 'continuity_receipt.verify' found in sys.modules after import of package 'continuity_receipt', but prior to execution of 'continuity_receipt.verify'; this may result in unpredictable behaviour
+{
+  "verdict": "TRUSTED",
+  "errors": [],
+  "provisional_reasons": [],
+  "insufficient_reasons": [],
+  "summary": {
+    "receipts": 5,
+    "types": [
+      "session.pass.created",
+      "task.decision",
+      "task.execution",
+      "state.commitment",
+      "task.termination"
+    ],
+    "issuers": [
+      "did:key:z6MkpNcKZiSeNPH732QtTxoVmNDRkVuRFUD1i6LATNZXA1rH"
+    ],
+    "terminated": true,
+    "settled": false
+  }
+}

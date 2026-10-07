@@ -1,0 +1,19 @@
+{
+ "files": [
+  {
+   "path": "decision.json",
+   "sha256": "sha256:ee6eca45c5871b53c54e9af48e13e26dd8a8aaaa53dbed5eac4168ada7a66df6",
+   "size": 305
+  },
+  {
+   "path": "pass-claims.json",
+   "sha256": "sha256:7e1ca677737a40d70ab7783ab2e0305d0740bf615c3cfce3fb0e9a693cca1187",
+   "size": 249
+  },
+  {
+   "path": "recall.txt",
+   "sha256": "sha256:15abae5da784859789ea47aeec2b09aac9495e7123bfeb0e9814848f2a0e194a",
+   "size": 136
+  }
+ ]
+}

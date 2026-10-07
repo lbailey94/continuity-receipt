@@ -1,0 +1,16 @@
+========================================================================
+DEMO FLOW — role=operator · fact='The red block belongs in bay 3' · spec=continuity-receipt/0.5
+========================================================================
+[pass] issued  id=8bf49d54…  role=operator  exp=2026-10-07T04:31:18Z
+[pass] verified ok  sub=VWD46To5…  scope=wm.remember
+[advisory] AgentJev service unreachable at http://127.0.0.1:8149/api/evaluate: <urlopen error [Errno 111] Connection refused>; proceeding on the deterministic policy
+[policy] deterministic: role_ok=True scope_ok=True → allow
+[wm] remember → Commit successful.  record=0 epoch=1
+[wm] recall → HIT (Query: "red block bay" (1 results))
+[state] file-snapshot-v1 count=3 head=sha256:b6bfd995286e38a… → /tmp/opencode/second-producer-2026-10-07/out/61c24be4-0698-4f47-8125-2dbc54fa334d.state
+[receipt] 5 records → /tmp/opencode/second-producer-2026-10-07/out/61c24be4-0698-4f47-8125-2dbc54fa334d.json
+[verify] in-process: TRUSTED
+[verify] CLI offline: TRUSTED (exit 0)
+[tamper] edited decision byte → UNTRUSTED (errors=2)
+[tamper] edited state.commitment count → UNTRUSTED (errors=2)
+[replay] rejected: pass token replay

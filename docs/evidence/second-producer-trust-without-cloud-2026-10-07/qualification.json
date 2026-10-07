@@ -1,0 +1,92 @@
+{
+  "format": "continuity-receipt-other-host-assessment/1",
+  "status": "PASS",
+  "evidence_class": "candidate only until a real independent-host capture is reviewed",
+  "checks": {
+    "source_pin": {
+      "expected": "221228190e22c63382c94fe06b1ddfdfb8971521",
+      "measured_head": "221228190e22c63382c94fe06b1ddfdfb8971521",
+      "verifier_source_tree_clean": true,
+      "verified": true
+    },
+    "snapshot_files": {
+      "root": "/home/lucas/Desktop/front burner/WHITEMAGIC/worktrees/cr-main/docs/evidence/second-producer-trust-without-cloud-2026-10-07/state-files",
+      "files": [
+        {
+          "path": "decision.json",
+          "available": true,
+          "size": 305,
+          "sha256": "sha256:ee6eca45c5871b53c54e9af48e13e26dd8a8aaaa53dbed5eac4168ada7a66df6",
+          "match": true
+        },
+        {
+          "path": "pass-claims.json",
+          "available": true,
+          "size": 249,
+          "sha256": "sha256:7e1ca677737a40d70ab7783ab2e0305d0740bf615c3cfce3fb0e9a693cca1187",
+          "match": true
+        },
+        {
+          "path": "recall.txt",
+          "available": true,
+          "size": 136,
+          "sha256": "sha256:15abae5da784859789ea47aeec2b09aac9495e7123bfeb0e9814848f2a0e194a",
+          "match": true
+        }
+      ],
+      "missing": [],
+      "all_match": true
+    },
+    "state_commitment": {
+      "profile": "file-snapshot-v1",
+      "computed_count": 3,
+      "claimed_count": 3,
+      "computed_head_digest": "sha256:b6bfd995286e38a5bd83789a4b668d559d0d42f53a4ed1178e20df07d2f32a55",
+      "claimed_head_digest": "sha256:b6bfd995286e38a5bd83789a4b668d559d0d42f53a4ed1178e20df07d2f32a55",
+      "match": true
+    },
+    "verifier_agreement": true,
+    "bundle_unchanged": true
+  },
+  "caveats": [
+    "Does not prove independent administration, sandbox enforcement, or live-network safety.",
+    "The packet is specifically for a 0.5 capture with a file-snapshot-v1 state.commitment; this local assessment does not establish that a producer or independent host emitted it. Existing same-host evidence is not independent qualification."
+  ],
+  "bundle": {
+    "path": "/home/lucas/Desktop/front burner/WHITEMAGIC/worktrees/cr-main/docs/evidence/second-producer-trust-without-cloud-2026-10-07/bundle.json",
+    "bytes": 4669,
+    "sha256": "sha256:a4e1f5fe04c809cfa5f395e16c0be41c2dc5daf3d5e71d333f04a14eab24ce39"
+  },
+  "producer": {
+    "command": "env PYTHONPATH=\"/home/lucas/Desktop/front burner/WHITEMAGIC/worktrees/cr-main\" GATE_LITE_PATH=\"/home/lucas/Desktop/front burner/MANDALA_OS/gate-lite\" WM_BIN=\"/home/lucas/.local/bin/wm\" python3 gated-flow/run_flow.py --advisory auto --store /tmp/opencode/second-producer-2026-10-07/store --out /tmp/opencode/second-producer-2026-10-07/out",
+    "pins": {
+      "source_commit": "221228190e22c63382c94fe06b1ddfdfb8971521",
+      "python_verifier_sha256": "sha256:e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+      "rust_verifier_sha256": "sha256:01f027100f68192e9e14e19f24419a2deb9f24b68f27df749e505174f0c9f20f"
+    },
+    "host": "T4800-S",
+    "operator": "Lucas Bailey <lbailey94@protonmail.com>"
+  },
+  "verifiers": {
+    "python": {
+      "command": [
+        "python3",
+        "-m",
+        "continuity_receipt.verify"
+      ],
+      "exit_code": 0,
+      "verdict": "TRUSTED",
+      "error_codes": [],
+      "error": null
+    },
+    "rust": {
+      "command": [
+        "./rust/target/debug/continuity-receipt-verify"
+      ],
+      "exit_code": 0,
+      "verdict": "TRUSTED",
+      "error_codes": [],
+      "error": null
+    }
+  }
+}

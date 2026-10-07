@@ -1,0 +1,33 @@
+<frozen runpy>:128: RuntimeWarning: 'continuity_receipt.verify' found in sys.modules after import of package 'continuity_receipt', but prior to execution of 'continuity_receipt.verify'; this may result in unpredictable behaviour
+{
+  "verdict": "UNTRUSTED",
+  "errors": [
+    {
+      "code": "bad_signature",
+      "detail": "signature does not verify",
+      "receipt_id": "urn:uuid:01a1146a-5fee-7ef6-8149-4d24250bc124"
+    },
+    {
+      "code": "chain_break",
+      "detail": "prev digest mismatch",
+      "receipt_id": "urn:uuid:01a1146a-5fee-7dd9-baaf-0a4efee039e6"
+    }
+  ],
+  "provisional_reasons": [],
+  "insufficient_reasons": [],
+  "summary": {
+    "receipts": 5,
+    "types": [
+      "session.pass.created",
+      "task.decision",
+      "task.execution",
+      "state.commitment",
+      "task.termination"
+    ],
+    "issuers": [
+      "did:key:z6MkpNcKZiSeNPH732QtTxoVmNDRkVuRFUD1i6LATNZXA1rH"
+    ],
+    "terminated": true,
+    "settled": false
+  }
+}

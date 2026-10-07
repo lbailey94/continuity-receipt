@@ -1,0 +1,11 @@
+{
+ "action": "wm.remember",
+ "action_args_hash": "sha256:6614a47b80f7b8aab4831605c4bddc420eb1abf9e470a836362ed865ca5cf74e",
+ "advisory": {
+  "agentjev": "unavailable"
+ },
+ "decision": "allow",
+ "input_provenance": "local",
+ "model": "deterministic-policy+agentjev-advisory",
+ "policy_version": "demo-1"
+}
