@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:whitemagic:schema:registry-manifest:v0",
+  "title": "Continuity scheme registry manifest v0",
+  "description": "Content-free, operator-attested manifest of receipt schemes, transitions, and aggregate counters. See docs/DESIGN_NOTE_SCHEME_REGISTRY_2026-10-08.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["registry", "operator", "schema", "updated", "scope", "schemes", "transitions", "counters", "federation"],
+  "properties": {
+    "registry": {"type": "string"},
+    "operator": {"type": "string"},
+    "schema": {"const": "urn:whitemagic:schema:registry-manifest:v0"},
+    "updated": {"type": "string", "format": "date-time"},
+    "scope": {"type": "string", "minLength": 40},
+    "schemes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": {"type": "string"},
+          "status": {"enum": ["active", "candidate", "superseded", "deprecated", "planned"]},
+          "spec": {"type": ["string", "null"]},
+          "verifier": {"type": ["string", "null"]},
+          "first_seen": {"type": ["string", "null"]},
+          "notes": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["date", "from", "to", "policy"],
+        "properties": {
+          "date": {"type": "string"},
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "policy": {"type": "string"},
+          "note": {"type": ["string", "null"]},
+          "cross_sign": {"type": ["boolean", "null"]}
+        }
+      }
+    },
+    "counters": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["window", "min_k", "issued", "verified"],
+      "properties": {
+        "window": {"type": "string"},
+        "min_k": {"type": "integer", "minimum": 2},
+        "issued": {"type": "object"},
+        "verified": {"type": "object"}
+      }
+    },
+    "federation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "peers", "manifest_schema"],
+      "properties": {
+        "mode": {"enum": ["publish-only", "bidirectional"]},
+        "peers": {"type": "array", "items": {"type": "string"}},
+        "manifest_schema": {"type": "string"}
+      }
+    }
+  }
+}

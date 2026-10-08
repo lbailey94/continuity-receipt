@@ -1,0 +1,47 @@
+{
+  "registry": "urn:whitemagic:registry:continuity:v0",
+  "operator": "WhiteMagic Labs (Lucas Bailey)",
+  "schema": "urn:whitemagic:schema:registry-manifest:v0",
+  "updated": "2026-10-08T00:00:00Z",
+  "scope": "Counts receipts issued by WhiteMagic-operated lanes and verifications performed via its public verifier. This is not a global census; other registries may publish their own.",
+  "schemes": [
+    {
+      "id": "continuity-receipt/0.5",
+      "status": "active",
+      "spec": "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC.md",
+      "verifier": "pypi:continuity-receipt>=0.5.0,<0.6",
+      "first_seen": "2026-09",
+      "notes": "published 0.5.0 / 0.5.1"
+    },
+    {
+      "id": "continuity-receipt/0.6",
+      "status": "candidate",
+      "spec": "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC_0.6_DRAFT.md",
+      "verifier": "experimental support inside 0.5.x packages",
+      "first_seen": "2026-10",
+      "notes": "authority.grant is an assertion record; not authorization"
+    },
+    {
+      "id": "continuity-receipt/0.6-pq",
+      "status": "planned",
+      "spec": "docs/DESIGN_NOTE_PQ_DUAL_SIGN_RECEIPTS_2026-10-08.md",
+      "verifier": "not yet",
+      "first_seen": null,
+      "notes": "dual-sign Ed25519 + ML-DSA-44/65; SLH-DSA fallback; policy-aware verdicts"
+    }
+  ],
+  "transitions": [],
+  "counters": {
+    "window": "30d",
+    "min_k": 20,
+    "issued": {"total": null, "by_scheme": {}},
+    "verified": {"total": null},
+    "method": "operator self-attestation from content-free audit; aggregate only; cells below min_k are suppressed",
+    "updated": null
+  },
+  "federation": {
+    "mode": "publish-only",
+    "peers": [],
+    "manifest_schema": "urn:whitemagic:schema:registry-manifest:v0"
+  }
+}
