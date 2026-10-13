@@ -117,7 +117,7 @@ or AADP confirmations. A CR field containing a permit digest would establish
 only a reference/commitment under a future, defined profile; it would not
 itself establish that a recipient checked or accepted the permit.
 
-## 5. SCITT Continuity Receipts -01
+## 5. SCITT Continuity Receipts -01 & CPR Nomenclature Resolution
 
 The SCITT draft's “Continuity Receipt” is an ordinary RFC 9942 receipt
 returned after registering a signed recovery statement about a stateful
@@ -128,19 +128,17 @@ log. It does not prove recovery occurred, bytes matched the original,
 attestation results were verified or favourable, or the log's registration
 policy checked those facts.
 
-The name therefore overlaps with this repository's “agent continuity
-receipt” wording, while the objects and claims differ. Use “agent continuity
-receipt” when context needs to distinguish this CR project. This is naming
-hygiene, not a claim of conflict, priority, endorsement, or adoption.
+**Nomenclature Resolution:** To eliminate naming overlap and clarify
+conceptual boundaries, this project adopts **Causal Provenance Receipts (CPR)**
+as the canonical title of our specification (`continuity-receipt` 0.5/0.6). CPR
+reflects the causal chain of agent task lifecycles (decision → authority →
+execution → delivery → settlement) while preventing any confusion with SCITT
+transparency recovery receipts.
 
-The potential join is at the state-evidence layer, not wire compatibility:
-CR `state.commitment` could be a payload/reference for a separately authored
-recovery statement if its meaning and the SCITT registration policy fit; a
-SCITT receipt could be carried as external evidence once a CR reference
-profile is agreed. SCRAPI -05 provides registration and query endpoints, but
-does not settle authentication (out of scope) or establish that a particular
-service's policy is suitable. No service integration or registration has been
-tested for CR.
+For a comprehensive architectural crosswalk, envelope field mapping,
+COSE_Sign1 serialization feasibility analysis, and bounded-spend procurement
+mandate mappings, see:
+[`SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md`](SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md).
 
 ## 6. Open issue: external-reference digest and verdict effect
 
