@@ -3,11 +3,11 @@ name = "continuity-receipt"
 version = "0.5.1"
 edition = "2021"
 license = "Apache-2.0"
-description = "Independent Rust verifier for continuity-receipt/0.1-0.6 bundles (the Python implementation remains the reference)"
+description = "Independent Rust verifier for Causal Provenance Receipts (CPR / continuity-receipt 0.1-0.6) bundles"
 repository = "https://github.com/lbailey94/continuity-receipt"
 homepage = "https://github.com/lbailey94/continuity-receipt"
 readme = "README.md"
-keywords = ["continuity", "provenance", "receipts", "verification", "ed25519"]
+keywords = ["cpr", "causal-provenance", "continuity", "verification", "ed25519"]
 categories = ["cryptography", "encoding"]
 
 [workspace]

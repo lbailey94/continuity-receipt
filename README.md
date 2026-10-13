@@ -1,36 +1,41 @@
-# Continuity Receipt
+# Causal Provenance Receipts (CPR)
 
-**An open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks.**
+**An open specification, test vectors, and reference verifiers for verifiable causal task provenance, offline auditability, and session resuscitation across autonomous AI agents.**
 
-**Spec version:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
+> **Nomenclature Resolution:** Formerly published as *Continuity Receipts*, this standard has formally transitioned to **CPR (Causal Provenance Receipts)** to eliminate collision with IETF SCITT recovery statements (`draft-nikolaichuk-scitt-continuity-receipts-01`) while expressing the two core dimensions of the protocol:
+> 1. **Causal Provenance:** Mathematical, hash-chained cause-and-effect audit trails (decision → authority → execution → delivery → termination → settlement), verified offline without trusting the operator.
+> 2. **Session Resuscitation (Anti-Amnesia):** Like medical CPR reviving circulation, a Causal Provenance Receipt brings autonomous agent sessions back to life after crashes, runtime reboots, or model context window resets by binding to state-head commitments, memory vectors, tool outputs, and authority grants.
+
+**Spec version:** `continuity-receipt/0.5` (CPR core) — published 2026-09-30. `0.1`–`0.4`
 remain supported; `0.6` is an experimental development candidate
-(`SPEC_0.6_DRAFT.md`). Open items are listed in `SPEC.md` §11.
+([SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) & [SPEC_0.6_PQ_PROFILE_DRAFT.md](SPEC_0.6_PQ_PROFILE_DRAFT.md)). Open items are listed in `SPEC.md` §11.
 **License:** Apache-2.0 (specification text, code, and vectors).
 
-**Checkout development:** [SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) stacks an unpublished authority
-candidate (`authority.grant`) on top of 0.5.
+**SCITT & IETF Mapping:** See [docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md](docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md) for RFC 9943 envelope alignment, IETF SCITT recovery statement crosswalk, and RFC 9052 COSE_Sign1 compact binary encoding (~34% size reduction).
 
-**Version matrix** — the spec and the two implementations version
-independently:
+**Version matrix** — the spec and the reference implementations version independently:
 
 | Artifact | Current | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
 | Python reference + CLIs | **0.5.1** | `pip install continuity-receipt==0.5.1` |
 | Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
+| JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt` |
 
 The pinned install commands resolve to the published release (0.5.1).
 
-Both implementations support spec 0.5 (local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate member rejection, and consumer profile assessment) with identical verdicts and codes over the full vector set.
-Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python or
-Rust).
+All implementations support spec 0.5 (local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate member rejection, and consumer profile assessment) with identical verdicts and codes over the full vector set.
+Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python, Rust, or JS).
 
-A Continuity Receipt is a signed, hash-chained record of one governed task:
+A **Causal Provenance Receipt (CPR)** is a signed, hash-chained record of one governed task:
 **decision → authority → execution → delivery → termination → settlement**. It is designed to be verified offline by any third party — insurers, arbiters, procurement, courts, other agents — without trusting the channel that delivered it or accepting someone else's verification. What it proves is bounded: a receipt attests what its issuer signed, not that the described events occurred — issuer honesty is out of scope by design (`THREAT_MODEL.md` #2–#3, `CONFORMANCE_TABLE.md` §E).
 
 The spec is intentionally small: JSON (RFC 8785 canonicalization), SHA-256, Ed25519, `did:key` identities. No new cryptography. Redaction uses salted commitments so fields can be revealed selectively without breaking integrity; erasure makes commitments opaque while the chain still verifies.
 
-**Naming.** "Continuity Receipt" currently names two different objects in the standards landscape: this specification's agent-session lifecycle record (`continuity-receipt/0.5`), and an IETF SCITT draft that registers the *recovery of stateful assets* in a transparency log (`draft-nikolaichuk-scitt-continuity-receipts`). They are adjacent concepts, not the same object. In external copy, prefer **"agent continuity receipt"** for this specification; see `docs/CROSSWALK_AER1_AADP_SCITT.md`.
+**Standards Composition:** For detailed mapping to adjacent emerging standards, see:
+- [docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md](docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md) (IETF SCITT & COSE_Sign1)
+- [docs/CROSSWALK_AER1_AADP_SCITT.md](docs/CROSSWALK_AER1_AADP_SCITT.md) (AER-1 tool receipts, AADP bound permits, SCITT)
+- [docs/CROSSWALK_W3C_AGENT_IDENTITY_CG_v0.md](docs/CROSSWALK_W3C_AGENT_IDENTITY_CG_v0.md) (W3C Agent Identity & Memory Interoperability CG)
 
 ## Why this exists
 
@@ -158,15 +163,15 @@ This project is developed with AI agents as drafting, implementation, and review
 
 ## The stack
 
-> Local memory → governed execution → verifiable continuity
+> Local memory → governed execution → verifiable causal provenance (CPR)
 
 - [`whitemagic`](https://github.com/lbailey94/whitemagic) — local-first memory and session continuity for AI agents
-- [`continuity-receipt`](https://github.com/lbailey94/continuity-receipt) — portable, offline-verifiable evidence for governed tasks (Apache-2.0, this repo)
+- [`continuity-receipt`](https://github.com/lbailey94/continuity-receipt) — Causal Provenance Receipts (CPR): portable, offline-verifiable task evidence & session resuscitation (Apache-2.0, this repo)
 - [`mandalaos-gate-lite`](https://github.com/lbailey94/mandalaos-gate-lite) — bounded agent execution that emits receipts (review snapshot)
 - [`whitemagic-plugins`](https://github.com/lbailey94/whitemagic-plugins) — client integrations and adapters
 
 Each repository stands on its own: WhiteMagic does not require MandalaOS, and
-Continuity Receipt does not require WhiteMagic. Three entrances — **use it** →
+CPR / Continuity Receipt does not require WhiteMagic. Three entrances — **use it** →
 `whitemagic`; **review a protocol** → `continuity-receipt`; **attack the
 security architecture** → `mandalaos-gate-lite`.
 

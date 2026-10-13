@@ -1,8 +1,10 @@
-# Continuity Receipt — v0.5 Specification
+# Causal Provenance Receipts (CPR) — v0.5 Specification
 
-**Status:** `continuity-receipt/0.5` — published 2026-09-30. `0.1`–`0.4`
+> **Nomenclature Note:** Formally published as **Causal Provenance Receipts (CPR)** (formerly *Continuity Receipts*). This transition eliminates collision with IETF SCITT recovery statements (`draft-nikolaichuk-scitt-continuity-receipts-01`) and reflects the dual purpose of the standard: tamper-evident causal task provenance and agent session resuscitation after failure. The wire format identifier `continuity-receipt/0.5` remains normative for binary and JSON envelope backward compatibility.
+
+**Status:** `continuity-receipt/0.5` (CPR core) — published 2026-09-30. `0.1`–`0.4`
 remain supported by the verifier; `0.6` is an experimental development
-candidate (`SPEC_0.6_DRAFT.md`). Open items in §11.
+candidate (`SPEC_0.6_DRAFT.md` & `SPEC_0.6_PQ_PROFILE_DRAFT.md`). Open items in §11.
 **Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
 0.4 released 2026-09-24; 0.5 released 2026-09-30.
 **Home:** this repository — versioned independently of any product release

@@ -1,8 +1,9 @@
-# continuity-receipt (Rust)
+# continuity-receipt (Rust) — Causal Provenance Receipts (CPR)
 
-Second, independent implementation of the Continuity Receipt verifier for
+Second, independent implementation of the Causal Provenance Receipts (CPR / Continuity Receipt) verifier for
 `continuity-receipt/0.1`-`0.6` bundles and verification receipts
 (companion v1), including the 0.4 agreement-binding rules carried into 0.5.
+Provides both `cpr-verify` and `continuity-receipt-verify` binaries.
 Published crate 0.5.1 supports specs 0.1–0.5 and accepts the experimental 0.6
 candidate (the chain-head rules landed after 0.5.1; this checkout carries
 them).

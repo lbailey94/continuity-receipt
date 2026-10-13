@@ -1,6 +1,6 @@
 # Verification receipts (companion, version 1)
 
-**Status:** companion document to the Continuity Receipt specification; wire
+**Status:** companion document to the Causal Provenance Receipts (CPR) specification; wire
 format frozen 2026-09-23 (`kind: continuity-receipt-verification`, version 1;
 revised the same day to record the full result before any external issuance).
 Verification receipts are **not** part of the `continuity-receipt/0.x` bundle

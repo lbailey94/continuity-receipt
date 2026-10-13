@@ -1,6 +1,6 @@
-# continuity-receipt (JavaScript/TypeScript verifier)
+# continuity-receipt (JavaScript/TypeScript verifier) — Causal Provenance Receipts (CPR)
 
-Offline verifier for [continuity-receipt](https://github.com/lbailey94/continuity-receipt)
+Offline verifier for Causal Provenance Receipts (CPR / [continuity-receipt](https://github.com/lbailey94/continuity-receipt))
 bundles, covering spec versions 0.1 through 0.6, plus verifier for the
 companion verification receipts. This is an independent port of the Python
 reference implementation (`continuity_receipt/`), intended to reproduce its

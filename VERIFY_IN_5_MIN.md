@@ -12,11 +12,12 @@ pip install continuity-receipt==0.5.1
 
 ## 1. Verify a bundle offline (30 seconds)
 
-Any Continuity Receipt bundle verifies with one command — no network, no
+Any Causal Provenance Receipt (CPR) bundle verifies with one command — no network, no
 accounts, no trust in the channel:
 
 ```bash
-continuity-receipt-verify vectors/02_happy_full.json
+cpr-verify vectors/02_happy_full.json
+# (or: continuity-receipt-verify vectors/02_happy_full.json)
 # {"verdict": "TRUSTED", "errors": [], …}
 ```
 

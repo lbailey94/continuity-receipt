@@ -111,6 +111,8 @@
     ]
   },
   "cli": {
+    "cpr_verify": "cpr-verify",
+    "cpr_consumer": "cpr-consumer",
     "verify": "continuity-verify",
     "consumer": "continuity-consumer",
     "receipt_verify": "continuity-receipt-verify",
