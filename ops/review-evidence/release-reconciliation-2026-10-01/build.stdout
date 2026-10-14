@@ -1,0 +1,330 @@
+running egg_info
+writing continuity_receipt.egg-info/PKG-INFO
+writing dependency_links to continuity_receipt.egg-info/dependency_links.txt
+writing entry points to continuity_receipt.egg-info/entry_points.txt
+writing requirements to continuity_receipt.egg-info/requires.txt
+writing top-level names to continuity_receipt.egg-info/top_level.txt
+reading manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+running sdist
+running egg_info
+writing continuity_receipt.egg-info/PKG-INFO
+writing dependency_links to continuity_receipt.egg-info/dependency_links.txt
+writing entry points to continuity_receipt.egg-info/entry_points.txt
+writing requirements to continuity_receipt.egg-info/requires.txt
+writing top-level names to continuity_receipt.egg-info/top_level.txt
+reading manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+running check
+creating continuity_receipt-0.5.0
+creating continuity_receipt-0.5.0/continuity_receipt
+creating continuity_receipt-0.5.0/continuity_receipt.egg-info
+creating continuity_receipt-0.5.0/docs
+creating continuity_receipt-0.5.0/schema
+creating continuity_receipt-0.5.0/tests
+creating continuity_receipt-0.5.0/tools
+creating continuity_receipt-0.5.0/vectors
+creating continuity_receipt-0.5.0/vectors/anchor
+creating continuity_receipt-0.5.0/vectors/verification
+copying files to continuity_receipt-0.5.0...
+copying ADOPTER_GUIDE.md -> continuity_receipt-0.5.0
+copying ANCHORING.md -> continuity_receipt-0.5.0
+copying CHANGELOG.md -> continuity_receipt-0.5.0
+copying CONFORMANCE.md -> continuity_receipt-0.5.0
+copying CONFORMANCE_TABLE.md -> continuity_receipt-0.5.0
+copying CONTRIBUTING.md -> continuity_receipt-0.5.0
+copying INTEGRATION_READINESS.md -> continuity_receipt-0.5.0
+copying LICENSE -> continuity_receipt-0.5.0
+copying MANIFEST.in -> continuity_receipt-0.5.0
+copying OPEN_DATA_ANSWER_RECEIPT.md -> continuity_receipt-0.5.0
+copying README.md -> continuity_receipt-0.5.0
+copying REVIEW_BRIEF.md -> continuity_receipt-0.5.0
+copying REVIEW_BRIEF_05.md -> continuity_receipt-0.5.0
+copying REVIEW_NOTES_05.md -> continuity_receipt-0.5.0
+copying REVOCATION_DISTRIBUTION.md -> continuity_receipt-0.5.0
+copying ROADMAP.md -> continuity_receipt-0.5.0
+copying SECURITY.md -> continuity_receipt-0.5.0
+copying SIGNING.md -> continuity_receipt-0.5.0
+copying SPEC.md -> continuity_receipt-0.5.0
+copying SPEC_0.5_DRAFT.md -> continuity_receipt-0.5.0
+copying SPEC_0.6_DRAFT.md -> continuity_receipt-0.5.0
+copying THREAT_MODEL.md -> continuity_receipt-0.5.0
+copying VERIFICATION_RECEIPTS.md -> continuity_receipt-0.5.0
+copying VERIFY_IN_5_MIN.md -> continuity_receipt-0.5.0
+copying pyproject.toml -> continuity_receipt-0.5.0
+copying verifier-capabilities.json -> continuity_receipt-0.5.0
+copying continuity_receipt/__init__.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/_version.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/agreements.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/anchor.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/bundle.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/canon.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/consumer.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/disclose.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/keys.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/records.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/revocations.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/strict_json.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/verification.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt/verify.py -> continuity_receipt-0.5.0/continuity_receipt
+copying continuity_receipt.egg-info/PKG-INFO -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying continuity_receipt.egg-info/SOURCES.txt -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying continuity_receipt.egg-info/dependency_links.txt -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying continuity_receipt.egg-info/entry_points.txt -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying continuity_receipt.egg-info/requires.txt -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying continuity_receipt.egg-info/top_level.txt -> continuity_receipt-0.5.0/continuity_receipt.egg-info
+copying docs/AGENT_CONSUMER_PROFILE.md -> continuity_receipt-0.5.0/docs
+copying docs/CAPABILITY_MATRIX.md -> continuity_receipt-0.5.0/docs
+copying docs/CROSSWALK_AER1_AADP_SCITT.md -> continuity_receipt-0.5.0/docs
+copying docs/CROSSWALK_SAHU_ACTA_ASQAV.md -> continuity_receipt-0.5.0/docs
+copying docs/DESIGN_NOTE_COMPUTE_ATTESTATION_PROFILE.md -> continuity_receipt-0.5.0/docs
+copying docs/DESIGN_NOTE_EXTERNAL_EVIDENCE_REFS.md -> continuity_receipt-0.5.0/docs
+copying docs/INDEPENDENT_RELYING_AGENT_PACKET.md -> continuity_receipt-0.5.0/docs
+copying docs/OTHER_HOST_QUALIFICATION.md -> continuity_receipt-0.5.0/docs
+copying docs/PHASE_CLOSURE_LEDGER_2026-09-30.md -> continuity_receipt-0.5.0/docs
+copying docs/RELEASE_BODY_0.5.0.md -> continuity_receipt-0.5.0/docs
+copying docs/RELEASE_NOTES_0.5.0.md -> continuity_receipt-0.5.0/docs
+copying docs/REPAIR_AND_QUALIFICATION_PLAN_2026-09-30.md -> continuity_receipt-0.5.0/docs
+copying docs/REPAIR_STRATEGY_2026-10-01.md -> continuity_receipt-0.5.0/docs
+copying docs/W3C_AGENT_IDENTITY_CG_BRIEF_2026-10-06.md -> continuity_receipt-0.5.0/docs
+copying schema/continuity-receipt-0.2.schema.json -> continuity_receipt-0.5.0/schema
+copying schema/continuity-receipt-0.3.schema.json -> continuity_receipt-0.5.0/schema
+copying schema/continuity-receipt-0.4.schema.json -> continuity_receipt-0.5.0/schema
+copying schema/continuity-receipt-0.5.schema.json -> continuity_receipt-0.5.0/schema
+copying schema/continuity-receipt-0.6.schema.json -> continuity_receipt-0.5.0/schema
+copying schema/verification-receipt-1.schema.json -> continuity_receipt-0.5.0/schema
+copying tests/test_agreements.py -> continuity_receipt-0.5.0/tests
+copying tests/test_anchor.py -> continuity_receipt-0.5.0/tests
+copying tests/test_capabilities.py -> continuity_receipt-0.5.0/tests
+copying tests/test_conformance_tool.py -> continuity_receipt-0.5.0/tests
+copying tests/test_consumer_assessment.py -> continuity_receipt-0.5.0/tests
+copying tests/test_hostile_input.py -> continuity_receipt-0.5.0/tests
+copying tests/test_pack_evidence.py -> continuity_receipt-0.5.0/tests
+copying tests/test_qualify_adopter_capture.py -> continuity_receipt-0.5.0/tests
+copying tests/test_revocations.py -> continuity_receipt-0.5.0/tests
+copying tests/test_schema.py -> continuity_receipt-0.5.0/tests
+copying tests/test_vectors.py -> continuity_receipt-0.5.0/tests
+copying tests/test_verification_receipts.py -> continuity_receipt-0.5.0/tests
+copying tools/conformance_submit.py -> continuity_receipt-0.5.0/tools
+copying tools/cross_verification_scoreboard1.py -> continuity_receipt-0.5.0/tools
+copying tools/differential_anchor.py -> continuity_receipt-0.5.0/tools
+copying tools/differential_disclose.py -> continuity_receipt-0.5.0/tools
+copying tools/differential_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/differential_verification_receipts.py -> continuity_receipt-0.5.0/tools
+copying tools/emit_file_snapshot.py -> continuity_receipt-0.5.0/tools
+copying tools/hostile_input_probe.py -> continuity_receipt-0.5.0/tools
+copying tools/interop_acta_probe.py -> continuity_receipt-0.5.0/tools
+copying tools/interop_aer1_probe.py -> continuity_receipt-0.5.0/tools
+copying tools/interop_sahu_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/local_integration_probe.py -> continuity_receipt-0.5.0/tools
+copying tools/make_05_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/make_06_schema.py -> continuity_receipt-0.5.0/tools
+copying tools/make_06_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/make_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/make_verification_vectors.py -> continuity_receipt-0.5.0/tools
+copying tools/pack_evidence.py -> continuity_receipt-0.5.0/tools
+copying tools/qualify_adopter_capture.py -> continuity_receipt-0.5.0/tools
+copying vectors/01_happy_minimal.json -> continuity_receipt-0.5.0/vectors
+copying vectors/02_happy_full.json -> continuity_receipt-0.5.0/vectors
+copying vectors/03_tampered_body.json -> continuity_receipt-0.5.0/vectors
+copying vectors/04_missing_termination.json -> continuity_receipt-0.5.0/vectors
+copying vectors/05_cap_exceeded.json -> continuity_receipt-0.5.0/vectors
+copying vectors/06_delivery_before_settlement.json -> continuity_receipt-0.5.0/vectors
+copying vectors/07_redacted_no_disclosure.json -> continuity_receipt-0.5.0/vectors
+copying vectors/08_redacted_disclosed.json -> continuity_receipt-0.5.0/vectors
+copying vectors/09_erased_content.json -> continuity_receipt-0.5.0/vectors
+copying vectors/10a_anchor_invalid.json -> continuity_receipt-0.5.0/vectors
+copying vectors/10b_anchor_missing.json -> continuity_receipt-0.5.0/vectors
+copying vectors/10c_anchor_unknown_type.json -> continuity_receipt-0.5.0/vectors
+copying vectors/11_succession_handoff.json -> continuity_receipt-0.5.0/vectors
+copying vectors/12_ms_timestamps.json -> continuity_receipt-0.5.0/vectors
+copying vectors/13_attestation_valid.json -> continuity_receipt-0.5.0/vectors
+copying vectors/13b_attestation_tampered.json -> continuity_receipt-0.5.0/vectors
+copying vectors/14a_revoked_key.json -> continuity_receipt-0.5.0/vectors
+copying vectors/14b_revocation_after_issue.json -> continuity_receipt-0.5.0/vectors
+copying vectors/15_merkle_provenance.json -> continuity_receipt-0.5.0/vectors
+copying vectors/15b_provenance_invalid.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16_offer_accept.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16b_offer_terms_mismatch.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16c_offer_expired.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16d_accept_without_offer.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16e_offer_terms_redacted.json -> continuity_receipt-0.5.0/vectors
+copying vectors/16f_offer_terms_disclosed.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17_agreement_bound.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17b_offeree_mismatch.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17c_accept_wrong_signer.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17d_accept_before_offer.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17e_bound_before_accept.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17f_bound_wrong_issuer.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17g_missing_agreement.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17h_agreement_unreferenced.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17i_missing_agreement_ref.json -> continuity_receipt-0.5.0/vectors
+copying vectors/17j_duplicate_offer_ids.json -> continuity_receipt-0.5.0/vectors
+copying vectors/18_legacy_agreement_ref_ignored.json -> continuity_receipt-0.5.0/vectors
+copying vectors/19_policy_mismatch.json -> continuity_receipt-0.5.0/vectors
+copying vectors/20_redacted_required.json -> continuity_receipt-0.5.0/vectors
+copying vectors/21_commit_mismatch.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22_local_state_commitment.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22b_unknown_local_class.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22c_unknown_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22d_bad_state_count.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22e_bad_head_digest.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22f_legacy_state_type.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22g_count_overflow.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22h_bwrap_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22i_landlock_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22j_legacy_combined_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22k_empty_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22l_non_string_sandbox.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22m_count_unsafe_json_integer.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22n_count_safe_integer_limit.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22o_bwrap_missing_runner_profile.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22p_bwrap_bad_runner_profile_digest.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22q_runner_profile_extra_field.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22r_empty_scope.json -> continuity_receipt-0.5.0/vectors
+copying vectors/22s_file_snapshot_state_kind.json -> continuity_receipt-0.5.0/vectors
+copying vectors/23_agreement_binding_carried.json -> continuity_receipt-0.5.0/vectors
+copying vectors/23b_missing_carried_agreement_ref.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24_authority_grant.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24b_missing_authority.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24c_authority_before_grant.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24d_authority_expired.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24e_authority_agent_mismatch.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24f_authority_unreferenced.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24g_legacy_authority_type.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24h_bad_review_policy.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24i_bad_principal_assurance.json -> continuity_receipt-0.5.0/vectors
+copying vectors/24j_empty_scope.json -> continuity_receipt-0.5.0/vectors
+copying vectors/INDEX.md -> continuity_receipt-0.5.0/vectors
+copying vectors/INDEX_0.5.md -> continuity_receipt-0.5.0/vectors
+copying vectors/INDEX_0.6.md -> continuity_receipt-0.5.0/vectors
+copying vectors/manifest-0.5.json -> continuity_receipt-0.5.0/vectors
+copying vectors/manifest-0.6.json -> continuity_receipt-0.5.0/vectors
+copying vectors/manifest.json -> continuity_receipt-0.5.0/vectors
+copying vectors/anchor/README.md -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/bitcoin.pdf.ots -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/different-blockchains.txt.ots -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/gdp2q25-2nd.pdf.ots -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/headers.json -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/hello-world.txt -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/hello-world.txt.ots -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/anchor/known-and-unknown-notary.txt.ots -> continuity_receipt-0.5.0/vectors/anchor
+copying vectors/verification/01_valid.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/02_tampered_signature.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/03_tampered_verdict.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/04_wrong_bundle.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/05_bad_kind.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/06_bad_version.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/07_bad_verdict.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/08_bad_verified_at.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/09_missing_sig.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/10_wrong_issuer.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/11_bad_digest_shape.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/12_revoked_issuer.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/12_revoked_issuer.revocations.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/13_unknown_member.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/14_bad_error_codes.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/15_provisional_anchor_missing.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/16_insufficient_erased.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/17_verdict_mismatch.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/18_error_codes_mismatch.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/19_bad_errors.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/20_bad_summary.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/21_valid_statement_after_verified_at.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/21_valid_statement_after_verified_at.revocations.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/INDEX.md -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/bundle.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/erased_bundle.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/manifest.json -> continuity_receipt-0.5.0/vectors/verification
+copying vectors/verification/other_bundle.json -> continuity_receipt-0.5.0/vectors/verification
+Writing continuity_receipt-0.5.0/setup.cfg
+Creating tar archive
+removing 'continuity_receipt-0.5.0' (and everything under it)
+running egg_info
+writing continuity_receipt.egg-info/PKG-INFO
+writing dependency_links to continuity_receipt.egg-info/dependency_links.txt
+writing entry points to continuity_receipt.egg-info/entry_points.txt
+writing requirements to continuity_receipt.egg-info/requires.txt
+writing top-level names to continuity_receipt.egg-info/top_level.txt
+reading manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+running bdist_wheel
+running build
+running build_py
+creating build/lib/continuity_receipt
+copying continuity_receipt/bundle.py -> build/lib/continuity_receipt
+copying continuity_receipt/keys.py -> build/lib/continuity_receipt
+copying continuity_receipt/__init__.py -> build/lib/continuity_receipt
+copying continuity_receipt/records.py -> build/lib/continuity_receipt
+copying continuity_receipt/strict_json.py -> build/lib/continuity_receipt
+copying continuity_receipt/verification.py -> build/lib/continuity_receipt
+copying continuity_receipt/consumer.py -> build/lib/continuity_receipt
+copying continuity_receipt/revocations.py -> build/lib/continuity_receipt
+copying continuity_receipt/canon.py -> build/lib/continuity_receipt
+copying continuity_receipt/disclose.py -> build/lib/continuity_receipt
+copying continuity_receipt/agreements.py -> build/lib/continuity_receipt
+copying continuity_receipt/_version.py -> build/lib/continuity_receipt
+copying continuity_receipt/anchor.py -> build/lib/continuity_receipt
+copying continuity_receipt/verify.py -> build/lib/continuity_receipt
+running egg_info
+writing continuity_receipt.egg-info/PKG-INFO
+writing dependency_links to continuity_receipt.egg-info/dependency_links.txt
+writing entry points to continuity_receipt.egg-info/entry_points.txt
+writing requirements to continuity_receipt.egg-info/requires.txt
+writing top-level names to continuity_receipt.egg-info/top_level.txt
+reading manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'continuity_receipt.egg-info/SOURCES.txt'
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/continuity_receipt
+copying build/lib/continuity_receipt/bundle.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/keys.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/__init__.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/records.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/strict_json.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/verification.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/consumer.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/revocations.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/canon.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/disclose.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/agreements.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/_version.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/anchor.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+copying build/lib/continuity_receipt/verify.py -> build/bdist.linux-x86_64/wheel/./continuity_receipt
+running install_egg_info
+Copying continuity_receipt.egg-info to build/bdist.linux-x86_64/wheel/./continuity_receipt-0.5.0-py3.12.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/continuity_receipt-0.5.0.dist-info/WHEEL
+creating '/tmp/continuity-receipt-release-audit-2026-10-01/.tmp-ngqlvupw/continuity_receipt-0.5.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'continuity_receipt/__init__.py'
+adding 'continuity_receipt/_version.py'
+adding 'continuity_receipt/agreements.py'
+adding 'continuity_receipt/anchor.py'
+adding 'continuity_receipt/bundle.py'
+adding 'continuity_receipt/canon.py'
+adding 'continuity_receipt/consumer.py'
+adding 'continuity_receipt/disclose.py'
+adding 'continuity_receipt/keys.py'
+adding 'continuity_receipt/records.py'
+adding 'continuity_receipt/revocations.py'
+adding 'continuity_receipt/strict_json.py'
+adding 'continuity_receipt/verification.py'
+adding 'continuity_receipt/verify.py'
+adding 'continuity_receipt-0.5.0.dist-info/licenses/LICENSE'
+adding 'continuity_receipt-0.5.0.dist-info/METADATA'
+adding 'continuity_receipt-0.5.0.dist-info/WHEEL'
+adding 'continuity_receipt-0.5.0.dist-info/entry_points.txt'
+adding 'continuity_receipt-0.5.0.dist-info/top_level.txt'
+adding 'continuity_receipt-0.5.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Successfully built continuity_receipt-0.5.0.tar.gz and continuity_receipt-0.5.0-py3-none-any.whl

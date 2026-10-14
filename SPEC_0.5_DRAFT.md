@@ -1,6 +1,15 @@
-# Continuity Receipt 0.5 candidate
+# Continuity Receipt 0.5 (historical draft filename retained)
 
-**Status:** development candidate in this checkout. Spec 0.4 remains the published release in SPEC.md and the signed v0.4.0 tag. The Python and Rust prerelease builds here accept 0.1–0.5. Neither the hosted service nor the 0.4.0 packages are claimed to support 0.5.
+**Status:** `continuity-receipt/0.5` was published on 2026-09-30 in
+[`SPEC.md`](SPEC.md) and the signed `v0.5.0` / package 0.5.0 release. This
+filename remains to preserve historical links; `SPEC.md` is the published
+normative document. The 0.5.0 Python and Rust packages implement core
+verification for 0.1–0.6, with 0.6 remaining experimental draft behavior and
+no standalone 0.6 spec release. The public gate-lite line remains on 0.4;
+the private 0.5 producer candidate has same-host evidence, but independent
+host qualification and external 0.5 adversarial review remain open. The 0.5
+release occurred before those evidence gates closed; publication is not
+qualification. See [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md).
 
 All 0.4 rules remain in force. A 0.5 receipt uses the same envelope, canonical view, signatures, verdicts, and 0.4 agreement binding. Mixed bundles retain per-receipt semantics. The new record type is valid only when that receipt's spec is continuity-receipt/0.5.
 
@@ -20,10 +29,10 @@ Raw JSON inputs to the Python and Rust bundle and verification-receipt CLIs must
 
 The verifier checks field shape, issuer signature, and task chain. It **does not** retrieve underlying logs or snapshots, recompute the count/head/root, or prove state completeness. A consumer needs the referenced state and its own recomputation for that stronger claim.
 
-The first use case is WhiteMagic's captured karma-chain head bundle, which uses delivery.attestation under spec 0.2 because this type did not exist. The 0.5 vector is a deterministic modeled fixture, not a migrated runtime artifact. A second independent producer case is still needed before this candidate is frozen.
+The first use case is WhiteMagic's captured karma-chain head bundle, which uses delivery.attestation under spec 0.2 because this type did not exist. The 0.5 vector is a deterministic modeled fixture, not a migrated runtime artifact. A separate Mandala gate-lite 0.5 producer capture exists from the same host; it is not independent-host adoption evidence.
 
 ## Conformance and open design questions
 
-Schema 0.5, candidate vectors 22–22s and 23/23b, and Python/Rust checks define this candidate. Positive vectors cover local authority, `none`, `bwrap` with runner profile identity, `landlock`, and combined sandbox claims; vector 22n tests the maximum exact JSON integer count. Negatives cover missing or malformed bwrap runner profile data, unknown profile fields, unknown authority/sandbox values, unsafe or invalid counts, bad head, empty scope, and use of the new type by a 0.4 receipt. Agreement vectors 23 and 23b show a 0.5 accepted agreement carried through decision and execution, plus a missing execution reference that remains PROVISIONAL. Published 0.1–0.4 vector bytes remain frozen.
+Schema 0.5, the published 21-vector manifest (vectors 22–22s and 23/23b), and Python/Rust checks define the release. Positive vectors cover local authority, `none`, `bwrap` with runner profile identity, `landlock`, and combined sandbox claims; vector 22n tests the maximum exact JSON integer count. Negatives cover missing or malformed bwrap runner profile data, unknown profile fields, unknown authority/sandbox values, unsafe or invalid counts, bad head, empty scope, and use of the new type by a 0.4 receipt. Agreement vectors 23 and 23b show a 0.5 accepted agreement carried through decision and execution, plus a missing execution reference that remains PROVISIONAL. Published 0.1–0.4 vector bytes remain frozen.
 
-Design questions D1–D4 are resolved in `REVIEW_NOTES_05.md` §Design resolves: keep the historical `mandala_class` field name, treat `scope` as label-only, use `state_kind` to distinguish chain-head and snapshot profiles with the same required shape, and reject duplicate JSON object member names at raw CLI boundaries. Release qualification and external review remain open.
+Design questions D1–D4 are resolved in `REVIEW_NOTES_05.md` §Design resolves: keep the historical `mandala_class` field name, treat `scope` as label-only, use `state_kind` to distinguish chain-head and snapshot profiles with the same required shape, and reject duplicate JSON object member names at raw CLI boundaries. The release is published; external adversarial review and independent-host producer qualification remain open.

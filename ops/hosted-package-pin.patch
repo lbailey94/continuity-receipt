@@ -1,0 +1,42 @@
+--- a/provision.sh
++++ b/provision.sh
+@@ -124,8 +124,9 @@
+   if [[ ! -x /opt/whitemagic-api/venv/bin/python ]]; then
+     python3 -m venv /opt/whitemagic-api/venv
+     /opt/whitemagic-api/venv/bin/pip install -q --upgrade pip
+-    /opt/whitemagic-api/venv/bin/pip install -q "continuity-receipt==0.4.0"
+   fi
++  # Reconcile existing environments as well as first-time provisioning.
++  /opt/whitemagic-api/venv/bin/pip install -q "continuity-receipt==0.5.0"
+   chown -R whitemagic:whitemagic /opt/whitemagic-api /var/lib/whitemagic-hosted-api
+   install -m 644 "$KIT_DIR/receipt-api.service" /etc/systemd/system/receipt-api.service
+   install -m 644 "$KIT_DIR/whitemagic-api-gateway.service" /etc/systemd/system/whitemagic-api-gateway.service
+--- a/README.md
++++ b/README.md
+@@ -39,7 +39,7 @@
+ | `pull-analytics.sh` | laptop-side fetch of the rollup (`pull-analytics.sh wm@<host>`) |
+ | `sync-server-card.sh` | regenerates the server card version from the signed release manifest and installs it (`--install wm@<host>`) — the card is never hand-bumped |
+ | `pull-backup.sh` | copies the newest store backup tar off the box to `~/.local/state/whitemagic/hosted-backups/` |
+-| `receipt-api.py` + `receipt-api.service` | api lane: stateless receipt verification + anchor proofs + revocation documents + signed verification receipts (venv `continuity-receipt==0.4.0`, 127.0.0.1:18791) |
++| `receipt-api.py` + `receipt-api.service` | api lane: stateless receipt verification + anchor proofs + revocation documents + signed verification receipts (venv `continuity-receipt==0.5.0`, 127.0.0.1:18791) |
+ | `whitemagic-api-gateway.service` | api lane sidecar on 127.0.0.1:18792 |
+ | `server-card.json` | served at `/.well-known/mcp/server-card.json` (path mirrored on disk under the Caddy root) |
+ | `X402_DESIGN.md` | the metered-lane spec (phase 2 — middleware spec, not yet code) |
+@@ -157,7 +157,7 @@
+ - `GET /health`, `GET /info` — keyless metadata (gateway `--keyless-paths`).
+ - Chain: Caddy (TLS) → `whitemagic-api-gateway.service` (authd on 18792,
+   state `/var/lib/whitemagic-hosted-api`) → `receipt-api.service`
+-  (`/opt/whitemagic-api/venv`, Python reference verifier 0.2.0, 18791).
++  (`/opt/whitemagic-api/venv`, Python reference package 0.5.0 (specs 0.1–0.6 accepted; 0.6 remains experimental), 18791).
+ - Keys are separate from the mcp lane: issue with
+   `hosted-admin.py --state /var/lib/whitemagic-hosted-api issue <name> <cap>`.
+ - Verified: all 20 manifest vectors match through the API (20/20), keyless
+--- a/receipt-api.service
++++ b/receipt-api.service
+@@ -1,5 +1,5 @@
+ [Unit]
+-Description=WhiteMagic receipt verification API (stateless, read-only)
++Description=WhiteMagic receipt verification and opt-in storage API
+ After=network-online.target
+ Wants=network-online.target
+ 

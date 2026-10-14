@@ -1,0 +1,12 @@
+{
+  "status": "unverified",
+  "code": "anchor_unverified",
+  "detail": "proof reaches a Bitcoin attestation; supply the 80-byte block header to confirm",
+  "file_digest": "sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
+  "attestations": [
+    {
+      "kind": "bitcoin",
+      "value": 358391
+    }
+  ]
+}

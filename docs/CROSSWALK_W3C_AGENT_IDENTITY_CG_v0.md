@@ -1,6 +1,6 @@
 # Crosswalk: Continuity Receipts ↔ W3C Agent Identity CG themes (v0)
 
-**Status:** preparation draft for WhiteMagic review, 2026-10-08. Nothing here has
+**Status:** preparation draft for WhiteMagic / Lucas review, 2026-10-08.
 been sent to the CG; no agenda item, correspondence, or commitment exists. Not
 endorsed by W3C or any draft author. Language is bounded deliberately — keep it
 that way if anything from here is ever spoken or posted.

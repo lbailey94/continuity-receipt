@@ -54,8 +54,8 @@ CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
 ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 example
 REVIEW_BRIEF.md            frozen v0.4 independent-review scope
-REVIEW_BRIEF_05.md         prepared v0.5 candidate review brief (external report pending)
-REVIEW_NOTES_05.md         candidate self-review, findings and open release gates
+REVIEW_BRIEF_05.md         v0.5 external adversarial review scope (review remains open)
+REVIEW_NOTES_05.md         0.5 design record and qualification limits
 INTEGRATION_READINESS.md    exact-candidate gate for producer and verifier integration
 REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
@@ -64,7 +64,7 @@ ANCHORING.md               anchoring policy: OpenTimestamps default, chain optio
 OPEN_DATA_ANSWER_RECEIPT.md  worked example: an AI answer over an open-data portal
 examples/03_public_text_claim_review/  bounded text-grading, provenance, artifact hashes, and receipt verification fixture
 CONTRIBUTING.md            DCO, test rules, scope
-ROADMAP.md                 what lands in 0.4 and beyond, and the selection rule
+ROADMAP.md                 shipped versions, open qualification gates, and selection rule
 docs/                      crosswalks (sahu; ACTA/asqav; AER-1/AADP/SCITT) + design notes + consumer profile
 continuity_receipt/        reference implementation (Python, cryptography>=42)
 rust/                      second implementation (verifier crate; cargo test)
@@ -86,7 +86,8 @@ tests/                     conformance suite (vectors, schema, primitives)
 python3 -m venv .venv && . .venv/bin/activate
 pip install continuity-receipt==0.5.1
 continuity-verify vectors/02_happy_full.json            # TRUSTED
-continuity-consumer vectors/02_happy_full.json --profile conservative # ACCEPT
+continuity-consumer vectors/17_agreement_bound.json \
+  --policy examples/consumer-policy-0.4.json          # ACCEPT
 continuity-receipt-verify vectors/02_happy_full.json    # compat alias
 continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
 continuity-receipt-verify-receipt vectors/verification/01_valid.json \
@@ -103,7 +104,17 @@ python3 -m unittest discover -s tests -v
 
 ## ERC-8004 Validation (Base)
 
-Any governed task bundle can be validated through the live adapter at `api.whitemagic.dev`: it runs the reference verifier, binds the bundle to a task hash, and returns a deterministic outcome plus a signed validator attestation.
+The reviewed hosted API/package/ERC update was deployed on 2026-09-30 after
+explicit maintainer approval. Public `GET https://api.whitemagic.dev/info`
+reports verifier package 0.5.0, supporting specs 0.1–0.6 (0.6 experimental).
+The primary checked installed Python module hashes against the published
+wheel,82 live loopback vector/input cases, 13 authenticated public `/verify`
+cases, and 4 live loopback ERC cases with independently verified Ed25519
+attestations. Temporary evaluation credentials were removed. These checks
+made no payment and performed no EVM relay; authenticated public ERC POST
+remains untested. See [the deployment record](ops/HOSTED_STAGING_2026-09-30.md).
+The request below illustrates the adapter shape; consult the live documentation
+for credentials and payment gating.
 
 ```bash
 curl -s -X POST https://api.whitemagic.dev/erc8004/validate \
@@ -116,7 +127,7 @@ curl -s -X POST https://api.whitemagic.dev/erc8004/validate \
 ```
 
 - **Outcome:** `1: ACCEPT` (TRUSTED), `0: REJECT` (UNTRUSTED), `2: NEEDS_EVIDENCE` (PROVISIONAL / INSUFFICIENT); `422` when `task_hash` does not bind to the bundle.
-- **Attestation:** typed EIP-712 `ValidationResponse` envelope (`requestId`, `outcome`, `receiptHash`, `timestamp`) signed with the validator's Ed25519 `did:key:z6MkmKSaKjTr2DPJEHG6aZVGmX6JkWsWiYtuD9c73ReRGdfW`; on-chain relay is not enabled (`onchain.relayed: false`). Default registry `0x8004A15217B1B1E19d7b43851b9eEbFA40306E78` on `eip155:8453`.
+- **Attestation format:** the advertised `ValidationResponse` has EIP-712-style typed fields, but its signer is an Ed25519 `did:key`, not an EVM EIP-712 wallet signature. It must not be presented as an EVM-verifiable EIP-712 signature. On-chain relay is not enabled (`onchain.relayed: false`). The attestation itself was not retrieved or validated in this audit.
 - **Gating:** keyed or x402 — $0.01 USDC (5-minute task lease) or $0.50 USDC (24-hour day pass) on Base to `0x213b6bB4fB073E86167c58DA6Cb6E9477557DaA8`. Live details: https://api.whitemagic.dev/info · docs: https://api.whitemagic.dev/docs
 
 ## Test vectors
@@ -133,7 +144,10 @@ and unreferenced-accept cases), the mixed-version compatibility case (`18`),
 and dedicated negatives for `policy_mismatch`, `redacted_required`, and
 `commit_mismatch` (`19`–`21`).
 Every schema-valid vector is checked against the schema for its spec version
-in CI.
+in CI. The published 0.5 package tag contains its separate 21-vector manifest
+(`vectors/manifest-0.5.json`) and the 10-vector 0.6 draft-authority corpus
+(`vectors/manifest-0.6.json`). The latter accompanies experimental 0.6
+implementation behavior; it does not make the 0.6 specification a release.
 
 21 verification-receipt vectors in `vectors/verification/` (manifest +
 `INDEX.md`): valid TRUSTED/PROVISIONAL/INSUFFICIENT_EVIDENCE records (the full

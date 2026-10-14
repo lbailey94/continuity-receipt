@@ -1,0 +1,17 @@
+{
+  "source_sha256": {
+    "ops/crystal-ownership-candidate/src/authd.py": "26c683a99d1e7df8c8ac13c0e6f1e048a93063a5369f19db194951cd0530bad0",
+    "ops/crystal-ownership-candidate/src/receipt-api.py": "aeb3f3e4834db13e497ada7f04c26fe11df977ec02da6041c02e2233551ac173",
+    "ops/crystal-ownership-candidate/src/crystal_client.py": "ff73110168f2ef197190ff5b57d0ad1f08b860438f738112a4e97964515a503d",
+    "ops/crystal-ownership-candidate/quarantine_legacy.py": "27dc3a5d3d6a2685b1c4f4c3da3258a05a76426c8cd8e7cccad49264d2529df2",
+    "ops/test_crystal_ownership_candidate.py": "2c3048279f7e8c6e8b328477c9554acfb1f5b6f67f167b65add4efb1c4d068ed",
+    "ops/test_crystal_caddy_staging.py": "3bede5dc79baeb2248711de9eb61540da6bd1d581af65a405719c1422bc09040",
+    "ops/crystal-ownership-candidate/rollout/canonical-kit.patch": "3c6132235246a676037229cea7e40b3b9371906f991bd74621483b7f06763509"
+  },
+  "caddy_binary_sha256": "43c709fc86caeab63a9fc1677d15868039c4f4eaf3ef4e5c1328f46af799a589",
+  "vps_caddy_tls_tests": 25,
+  "disposable_tls_ca": true,
+  "live_routes_modified": false,
+  "production_registry_owner_mappings": 0,
+  "patch_apply_and_source_match": true
+}

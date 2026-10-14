@@ -1,0 +1,113 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "path": "/health",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": ""
+    },
+    {
+      "path": "/info",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": ""
+    },
+    {
+      "path": "/crystals",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 402,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals",
+      "origin": "public-TLS",
+      "authenticated": true,
+      "status": 403,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals",
+      "origin": "loopback-API",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/owner-locator",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 402,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/owner-locator",
+      "origin": "public-TLS",
+      "authenticated": true,
+      "status": 403,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/owner-locator",
+      "origin": "loopback-API",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 402,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "public-TLS",
+      "authenticated": true,
+      "status": 403,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "loopback-API",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/lineage?tenant=0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "public-TLS",
+      "authenticated": false,
+      "status": 402,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/lineage?tenant=0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "public-TLS",
+      "authenticated": true,
+      "status": 403,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/crystals/lineage?tenant=0000000000000000000000000000000000000000000000000000000000000000",
+      "origin": "loopback-API",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": "private, no-store"
+    },
+    {
+      "path": "/verify",
+      "origin": "public-TLS",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": ""
+    }
+  ],
+  "owner_registry_count": 3,
+  "owner_mappings": 0,
+  "no_customer_locator_requested": true
+}

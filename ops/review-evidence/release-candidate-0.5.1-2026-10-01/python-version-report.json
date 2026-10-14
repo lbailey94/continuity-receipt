@@ -1,0 +1,8 @@
+{
+  "distribution_version": "0.5.1",
+  "runtime_version": "0.5.1",
+  "verification_receipt_runtime_version": "0.5.1",
+  "imported_module": "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/__init__.py",
+  "outside_candidate_checkout": true,
+  "issued_receipt_valid": true
+}

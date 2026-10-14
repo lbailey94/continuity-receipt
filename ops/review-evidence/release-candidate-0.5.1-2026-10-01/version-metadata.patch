@@ -1,0 +1,46 @@
+diff --git a/continuity_receipt/_version.py b/continuity_receipt/_version.py
+index 49a259c..3213395 100644
+--- a/continuity_receipt/_version.py
++++ b/continuity_receipt/_version.py
+@@ -1,3 +1,3 @@
+ """Single source of the implementation version (mirrored in pyproject.toml)."""
+ 
+-__version__ = "0.5.0"
++__version__ = "0.5.1"
+diff --git a/pyproject.toml b/pyproject.toml
+index 580c865..92b2f74 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,6 +1,6 @@
+ [project]
+ name = "continuity-receipt"
+-version = "0.5.0"
++version = "0.5.1"
+ description = "Continuity Receipt — open specification, test vectors, and reference verifier for verifiable records of governed AI-agent tasks"
+ readme = "README.md"
+ requires-python = ">=3.11"
+diff --git a/rust/Cargo.lock b/rust/Cargo.lock
+index e5099b0..5cb3445 100644
+--- a/rust/Cargo.lock
++++ b/rust/Cargo.lock
+@@ -46,7 +46,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
+ 
+ [[package]]
+ name = "continuity-receipt"
+-version = "0.5.0"
++version = "0.5.1"
+ dependencies = [
+  "base64",
+  "bs58",
+diff --git a/rust/Cargo.toml b/rust/Cargo.toml
+index 484f4f1..11cd1fb 100644
+--- a/rust/Cargo.toml
++++ b/rust/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "continuity-receipt"
+-version = "0.5.0"
++version = "0.5.1"
+ edition = "2021"
+ license = "Apache-2.0"
+ description = "Independent Rust verifier for continuity-receipt/0.1-0.6 bundles (the Python implementation remains the reference)"

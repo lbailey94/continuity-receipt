@@ -153,8 +153,11 @@ def verify_snapshot_files(state, artifact_root):
 def assess(bundle_path, state_path, metadata_path, artifact_root, python_cmd, rust_cmd):
     report = {"format": "continuity-receipt-other-host-assessment/1", "status": "INCOMPLETE",
               "evidence_class": "candidate only until a real independent-host capture is reviewed",
-              "checks": {}, "caveats": ["Does not prove independent administration, sandbox enforcement, or live-network safety.",
-              "The packet is specifically for a 0.5 capture with a file-snapshot-v1 state.commitment; this local assessment does not establish that a producer or independent host emitted it. Existing same-host evidence is not independent qualification."]}
+              "checks": {}, "caveats": [
+                  "Does not prove independent administration, sandbox enforcement, or live-network safety.",
+                  "The packet is specifically for a 0.5 capture with a file-snapshot-v1 state.commitment; this local assessment does not establish that a producer or independent host emitted it. Existing same-host evidence is not independent qualification.",
+                  "Current Mandala public gate-lite remains on receipt spec 0.4; private candidate 8ea8c7eb17d576efdbfa0d311b007dd7b95f8389 pins package 0.5.0 and emits spec 0.5. This packet requires a newly captured independent-host artifact; existing same-host evidence is not independent qualification."
+              ]}
     required = (bundle_path, state_path, metadata_path, artifact_root, python_cmd, rust_cmd)
     if any(x is None for x in required):
         report["checks"]["inputs"] = "missing required input; supply bundle, referenced state, metadata, artifact root, and both verifier commands"

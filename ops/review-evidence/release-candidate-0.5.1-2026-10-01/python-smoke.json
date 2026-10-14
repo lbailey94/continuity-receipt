@@ -1,0 +1,221 @@
+{
+  "status": "PASS",
+  "base_commit": "d942b1c1fff6e8d153e04c31e3327b4ca7c8ee56",
+  "candidate_version": "0.5.1",
+  "cwd": "/tmp/continuity-receipt-051-evidence-2026-10-01/outside-run",
+  "venv": "/tmp/continuity-receipt-051-evidence-2026-10-01/venv",
+  "checks": [
+    {
+      "name": "install candidate wheel",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/final-dist/continuity_receipt-0.5.1-py3-none-any.whl"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "50.0.2\n  Attempting uninstall: continuity-receipt\n    Found existing installation: continuity-receipt 0.5.1\n    Uninstalling continuity-receipt-0.5.1:\n      Successfully uninstalled continuity-receipt-0.5.1\nSuccessfully installed cffi-2.1.1 continuity-receipt-0.5.1 cryptography-50.0.2 pycparser-3.0\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "version/runtime report",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/python",
+        "-c",
+        "import importlib.metadata, json\nfrom pathlib import Path\nimport continuity_receipt\nfrom continuity_receipt import keys\nfrom continuity_receipt.verify import verify_bundle\nfrom continuity_receipt.verification import issue_verification_receipt, verify_verification_receipt\nroot=Path('/tmp/continuity-receipt-051-candidate-2026-10-01'); bundle=json.loads((root/'vectors/02_happy_full.json').read_bytes()); result=verify_bundle(bundle)\nissuer,private_key=keys.generate(keys.deterministic_seed('release-0.5.1-version-report'))\nreceipt=issue_verification_receipt(bundle,result,issuer=issuer,private_key=private_key,verified_at='2026-10-01T12:00:00Z'); checked=verify_verification_receipt(receipt,bundle)\nmodule=Path(continuity_receipt.__file__).resolve(); venv=Path('/tmp/continuity-receipt-051-evidence-2026-10-01/venv').resolve(); checkout=Path('/tmp/continuity-receipt-051-candidate-2026-10-01').resolve()\nassert checked.valid and importlib.metadata.version('continuity-receipt')=='0.5.1' and continuity_receipt.__version__=='0.5.1' and receipt['verifier']['version']=='0.5.1'\nassert module.is_relative_to(venv) and not module.is_relative_to(checkout),module\nprint(json.dumps({'distribution_version':importlib.metadata.version('continuity-receipt'),'runtime_version':continuity_receipt.__version__,'verification_receipt_runtime_version':receipt['verifier']['version'],'imported_module':str(module),'outside_candidate_checkout':True,'issued_receipt_valid':checked.valid},indent=2))"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": ": \"0.5.1\",\n  \"runtime_version\": \"0.5.1\",\n  \"verification_receipt_runtime_version\": \"0.5.1\",\n  \"imported_module\": \"/tmp/continuity-receipt-051-evidence-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/__init__.py\",\n  \"outside_candidate_checkout\": true,\n  \"issued_receipt_valid\": true\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-verify help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-verify",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "e\n\npositional arguments:\n  bundle                path to a bundle JSON file\n\noptions:\n  -h, --help            show this help message and exit\n  --require-anchor\n  --revocations PATH|URL\n                        external revocation list (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-consumer help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-consumer",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "usage: python -m continuity_receipt.consumer [-h] [--policy POLICY] bundle\n\npositional arguments:\n  bundle           raw bundle JSON path\n\noptions:\n  -h, --help       show this help message and exit\n  --policy POLICY  consumer policy JSON path\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-receipt-verify help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "e\n\npositional arguments:\n  bundle                path to a bundle JSON file\n\noptions:\n  -h, --help            show this help message and exit\n  --require-anchor\n  --revocations PATH|URL\n                        external revocation list (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-receipt-disclose help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-disclose",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "usage: continuity-receipt-disclose [-h] {redact,verify,reveal,check} ...\n\npositional arguments:\n  {redact,verify,reveal,check}\n\noptions:\n  -h, --help            show this help message and exit\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-receipt-anchor help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-anchor",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "usage: continuity-receipt-anchor [-h] {verify} ...\n\nVerify an OpenTimestamps (.ots) proof against a receipt digest.\n\npositional arguments:\n  {verify}\n    verify    verify a detached .ots proof\n\noptions:\n  -h, --help  show this help message and exit\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "continuity-receipt-verify-receipt help",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify-receipt",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "ist (repeatable;\n                        REVOCATION_DISTRIBUTION.md)\n  --digest              print the receipt digest (for anchoring) instead of\n                        verifying\n  --canonical PATH      write the canonical view (object minus sig) to PATH\n                        and print the digest\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "verify 0.4 positive",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/02_happy_full.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "ZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": true,\n    \"attestations\": [\n      {\n        \"receipt_id\": \"urn:uuid:01a0cffe-3173-7eb2-964e-3c4ffb51ac99\",\n        \"counterparty\": \"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\n        \"attestation\": \"absent\"\n      }\n    ]\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "verify 0.5 positive",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/22_local_state_commitment.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "ipts\": 5,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"state.commitment\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB\"\n    ],\n    \"terminated\": true,\n    \"settled\": false\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "require-anchor refusal",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/10b_anchor_missing.json",
+        "--require-anchor"
+      ],
+      "returncode": 1,
+      "expected": 1,
+      "stdout_tail": ",\n  \"summary\": {\n    \"receipts\": 4,\n    \"types\": [\n      \"session.pass.created\",\n      \"task.decision\",\n      \"task.execution\",\n      \"task.termination\"\n    ],\n    \"issuers\": [\n      \"did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": false\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "consumer profile positive",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-consumer",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/examples/independent-agent-pilot/bundle.json",
+        "--policy",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/examples/independent-agent-pilot/policy.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "ttlement\",\"task.termination\"]},\"verdict\":\"TRUSTED\"},\"kind\":\"continuity-receipt-consumer-assessment\",\"outcome\":\"ACCEPT\",\"policy\":{\"digest\":\"sha256:4cc427db5aee6c057f725975bc8c5e236add0c497e28da822a31459655949c8c\",\"id\":\"independent-agent-pilot-0.4-v1\"},\"reason_codes\":[\"policy_satisfied\"],\"version\":1}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "disclosure positive",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-disclose",
+        "verify",
+        "--bundle",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/08_redacted_disclosed.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "ZvWHt5hm1\"\n    ],\n    \"terminated\": true,\n    \"settled\": true,\n    \"attestations\": [\n      {\n        \"receipt_id\": \"urn:uuid:01a0cffe-3178-7dc8-be5a-30b69e740ac9\",\n        \"counterparty\": \"did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb\",\n        \"attestation\": \"absent\"\n      }\n    ]\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "verification receipt positive",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-verify-receipt",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/verification/01_valid.json",
+        "--bundle",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/verification/bundle.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stdout_tail": "{\n  \"valid\": true,\n  \"errors\": [],\n  \"issuer\": \"did:key:z6MkfvFqL6qMAgXLopHUAKn1E4Mwf2HLwSrP6eTcu5vnfZZK\",\n  \"verdict\": \"TRUSTED\",\n  \"verified_at\": \"2026-09-23T21:00:00Z\",\n  \"bundle_digest\": \"sha256:0ea854078244673a93249ac2c3df35aff6dfa71602bdc556a2887da2b1a59de9\",\n  \"digest_match\": true\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "anchor without header is unverified",
+      "argv": [
+        "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/continuity-receipt-anchor",
+        "verify",
+        "/tmp/continuity-receipt-051-candidate-2026-10-01/vectors/anchor/hello-world.txt.ots",
+        "--digest",
+        "sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
+        "--json"
+      ],
+      "returncode": 1,
+      "expected": 1,
+      "stdout_tail": "code\": \"anchor_unverified\",\n  \"detail\": \"proof reaches a Bitcoin attestation; supply the 80-byte block header to confirm\",\n  \"file_digest\": \"sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340\",\n  \"attestations\": [\n    {\n      \"kind\": \"bitcoin\",\n      \"value\": 358391\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "python_version_report": {
+    "distribution_version": "0.5.1",
+    "runtime_version": "0.5.1",
+    "verification_receipt_runtime_version": "0.5.1",
+    "imported_module": "/tmp/continuity-receipt-051-evidence-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/__init__.py",
+    "outside_candidate_checkout": true,
+    "issued_receipt_valid": true
+  },
+  "candidate_changed_files": [
+    "continuity_receipt/_version.py",
+    "pyproject.toml",
+    "rust/Cargo.lock",
+    "rust/Cargo.toml"
+  ],
+  "rust_source_changed": false,
+  "cargo_metadata_version": "0.5.1",
+  "cargo_lock_package_version": "0.5.1",
+  "wheel_python_module_count": 14,
+  "entrypoints": [
+    "continuity-verify",
+    "continuity-consumer",
+    "continuity-receipt-verify",
+    "continuity-receipt-disclose",
+    "continuity-receipt-anchor",
+    "continuity-receipt-verify-receipt"
+  ],
+  "sdist_included_core_docs": true,
+  "candidate_artifact_sha256": {
+    "continuity_receipt-0.5.1-py3-none-any.whl": "95445d151308186161c82851039199f434e1dbe47a411e477450e3f2a9d3908b",
+    "continuity_receipt-0.5.1.tar.gz": "0752c0e3232884443560613166041c028b018a382e133e77b88ffa08f576b27b"
+  }
+}

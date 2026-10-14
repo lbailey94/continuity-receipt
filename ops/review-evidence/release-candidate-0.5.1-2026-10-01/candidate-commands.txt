@@ -1,0 +1,17 @@
+Base source: detached worktree at d942b1c1fff6e8d153e04c31e3327b4ca7c8ee56
+
+Candidate patch:
+  git diff --binary d942b1c
+  Saved as version-metadata.patch
+
+Build:
+  python3 -m build --outdir /tmp/continuity-receipt-051-evidence-2026-10-01/final-dist
+
+Install and smoke environment:
+  python3 -m venv /tmp/continuity-receipt-051-evidence-2026-10-01/venv
+  /tmp/continuity-receipt-051-evidence-2026-10-01/venv/bin/python -m pip install /tmp/continuity-receipt-051-evidence-2026-10-01/final-dist/continuity_receipt-0.5.1-py3-none-any.whl
+  Smoke invocations are recorded in python-smoke.json; all execute with cwd /tmp/continuity-receipt-051-evidence-2026-10-01/outside-run.
+
+Rust metadata:
+  cargo metadata --locked --no-deps --format-version 1
+  Run in /tmp/continuity-receipt-051-candidate-2026-10-01/rust

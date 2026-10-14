@@ -1,6 +1,6 @@
 # Design note: continuity scheme registry (minimal operated instance + federation)
 
-**Status:** development draft for WhiteMagic review, 2026-10-08. No service change
+**Status:** development draft for WhiteMagic / Lucas review, 2026-10-08.
 is implied; no instance has been stood up. Operator target: WhiteMagic-hosted,
 content-free, read-only manifest under `www.whitemagic.dev/.well-known/`.
 **Decision context:** History Layer plan §12 item 4 — "minimal operated

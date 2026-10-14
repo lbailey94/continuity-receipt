@@ -1,0 +1,33 @@
+{
+  "commit": "6f1a6feb65736b12bef72ce286605b73675a43b2",
+  "state": "reviewed isolated source candidate, no main merge or deployment",
+  "checks": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "whitemagic",
+        "--lib",
+        "pinned_proxy_"
+      ],
+      "exit_code": 0,
+      "stdout": "\nrunning 2 tests\ntest gateway::tests::pinned_proxy_preserves_inner_args_scope ... ok\ntest gateway::tests::pinned_proxy_preserves_backing_scope_and_adds_gateway_scope ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 0.00s\n\n",
+      "stderr": "   Compiling whitemagic v9.3.1 (/home/lucas/Desktop/WHITEMAGIC/wmv9-crystal-client-hardening/crates/wm-mcp)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.73s\n     Running unittests src/lib.rs (target/debug/deps/wm_mcp-0c7f4a051a67f22e)\n"
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "-p",
+        "whitemagic",
+        "--test",
+        "federated_gateway_e2e",
+        "federated_gateway_e2e_pins_scopes_and_preserves_inner_payload"
+      ],
+      "exit_code": 0,
+      "stdout": "\nrunning 1 test\ntest federated_gateway_e2e_pins_scopes_and_preserves_inner_payload ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.02s\n\n",
+      "stderr": "   Compiling whitemagic v9.3.1 (/home/lucas/Desktop/WHITEMAGIC/wmv9-crystal-client-hardening/crates/wm-mcp)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.51s\n     Running tests/federated_gateway_e2e.rs (target/debug/deps/federated_gateway_e2e-1a2ca953ee581a92)\n"
+    }
+  ]
+}

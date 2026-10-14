@@ -1,0 +1,15 @@
+{
+  "status": "cutover-services-active",
+  "backup": "/root/continuity-rollouts/approved-20261001/consistent-backup.tar",
+  "backup_sha256": "d9d183ad21529005374b26fa5fa4234a6beed927275b07864eab7b56584a0a22",
+  "quarantined_envelopes": 1,
+  "envelope_sha256": "f638468a80c55d2c68054b0576a497c2d90b9ad9d216c0e313aabd3752a822ae",
+  "plaintext_inspected": false,
+  "registry_unchanged": true,
+  "service_account_quarantine_read_denied": true,
+  "source_sha256": {
+    "authd.py": "26c683a99d1e7df8c8ac13c0e6f1e048a93063a5369f19db194951cd0530bad0",
+    "receipt-api.py": "aeb3f3e4834db13e497ada7f04c26fe11df977ec02da6041c02e2233551ac173",
+    "crystal_client.py": "ff73110168f2ef197190ff5b57d0ad1f08b860438f738112a4e97964515a503d"
+  }
+}

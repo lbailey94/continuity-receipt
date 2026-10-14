@@ -24,10 +24,13 @@ The assessment first runs the reference `verify_bundle` implementation. It then 
 ## Use
 
 ```sh
-python -m continuity_receipt.consumer bundle.json --policy consumer-policy.json
+python3 -m continuity_receipt.consumer vectors/17_agreement_bound.json \
+  --policy examples/consumer-policy-0.4.json
 ```
 
-The command emits one compact JSON result on standard output. Exit codes are `0` for `ACCEPT`, `1` for `NEEDS_EVIDENCE`, and `2` for `REJECT` or invalid raw input. Raw JSON parsing rejects duplicate object members and inputs larger than the verifier's 8 MiB bundle limit.
+Observed result for that command: `outcome` is `ACCEPT`, `core.verdict` is `TRUSTED`, and `reason_codes` is `["policy_satisfied"]`. The output binds to bundle digest `sha256:6ec87ad89b003b998178f4bbdc72d5c521a6b8de37c2839ed0a743844bcd9767`. The sample policy names both receipt issuer DIDs in the published 0.4 vector and requires its agreement offer and acceptance records.
+
+The command emits one compact JSON result on standard output. Exit codes are `0` for `ACCEPT`, `1` for `NEEDS_EVIDENCE`, and `2` for `REJECT` or invalid raw input. Raw JSON parsing rejects duplicate object members and inputs larger than the verifier's 8 MiB bundle limit. Deep direct API inputs that cannot be canonicalized produce a structured rejection instead of escaping as a recursion exception.
 
 The assessment is unsigned and local. Its bundle digest binds the result fields to canonical input bytes, but does not make the result a portable verifier attestation or prove which implementation produced it. A remote relying party should rerun its own verifier and policy or use a separately defined, signed attestation format.
 

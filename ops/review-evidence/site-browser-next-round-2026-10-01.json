@@ -1,0 +1,20 @@
+{
+  "method": "Codex in-app browser UI controls and read-only DOM observations",
+  "production_host": "www.whitemagic.dev",
+  "observations": {
+    "hosted_desktop_rendered": true,
+    "hosted_en_zh_mobile_rendered": true,
+    "mobile_measured_inner_width": 325,
+    "mobile_document_scroll_width": 312,
+    "zh_payment_public_example_signature": "VALID",
+    "zh_bundle_public_fixture_signatures": "8 VALID",
+    "zh_bundle_public_fixture_chain": "INTACT",
+    "mutated_gate_id_result": "first signature INVALID and CHAIN BROKEN",
+    "restored_fixture_result": "signatures, structure and hash chain passed"
+  },
+  "scope": "UI cryptographic/structure checks, not core protocol verdict, authorization, settlement or independent adoption",
+  "finding": "General hosted page read-only wording conflicts with evaluation and Crystal write capabilities",
+  "browser_viewport_reset": true,
+  "temporary_tab_closed": true,
+  "customer_data_used": false
+}

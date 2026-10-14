@@ -1,0 +1,15 @@
+test_bad_id_and_bad_origins_fail_before_opener (test_crystal_client.CrystalClientBoundaryTests.test_bad_id_and_bad_origins_fail_before_opener) ... ok
+test_cli_does_not_accept_credentials_or_tenant_ids_in_argv (test_crystal_client.CrystalClientBoundaryTests.test_cli_does_not_accept_credentials_or_tenant_ids_in_argv) ... ok
+test_each_authenticated_request_has_expected_shape_and_no_redirect_handler (test_crystal_client.CrystalClientBoundaryTests.test_each_authenticated_request_has_expected_shape_and_no_redirect_handler) ... ok
+test_fifo_token_path_is_rejected_without_blocking (test_crystal_client.CrystalClientBoundaryTests.test_fifo_token_path_is_rejected_without_blocking) ... ok
+test_genkey_output_is_private_and_refuses_overwrite (test_crystal_client.CrystalClientBoundaryTests.test_genkey_output_is_private_and_refuses_overwrite) ... ok
+test_old_positional_tenant_is_not_reinterpreted_as_token (test_crystal_client.CrystalClientBoundaryTests.test_old_positional_tenant_is_not_reinterpreted_as_token) ... ok
+test_redirects_are_refused_for_every_authenticated_request_without_token_echo (test_crystal_client.CrystalClientBoundaryTests.test_redirects_are_refused_for_every_authenticated_request_without_token_echo) ... ok
+test_seal_cli_preserves_binary_key_with_whitespace_edge_bytes (test_crystal_client.CrystalClientBoundaryTests.test_seal_cli_preserves_binary_key_with_whitespace_edge_bytes) ... ok
+test_session_pass_uses_both_supported_headers_and_empty_token_is_rejected (test_crystal_client.CrystalClientBoundaryTests.test_session_pass_uses_both_supported_headers_and_empty_token_is_rejected) ... ok
+test_token_file_requires_protected_regular_file (test_crystal_client.CrystalClientBoundaryTests.test_token_file_requires_protected_regular_file) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.181s
+
+OK

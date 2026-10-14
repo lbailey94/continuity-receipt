@@ -1,0 +1,33 @@
+Running as unit: crystal-review-iXpyaXlZ.service
+test_01_owner_write_then_read_roundtrip (__main__.OwnershipCandidateLoopback.test_01_owner_write_then_read_roundtrip) ... ok
+test_02_keyless_read_fails_closed (__main__.OwnershipCandidateLoopback.test_02_keyless_read_fails_closed) ... ok
+test_03_unmapped_key_denied (__main__.OwnershipCandidateLoopback.test_03_unmapped_key_denied) ... ok
+test_04_cross_owner_read_uniform_miss (__main__.OwnershipCandidateLoopback.test_04_cross_owner_read_uniform_miss) ... ok
+test_05_spoofed_internal_headers_stripped (__main__.OwnershipCandidateLoopback.test_05_spoofed_internal_headers_stripped) ... ok
+test_06_tenant_selector_mismatch_uniform_miss (__main__.OwnershipCandidateLoopback.test_06_tenant_selector_mismatch_uniform_miss) ... ok
+test_07_owner_cannot_write_foreign_envelope (__main__.OwnershipCandidateLoopback.test_07_owner_cannot_write_foreign_envelope) ... ok
+test_08_lineage_scoped_to_owner (__main__.OwnershipCandidateLoopback.test_08_lineage_scoped_to_owner) ... ok
+test_09_direct_api_requires_valid_assertion (__main__.OwnershipCandidateLoopback.test_09_direct_api_requires_valid_assertion) ... ok
+test_10_direct_api_accepts_valid_assertion_then_rejects_replay (__main__.OwnershipCandidateLoopback.test_10_direct_api_accepts_valid_assertion_then_rejects_replay) ... ok
+test_11_lifetime_bounds (__main__.OwnershipCandidateLoopback.test_11_lifetime_bounds) ... ok
+test_12_method_target_body_binding (__main__.OwnershipCandidateLoopback.test_12_method_target_body_binding) ... ok
+test_13_replay_persists_across_module_reload_and_skew_window (__main__.OwnershipCandidateLoopback.test_13_replay_persists_across_module_reload_and_skew_window) ... ok
+test_14_cross_process_replay_race_and_restart (__main__.OwnershipCandidateLoopback.test_14_cross_process_replay_race_and_restart) ... ok
+test_15_lifetime_ordering_and_non_bool_integers (__main__.OwnershipCandidateLoopback.test_15_lifetime_ordering_and_non_bool_integers) ... ok
+test_16_concurrent_replay_reservation_is_single_use (__main__.OwnershipCandidateLoopback.test_16_concurrent_replay_reservation_is_single_use) ... ok
+test_17_assertion_key_rotation_overlap_and_revocation (__main__.OwnershipCandidateLoopback.test_17_assertion_key_rotation_overlap_and_revocation) ... ok
+test_18_owner_locator_bootstrap_and_client_sealing (__main__.OwnershipCandidateLoopback.test_18_owner_locator_bootstrap_and_client_sealing) ... ok
+test_19_ownerless_legacy_locator_is_quarantined (__main__.OwnershipCandidateLoopback.test_19_ownerless_legacy_locator_is_quarantined) ... ok
+test_20_quarantine_manifest_preflights_all_sources (__main__.OwnershipCandidateLoopback.test_20_quarantine_manifest_preflights_all_sources) ... ok
+test_21_candidate_info_has_no_stale_keyless_crystal_claims (__main__.OwnershipCandidateLoopback.test_21_candidate_info_has_no_stale_keyless_crystal_claims) ... ok
+test_malformed_gateway_keyring_fails_closed_and_is_restored (__main__.OwnershipCandidateLoopback.test_malformed_gateway_keyring_fails_closed_and_is_restored) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 1.515s
+
+OK
+Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+Service runtime: 1.663s
+CPU time consumed: 908ms
+Memory peak: 97.5M (swap: 0B)

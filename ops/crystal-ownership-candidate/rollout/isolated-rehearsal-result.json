@@ -1,0 +1,9 @@
+{
+  "backup_hashes_match_after_restore": true,
+  "external_state_read_or_modified": false,
+  "new_active_key_accepted": true,
+  "old_key_accepted_during_overlap": true,
+  "old_key_after_retirement": "unknown assertion key id",
+  "pre_backup_nonce_after_restore": "assertion replay",
+  "temporary_state_removed_on_exit": true
+}

@@ -1,0 +1,267 @@
+# Phase 4A offline candidate patch; review before applying.
+# Base-SHA256: f3daa358f055ae1ac4667629c2a73ecd6df694684ad778c0a2a8410ccd72c134
+# Candidate-SHA256: aa238c2fdfaf1419384d0e879a94ecefbbb0bceb1b8d9f6c02693d42c6c391c9
+# Target path in patch: receipt-api.py
+--- a/receipt-api.py
++++ b/receipt-api.py
+@@ -111,9 +111,17 @@
+     return result
+ 
+ 
++def _reject_json_constant(value):
++    raise ValueError(f"non-finite JSON number is not allowed: {value}")
++
++
+ def _request_json(raw: bytes):
+     """Accept UTF-8 JSON only, including at nested bundle input boundaries."""
+-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_json_members)
++    return json.loads(
++        raw.decode("utf-8"),
++        object_pairs_hook=_unique_json_members,
++        parse_constant=_reject_json_constant,
++    )
+ 
+ 
+ # ── memory crystals & erc-8004 primitives ────────────────────────────
+@@ -739,11 +747,11 @@
+             "GET /revocations/<issuer>": "stored revocation document for an issuer (keyless)",
+             "POST /mcp": "MCP surface: verify_bundle / verify_anchor / get_revocations",
+             "POST /erc8004/validate": "ERC-8004 validation adapter: submit CR bundle -> deterministic outcome (0: REJECT, 1: ACCEPT, 2: NEEDS_EVIDENCE) + signed attestation",
+-            "POST /crystals": "store sealed Zero-Knowledge Memory Crystal (2 MiB max; ChaCha20-Poly1305 / AES-256-GCM)",
+-            "GET /crystals/<id>": "fetch stored Memory Crystal (keyless; X-Tenant-Hash header or ?tenant=)",
++            "POST /crystals": "store sealed Memory Crystal ciphertext (2 MiB max; ChaCha20-Poly1305 / AES-256-GCM)",
++            "GET /crystals/<id>": "fetch stored crystal keylessly using caller-supplied tenant-hash locator (not an authorization credential)",
+             "GET /crystals/lineage": "fetch DAG lineage for tenant (?tenant=<tenant_hash>)",
+-            "POST /notarize": "notarize agent context/prompt/action -> RFC 8785 Ed25519 signed attestation receipt",
+-            "GET /notarize/<digest>": "fetch stored context notarization receipt (keyless)",
++            "POST /notarize": "sign caller-supplied context/prompt digests and bounded claims; service does not observe the underlying context or execution",
++            "GET /notarize/<digest>": "fetch stored caller-claim attestation (keyless)",
+             "GET /openapi.json": "OpenAPI 3.1 contract",
+             "GET /info": "this document",
+             "GET /health": "liveness",
+@@ -762,7 +770,7 @@
+                 "summary",
+             ],
+             "consistency": "error_codes equals the codes in errors; verdict equals the class implied by the errors/reasons",
+-            "verify_offline": "signature over JCS canonical bytes minus sig; verify with any continuity-receipt implementation (>= 0.3.3, 0.4.0 current)",
++            "verify_offline": "signature over JCS canonical bytes minus sig; use a compatible continuity-receipt implementation and check /info for the running verifier version and supported specs",
+             "docs": "https://github.com/lbailey94/continuity-receipt/blob/main/VERIFICATION_RECEIPTS.md",
+             "kit": "https://github.com/lbailey94/continuity-receipt/blob/main/VERIFY_IN_5_MIN.md",
+         },
+@@ -795,6 +803,8 @@
+             },
+             "registry_default": DEFAULT_REGISTRY_ADDRESS,
+             "chain_id_default": DEFAULT_CHAIN_ID,
++            "issuer_policy": "No relying-party issuer allowlist or consumer profile is evaluated; the adapter uses the core verifier verdict.",
++            "anchors": "The adapter calls verification with require_anchor=false; anchor evidence is not required for its outcome.",
+             "docs": "https://api.whitemagic.dev/docs",
+         },
+         "crystals": {
+@@ -806,7 +816,8 @@
+             },
+             "supported_ciphers": list(SUPPORTED_CIPHERS.keys()),
+             "max_crystal_size_bytes": MAX_CRYSTAL_SIZE_BYTES,
+-            "isolation": "per-tenant filesystem silos; zero host indexing into public recall",
++            "isolation": "filesystem paths are partitioned by caller-supplied tenant hash; there is no authenticated tenant isolation",
++            "access_model": "filesystem paths are partitioned by caller-supplied tenant hash; keyless reads have no authenticated tenant ownership check",
+             "content_addressing": "sha256:hex(sha256(ciphertext))",
+         },
+         "limits": {
+@@ -819,7 +830,7 @@
+                 "stores": "digest + verdict payload in memory only; never on disk",
+             },
+         },
+-        "privacy": "verification is stateless; bundles are never logged; storage exists only for revocation documents, hosted anchors, and the signing key; ?cache=1 opts into an in-memory digest->verdict cache and nothing is retained without it",
++        "privacy": "POST /verify evaluates bundles in memory and does not store or log them. Persistent data also includes revocation documents, hosted anchors, payment receipts, caller-claim notarizations, sealed crystals, and the service signing key. Crystal reads are keyless and use a caller-supplied tenant-hash locator; this is not authenticated tenant isolation. ?cache=1 opts into an in-memory digest->verdict cache.",
+     }
+     try:
+         did = signing_identity()[0]
+@@ -898,6 +909,7 @@
+                     "lineage": "GET /crystals/lineage?tenant=<tenant_hash>",
+                 },
+                 "pricing": "$0.02 USDC on Base mainnet (x402) for writes; reads keyless",
++                "access_model": "Reads are keyless and selected by a caller-supplied tenant-hash locator; the locator is not an authorization credential.",
+                 "hard_limit": f"{MAX_CRYSTAL_SIZE_BYTES} bytes (2 MiB)",
+             })
+         elif path.startswith("/crystals/"):
+@@ -911,7 +923,7 @@
+                     "read": "GET /notarize/<digest>",
+                 },
+                 "pricing": "Metered via x402 / session pass lease; reads keyless",
+-                "description": "Cryptographic Proof-of-Context notarization for autonomous agents (signed RFC 8785 JCS Ed25519 attestation).",
++                "description": "The service signs caller-supplied context or prompt digests and bounded claims; it does not observe the underlying context or execution. Retrieval is keyless.",
+             })
+         elif path.startswith("/notarize/"):
+             self._serve_notarization(path[len("/notarize/"):])
+@@ -1114,10 +1126,15 @@
+             self._send(400, {"error": "body must be an object"})
+             return
+ 
+-        context_digest = document.get("context_digest")
+-        prompt_hash = document.get("prompt_hash")
++        allowed_fields = {
++            "context_digest", "prompt_hash", "action", "model", "agent_id", "metadata"
++        }
++        unknown_fields = sorted(set(document) - allowed_fields)
++        if unknown_fields:
++            self._send(400, {"error": "unsupported fields", "fields": unknown_fields})
++            return
+ 
+-        if not context_digest and not prompt_hash:
++        if "context_digest" not in document and "prompt_hash" not in document:
+             self._send(400, {
+                 "error": "missing_required_digest",
+                 "hint": "POST /notarize requires at least 'context_digest' or 'prompt_hash' (64 hex characters or sha256:<64 hex>).",
+@@ -1125,8 +1142,12 @@
+             return
+ 
+         norm_context_digest = None
+-        if context_digest:
+-            c_str = str(context_digest).strip()
++        if "context_digest" in document:
++            context_digest = document["context_digest"]
++            if not isinstance(context_digest, str):
++                self._send(400, {"error": "invalid_context_digest", "hint": "context_digest must be a string"})
++                return
++            c_str = context_digest
+             if not DIGEST_RE.fullmatch(c_str.lower()):
+                 self._send(400, {
+                     "error": "invalid_context_digest",
+@@ -1136,8 +1157,12 @@
+             norm_context_digest = c_str.lower() if c_str.lower().startswith("sha256:") else f"sha256:{c_str.lower()}"
+ 
+         norm_prompt_hash = None
+-        if prompt_hash:
+-            p_str = str(prompt_hash).strip()
++        if "prompt_hash" in document:
++            prompt_hash = document["prompt_hash"]
++            if not isinstance(prompt_hash, str):
++                self._send(400, {"error": "invalid_prompt_hash", "hint": "prompt_hash must be a string"})
++                return
++            p_str = prompt_hash
+             if not DIGEST_RE.fullmatch(p_str.lower()):
+                 self._send(400, {
+                     "error": "invalid_prompt_hash",
+@@ -1146,34 +1171,98 @@
+                 return
+             norm_prompt_hash = p_str.lower() if p_str.lower().startswith("sha256:") else f"sha256:{p_str.lower()}"
+ 
+-        try:
+-            did, private = signing_identity()
+-        except Exception as error:  # noqa: BLE001
+-            self._send(500, {"error": f"signing key unavailable: {error}"})
+-            return
++        clean_fields = {}
++        for field, maxlen in (("action", 120), ("model", 100), ("agent_id", 120)):
++            if field not in document:
++                continue
++            value = document[field]
++            if not isinstance(value, str) or len(value) > maxlen:
++                self._send(400, {
++                    "error": "invalid_field",
++                    "field": field,
++                    "hint": f"{field} must be a string of at most {maxlen} characters",
++                })
++                return
++            clean_fields[field] = value
++
++        bounded_meta = None
++        if "metadata" in document:
++            metadata = document["metadata"]
++            if not isinstance(metadata, dict):
++                self._send(400, {"error": "invalid_metadata", "hint": "metadata must be an object"})
++                return
++            if len(metadata) > 16:
++                self._send(400, {"error": "invalid_metadata", "hint": "metadata may contain at most 16 entries"})
++                return
++            bounded_meta = {}
++            for key, value in metadata.items():
++                if not key or not key.isascii() or len(key) > 64:
++                    self._send(400, {
++                        "error": "invalid_metadata_key",
++                        "hint": "metadata keys must be non-empty ASCII strings of at most 64 characters",
++                    })
++                    return
++                if isinstance(value, str):
++                    if len(value) > 256:
++                        self._send(400, {
++                            "error": "invalid_metadata_value",
++                            "field": key,
++                            "hint": "metadata strings may contain at most 256 characters",
++                        })
++                        return
++                elif type(value) is int and abs(value) > (2**53 - 1):
++                    self._send(400, {
++                        "error": "invalid_metadata_value",
++                        "field": key,
++                        "hint": "metadata integers must be within the interoperable safe-integer range",
++                    })
++                    return
++                elif value is not None and type(value) not in (bool, int):
++                    self._send(400, {
++                        "error": "invalid_metadata_value",
++                        "field": key,
++                        "hint": "metadata values must be strings, integers, booleans, or null",
++                    })
++                    return
++                bounded_meta[key] = value
+ 
+         statement = {
+             "kind": "wm.context-notarization",
+             "version": 1,
+             "issued_at": records.utc_now_rfc3339(),
+-            "issuer": did,
++            "issuer": None,
+         }
+         if norm_context_digest:
+             statement["context_digest"] = norm_context_digest
+         if norm_prompt_hash:
+             statement["prompt_hash"] = norm_prompt_hash
+ 
+-        for field, maxlen in (("action", 120), ("model", 100), ("agent_id", 120)):
+-            if document.get(field):
+-                statement[field] = str(document[field])[:maxlen]
+-
+-        if isinstance(document.get("metadata"), dict):
+-            bounded_meta = {}
+-            for k, v in list(document["metadata"].items())[:16]:
+-                bounded_meta[str(k)[:64]] = str(v)[:256] if not isinstance(v, (int, float, bool)) else v
++        statement.update(clean_fields)
++        if bounded_meta is not None:
+             statement["metadata"] = bounded_meta
+ 
+-        unsigned_canon = canonical_bytes(statement)
++        try:
++            # Validate every caller-derived value before signing_identity can
++            # create the service key file. The issuer is the only field filled
++            # after this check, and signing_identity supplies its string value.
++            canonical_bytes(statement)
++        except (TypeError, ValueError, UnicodeError, RecursionError) as error:
++            self._send(400, {"error": "invalid_canonical_statement", "detail": str(error)})
++            return
++
++        try:
++            did, private = signing_identity()
++        except Exception as error:  # noqa: BLE001
++            self._send(500, {"error": f"signing key unavailable: {error}"})
++            return
++
++        statement["issuer"] = did
++        try:
++            unsigned_canon = canonical_bytes(statement)
++        except (TypeError, ValueError, UnicodeError, RecursionError) as error:
++            self._send(500, {"error": "service statement canonicalization failed", "detail": str(error)})
++            return
++
+         sig_val = keys.sign(private, unsigned_canon)
+         statement["sig"] = {
+             "alg": "ed25519",
+@@ -1190,7 +1279,7 @@
+             "notarization_digest": digest,
+             "stored_at": records.utc_now_rfc3339(),
+             "service": SERVICE,
+-            "note": "RFC 8785 JCS Ed25519 context notarization; signature covers canonical bytes minus sig",
++            "note": "Ed25519 service signature over caller-supplied digests and claims using the continuity-receipt canonical JSON subset; underlying context and execution are not observed",
+         }
+         target.write_text(json.dumps(stored, indent=2) + "\n", encoding="utf-8")
+ 

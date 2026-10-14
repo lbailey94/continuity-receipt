@@ -1,0 +1,7 @@
+exec exit: 0
+payload: {"allowed_body_ok": true, "allowed_rc": 0, "denied_rc": 1, "raw": "blocked"}
+task decision: allow
+gate verdict: TRUSTED | offline: TRUSTED
+profile: urn:mandala:runner-profile:bwrap-egress-v1
+egress: [{"allowed": true, "bytes": 283, "bytes_in": 194, "bytes_out": 89, "destination": "127.0.0.1:18099", "enforced": true, "enforcer": "unix-proxy-allowlist"}, {"allowed": false, "bytes": 0, "denied_reason": "not-in-allowlist", "destination": "blocked.example:80", "enforced": true, "enforcer": "unix-proxy-allowlist"}]
+W2 ACCEPTANCE PASSED

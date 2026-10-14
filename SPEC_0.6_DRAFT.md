@@ -142,5 +142,7 @@ Published 0.1–0.5 fixtures and manifests remain byte-for-byte unchanged.
 - Whether `gate_ref` should carry a digest instead of a label.
 - Which independent principal-to-signer trust mechanism and action-binding
   inputs a future authority-required profile should consume.
-- 0.5 freeze timing: 0.6 stacks on the unreleased 0.5 candidate; do not
-  publish either without the external review gate in `ROADMAP.md`.
+- Whether/how to gate the experimental 0.6 implementation already exposed by
+  the 0.5.0 packages is a compatibility decision; evaluate it with explicit
+  Python/Rust parity coverage. The normative 0.6 specification remains draft
+  pending external review and a release decision in `ROADMAP.md`.

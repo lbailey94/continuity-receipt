@@ -1,0 +1,17 @@
+{
+  "status": "primary-reviewed-mock-tests-pass",
+  "cr_client_tests": 10,
+  "wmv9_client_tests": 12,
+  "wmv9_state": "isolated candidate, not merged or released",
+  "wmv9_base": "15d6d9accb0961f41d04e9986454f2d19a398b67",
+  "live_api_or_registry_modified": false,
+  "files": {
+    "/home/lucas/Desktop/continuity-receipt/ops/crystal-ownership-candidate/src/crystal_client.py": "841b2a58c4e2c465fd904b8e192ef8f4791e7a868de0a881480d6f6683832cf3",
+    "/home/lucas/Desktop/continuity-receipt/ops/crystal-ownership-candidate/tests/test_crystal_client.py": "d092a4242ae9f3c913c7c11fe51ac07f47b7d47c83fac007a92e674a245cb8fb",
+    "/home/lucas/Desktop/WHITEMAGIC/wmv9-crystal-client-hardening/scripts/crystal_client.py": "ec09da3b56d9379553a6eb095161e126892ac6132bdc3469896cd53e32e551d8",
+    "/home/lucas/Desktop/WHITEMAGIC/wmv9-crystal-client-hardening/scripts/tests/test_crystal_client.py": "0925923a9054b390c4c13dd72f4c1b2b94c6b5065b55ff7eb215dd9f581f2ba6"
+  },
+  "canonical_client_synchronized": true,
+  "source_patch": "ops/crystal-ownership-candidate/rollout/client-hardening.patch",
+  "primary_integration_cases": 25
+}

@@ -1,0 +1,19 @@
+# Test-fixture expectation refresh only; no gateway/runtime change.
+# Base-SHA256: 4f645d5f08f4964be86589b205cb3663d7d0eae0aa418e1cda5e36c9e4da8fb4
+# Candidate-SHA256: e14e635d2ad9cc0c758cb987e4f4f18a07b203b430b7823ecd97d71142a472c5
+# Target path in patch: tests/x402_tests.sh
+--- a/tests/x402_tests.sh
++++ b/tests/x402_tests.sh
+@@ -25,9 +25,11 @@
+ echo "--- 1. 402 body carries machine-readable free_paths ---"
+ body=$(curl -s -X POST "$B" -H 'content-type: application/json' \
+   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"wm"}}')
+-check "two free paths" "$(printf '%s' "$body" | py 'import json,sys; d=json.load(sys.stdin); print(len(d.get("free_paths",[])))')" "2"
++check "free path types are unique" "$(printf '%s' "$body" | py 'import json,sys; t=[p.get("type") for p in json.load(sys.stdin).get("free_paths",[])]; print(len(t)==len(set(t)))')" "True"
++check "required free path types" "$(printf '%s' "$body" | py 'import json,sys; t={p.get("type") for p in json.load(sys.stdin).get("free_paths",[])}; print({"trial","evaluation_key","faucet"} <= t)')" "True"
+ check "trial path shape" "$(printf '%s' "$body" | py 'import json,sys; d=json.load(sys.stdin); t=[p for p in d["free_paths"] if p["type"]=="trial"][0]; print(t["header"], t["calls_per_day"], t["account_required"])')" "X-WM-Trial: 1 3 False"
+ check "key path shape" "$(printf '%s' "$body" | py 'import json,sys; d=json.load(sys.stdin); k=[p for p in d["free_paths"] if p["type"]=="evaluation_key"][0]; print(k["calls_per_day"], k["account_required"])')" "50 False"
++check "faucet path shape" "$(printf '%s' "$body" | py 'import json,sys; d=json.load(sys.stdin); f=[p for p in d["free_paths"] if p["type"]=="faucet"][0]; print(f["url"], f["account_required"])')" "https://mcp.whitemagic.dev/faucet False"
+ 
+ echo "--- 2. challenge audit records the JSON-RPC method ---"
+ check "challenge rpc=tools/call" "$(grep -c '"note": "x402-challenge".*"rpc": "tools/call"' state-x/access.jsonl)" "1"

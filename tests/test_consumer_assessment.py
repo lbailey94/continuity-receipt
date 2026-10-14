@@ -101,6 +101,17 @@ else:
         )
         self.assertEqual(run.returncode, 0, run.stderr)
 
+    def test_profile_record_vocabulary_is_fixed_through_04(self):
+        from continuity_receipt.consumer import PROFILE_RECORD_TYPES
+        self.assertEqual(
+            PROFILE_RECORD_TYPES,
+            (
+                "session.pass.created", "task.decision", "task.execution",
+                "delivery.attestation", "task.termination", "settlement",
+                "authority.succession", "agreement.offer", "agreement.accept",
+            ),
+        )
+
     def test_deep_direct_bundle_returns_structured_rejection(self):
         bundle = {}
         cursor = bundle

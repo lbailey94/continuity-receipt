@@ -1,0 +1,202 @@
+{
+  "status": "PASS",
+  "commit": "d942b1c1fff6e8d153e04c31e3327b4ca7c8ee56",
+  "python": "Python 3.12.3",
+  "working_directory": "/tmp",
+  "checks": [
+    {
+      "name": "verify-positive",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/home/lucas/Desktop/continuity-receipt/vectors/02_happy_full.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "verify-anchor-required-fails",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/home/lucas/Desktop/continuity-receipt/vectors/10b_anchor_missing.json",
+        "--require-anchor"
+      ],
+      "returncode": 1,
+      "expected": 1,
+      "stderr": ""
+    },
+    {
+      "name": "disclose-verify-help",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-disclose",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "anchor-help",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-anchor",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "verify-alias-help",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-verify",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "legacy-verify-help",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-verify",
+        "--help"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "disclose-positive",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-disclose",
+        "verify",
+        "--bundle",
+        "/home/lucas/Desktop/continuity-receipt/vectors/08_redacted_disclosed.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "anchor-negative-no-header",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-anchor",
+        "verify",
+        "/home/lucas/Desktop/continuity-receipt/vectors/anchor/hello-world.txt.ots",
+        "--digest",
+        "sha256:03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340",
+        "--json"
+      ],
+      "returncode": 1,
+      "expected": 1,
+      "stderr": ""
+    },
+    {
+      "name": "verification-receipt-positive",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-verify-receipt",
+        "/home/lucas/Desktop/continuity-receipt/vectors/verification/01_valid.json",
+        "--bundle",
+        "/home/lucas/Desktop/continuity-receipt/vectors/verification/bundle.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "consumer-positive",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-consumer",
+        "/home/lucas/Desktop/continuity-receipt/examples/independent-agent-pilot/bundle.json",
+        "--policy",
+        "/home/lucas/Desktop/continuity-receipt/examples/independent-agent-pilot/policy.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "consumer-alias-positive",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-consumer",
+        "/home/lucas/Desktop/continuity-receipt/examples/independent-agent-pilot/bundle.json",
+        "--policy",
+        "/home/lucas/Desktop/continuity-receipt/examples/independent-agent-pilot/policy.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "published-05-producer-example",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/continuity-receipt-verify",
+        "/home/lucas/Desktop/continuity-receipt/examples/02_gate_lite_state_commitment/gate_lite_bundle.json"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "installed-package-pilot",
+      "argv": [
+        "/tmp/continuity-receipt-release-audit-2026-10-01/venv/bin/python",
+        "/home/lucas/Desktop/continuity-receipt/examples/independent-agent-pilot/run_pilot.py",
+        "--installed-package"
+      ],
+      "returncode": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "name": "crystal-client-tests",
+      "returncode": 0,
+      "summary": [
+        "Ran 10 tests in 0.181s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "name": "independent-pilot-tests",
+      "returncode": 0,
+      "summary": [
+        "Ran 16 tests in 0.282s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "name": "synthetic-customer-recovery-tests",
+      "returncode": 0,
+      "summary": [
+        "Ran 3 tests in 0.206s",
+        "",
+        "OK"
+      ]
+    }
+  ],
+  "pilot_case_count": 8,
+  "imported_consumer_path": "/tmp/continuity-receipt-release-audit-2026-10-01/venv/lib/python3.12/site-packages/continuity_receipt/consumer.py",
+  "sdist_required_files": [
+    "continuity_receipt-0.5.0/CONFORMANCE_TABLE.md",
+    "continuity_receipt-0.5.0/SPEC_0.5_DRAFT.md",
+    "continuity_receipt-0.5.0/docs/RELEASE_BODY_0.5.0.md",
+    "continuity_receipt-0.5.0/docs/RELEASE_NOTES_0.5.0.md"
+  ],
+  "sdist_contains_independent_pilot": false,
+  "wheel_python_modules": 14,
+  "candidate_artifact_sha256": {
+    "continuity_receipt-0.5.0-py3-none-any.whl": "f5054d146b6953a12002749634c3781e33b02a5fbcbdc36b9da8627f07014b5b",
+    "continuity_receipt-0.5.0.tar.gz": "1c3b67c127fbc18f8b3548cad64eaf2be4402d59d465672a044ea297b63c0f83"
+  },
+  "ci_package_step_replay": "PASS",
+  "ci_workspace_assertion": "import path is inside /tmp/cr-venv and outside GITHUB_WORKSPACE",
+  "targeted_regression_test_counts": {
+    "crystal_client": 10,
+    "independent_agent_pilot": 16,
+    "synthetic_customer_recovery": 3,
+    "total": 29
+  },
+  "ci_pilot_cases": 8
+}

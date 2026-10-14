@@ -47,12 +47,15 @@ lands with a vector, an acceptance test, or a documented negative case.
 ## 0.6 development candidate (unpublished)
 
 - [x] `authority.grant` shape and `authority_ref` binding implemented in both
-  verifiers, schema 0.6, and a separate candidate vector corpus (24–24j).
-  Verifier rules are shape/signature/reference only; identity, scope, and
-  policy enforcement are explicitly out of scope.
+  0.5.0 package verifiers, with schema 0.6 and a 10-vector development corpus
+  included in the signed 0.5.0 source tag. Rules are shape/signature/reference
+  only; identity,
+  scope, and policy enforcement remain out of scope.
 - [ ] `review.record` shape and `review_policy` enforcement design.
-- [ ] External review of the 0.5 + 0.6 stack, then freeze/publish (the 0.5
-  gate below stays authoritative).
+- [ ] External review of the 0.6 specification and implementation. There is
+  no standalone 0.6 specification or package release. The 0.5.0 packages
+  already accept 0.6 envelopes; deciding whether/how to gate that behavior is
+  a compatibility change and requires explicit Python/Rust parity evidence.
 
 ## 0.5 (published 2026-09-30; tooling 0.5.1 on PyPI + crates.io)
 
@@ -83,6 +86,20 @@ lands with a vector, an acceptance test, or a documented negative case.
   welcome retrospectively; tooling 0.5.1 (packaging alignment + consumer
   hardening) published 2026-10-01 on PyPI and crates.io.
 
+- [x] Local pass class, execution sandbox vocabulary, runner-profile binding,
+  state commitments, and duplicate-member raw CLI parsing shipped in 0.5.0.
+  These verify signed claims and shape; they do not prove runtime confinement
+  or state completeness.
+- [x] Python consumer policy assessment shipped in 0.5.0. It supports only
+  specs 0.1–0.4; there is no Rust consumer-policy counterpart.
+- [x] The private Mandala gate-lite candidate at
+  `8ea8c7eb17d576efdbfa0d311b007dd7b95f8389` pins the published 0.5.0 package
+  and emits spec 0.5. The public gate-lite line remains the published 0.4
+  lane. A 2026-09-28 same-host producer capture exists; independent-host
+  qualification remains open.
+- [ ] Complete independent 0.5 adversarial review and an independent-host
+  adopter qualification. Neither is implied by publication, package tests,
+  or the same-host capture.
 
 **Current release:** spec `continuity-receipt/0.5` (published 2026-09-30;
 Python tooling and Rust crate 0.5.1 on PyPI + crates.io). Specs `0.1`–`0.4`

@@ -1,0 +1,74 @@
+# Phase 4B offline ERC evidence semantics patch.
+# Base-SHA256: aa238c2fdfaf1419384d0e879a94ecefbbb0bceb1b8d9f6c02693d42c6c391c9
+# Target: receipt-api.py (apply after hosted-api-qualification.patch)
+# Candidate-SHA256: 10f36afc7afa3571d44bd355ba82af77787a543f6d7cd50294bdbd1afc5d19b0
+--- a/receipt-api.py
++++ b/receipt-api.py
+@@ -746,7 +746,7 @@
+             "GET /receipts/<tx>": "fetch a gateway-emitted settlement receipt (keyless)",
+             "GET /revocations/<issuer>": "stored revocation document for an issuer (keyless)",
+             "POST /mcp": "MCP surface: verify_bundle / verify_anchor / get_revocations",
+-            "POST /erc8004/validate": "ERC-8004 validation adapter: submit CR bundle -> deterministic outcome (0: REJECT, 1: ACCEPT, 2: NEEDS_EVIDENCE) + signed attestation",
++            "POST /erc8004/validate": "Derive an outcome from the core verifier verdict and task binding; issuer policy is not evaluated and anchors are not required. Returns an Ed25519-signed canonical JSON statement; this service does not relay it onchain.",
+             "POST /crystals": "store sealed Memory Crystal ciphertext (2 MiB max; ChaCha20-Poly1305 / AES-256-GCM)",
+             "GET /crystals/<id>": "fetch stored crystal keylessly using caller-supplied tenant-hash locator (not an authorization credential)",
+             "GET /crystals/lineage": "fetch DAG lineage for tenant (?tenant=<tenant_hash>)",
+@@ -803,8 +803,10 @@
+             },
+             "registry_default": DEFAULT_REGISTRY_ADDRESS,
+             "chain_id_default": DEFAULT_CHAIN_ID,
+-            "issuer_policy": "No relying-party issuer allowlist or consumer profile is evaluated; the adapter uses the core verifier verdict.",
+-            "anchors": "The adapter calls verification with require_anchor=false; anchor evidence is not required for its outcome.",
++            "checks": "The core verdict and task binding drive the outcome. chain_integrity, signatures_valid, resource_caps_respected, issuer policy, and anchor status are not reported as per-check successes by this adapter; their check fields are null. termination_present only checks for a receipts-list item with type exactly task.termination.",
++            "issuer_policy": "Not evaluated: no relying-party issuer allowlist or consumer profile is applied.",
++            "anchors": "Not required for the adapter outcome; no independent anchor status is reported. The core verifier may inspect supplied anchor evidence.",
++            "attestation": "Ed25519 signature over a canonical JSON message; no EVM-compatible signature or onchain relay is performed by this service.",
+             "docs": "https://api.whitemagic.dev/docs",
+         },
+         "crystals": {
+@@ -1580,18 +1582,22 @@
+         }
+         sig_value = keys.sign(private, canonical_bytes(attestation_message))
+ 
+-        receipts_list = bundle.get("receipts") or []
++        receipts_list = bundle.get("receipts")
++        if not isinstance(receipts_list, list):
++            receipts_list = []
+         checks = {
+             "task_bound": task_bound,
+-            "chain_integrity": not any("chain" in str(e).lower() for e in vr.get("errors", [])),
+-            "signatures_valid": not any("signature" in str(e).lower() for e in vr.get("errors", [])),
++            "chain_integrity": None,
++            "signatures_valid": None,
+             "termination_present": any(
+-                isinstance(r, dict) and str(r.get("type") or r.get("kind") or "").endswith("termination")
++                isinstance(r, dict) and r.get("type") == "task.termination"
+                 for r in receipts_list
+             ),
+-            "policy_compliant": cr_verdict != "UNTRUSTED",
+-            "resource_caps_respected": not any("cap" in str(e).lower() for e in vr.get("errors", [])),
+-            "anchors_verified": len(vr.get("provisional_reasons", [])) == 0,
++            "policy_compliant": None,
++            "issuer_policy_evaluated": False,
++            "resource_caps_respected": None,
++            "anchors_verified": None,
++            "anchors_required": False,
+         }
+ 
+         attestation = {
+@@ -1627,6 +1633,15 @@
+             "outcome": outcome,
+             "outcome_label": outcome_label,
+             "cr_verdict": cr_verdict,
++            "evaluation_scope": {
++                "core_verdict": cr_verdict,
++                "task_binding": "matched" if task_bound else "mismatch",
++                "issuer_policy": "not_evaluated",
++                "anchors": "not_required; no_independent_status_reported",
++                "individual_checks": "not_reported_by_adapter",
++                "attestation": "ed25519_signature_over_canonical_json_message",
++                "evm_relay": "not_performed",
++            },
+             "receipt_hash": receipt_hash,
+             "validator_address": did,
+             "timestamp": now_ts,

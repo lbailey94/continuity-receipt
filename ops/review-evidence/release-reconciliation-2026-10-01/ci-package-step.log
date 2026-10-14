@@ -1,0 +1,38 @@
+STDOUT
+Processing ./dist/continuity_receipt-0.5.0-py3-none-any.whl
+Collecting cryptography>=42 (from continuity-receipt==0.5.0)
+  Using cached cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.4 kB)
+Collecting cffi>=2.0.0 (from cryptography>=42->continuity-receipt==0.5.0)
+  Using cached cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=42->continuity-receipt==0.5.0)
+  Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Using cached cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl (4.8 MB)
+Using cached cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+Installing collected packages: pycparser, cffi, cryptography, continuity-receipt
+Successfully installed cffi-2.1.1 continuity-receipt-0.5.0 cryptography-50.0.2 pycparser-3.0
+{
+  "verdict": "PROVISIONAL",
+  "errors": [],
+  "provisional_reasons": [
+    "anchor_missing"
+  ],
+  "insufficient_reasons": [],
+  "summary": {
+    "receipts": 4,
+    "types": [
+      "session.pass.created",
+      "task.decision",
+      "task.execution",
+      "task.termination"
+    ],
+    "issuers": [
+      "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+    ],
+    "terminated": true,
+    "settled": false
+  }
+}
+bounded installed-package pilot cases: 8
+
+STDERR

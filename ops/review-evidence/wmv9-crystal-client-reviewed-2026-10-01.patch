@@ -1,0 +1,479 @@
+diff --git a/scripts/crystal_client.py b/scripts/crystal_client.py
+index 07b0980..efa9434 100644
+--- a/scripts/crystal_client.py
++++ b/scripts/crystal_client.py
+@@ -19,6 +19,8 @@ import datetime as dt
+ import hashlib
+ import json
+ import os
++import re
++import stat
+ import sys
+ import urllib.error
+ import urllib.parse
+@@ -34,6 +36,7 @@ except ImportError:
+ SPEC = "wm-crystal/1.0"
+ SALT = "whitemagic-crystal-salt-v1"
+ MAX_SIZE = 2 * 1024 * 1024  # local plaintext/ciphertext limit, not serialized envelope size
++CRYSTAL_ID_RE = re.compile(r"(?:sha256:)?([0-9a-fA-F]{64})\Z")
+ 
+ 
+ def compute_tenant_hash(tenant_id: str, salt: str = SALT) -> str:
+@@ -70,12 +73,17 @@ def _require_crypto() -> None:
+ 
+ def _require_https_api(api_url: str) -> str:
+     parsed = urllib.parse.urlsplit(api_url)
+-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
++    if (parsed.scheme != "https" or not parsed.netloc or not parsed.hostname
++            or parsed.username is not None or parsed.password is not None):
+         raise ValueError("API URL must be an HTTPS origin without embedded credentials")
+     if parsed.path not in ("", "/"):
+         raise ValueError("API URL must be an HTTPS origin without a path")
+     if parsed.query or parsed.fragment:
+         raise ValueError("API URL must not include a query or fragment")
++    try:
++        parsed.port
++    except ValueError as exc:
++        raise ValueError("API URL has an invalid port") from exc
+     return api_url.rstrip("/")
+ 
+ 
+@@ -99,6 +107,7 @@ def seal_crystal(
+     parent_crystal_id: str | None = None,
+     metadata_public: dict[str, Any] | None = None,
+     cipher: str = "aes-256-gcm",
++    owner_locator: str | None = None,
+ ) -> dict[str, Any]:
+     """Seal memory content locally into a client-encrypted crystal envelope."""
+     _require_crypto()
+@@ -117,7 +126,12 @@ def seal_crystal(
+     if len(raw_plaintext) > MAX_SIZE:
+         raise ValueError(f"plaintext size {len(raw_plaintext)} exceeds maximum {MAX_SIZE} bytes")
+ 
+-    tenant_hash = compute_tenant_hash(tenant_id)
++    if owner_locator is None:
++        tenant_hash = compute_tenant_hash(tenant_id)
++    elif not isinstance(owner_locator, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", owner_locator):
++        raise ValueError("owner_locator must be sha256:<64 lowercase hex> from authenticated bootstrap")
++    else:
++        tenant_hash = owner_locator
+     created_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+     aad = build_aad(cipher_norm, tenant_hash, parent_crystal_id, created_at)
+ 
+@@ -188,21 +202,20 @@ def unseal_crystal(crystal_envelope: dict[str, Any], key: bytes) -> bytes:
+ def push_crystal(
+     crystal_envelope: dict[str, Any],
+     api_url: str = "https://api.whitemagic.dev",
+-    auth_token: str = "",
++    *, auth_token: str,
+ ) -> dict[str, Any]:
+     """Store sealed Memory Crystal envelope on remote gateway (requires auth/session pass)."""
+     target = _require_https_api(api_url) + "/crystals"
+     data = json.dumps(crystal_envelope).encode("utf-8")
++    if not isinstance(auth_token, str) or not auth_token.strip():
++        raise ValueError("auth_token is required")
+     headers = {
+         "Content-Type": "application/json",
+         "Content-Length": str(len(data)),
+     }
+-    if auth_token:
+-        if auth_token.startswith("wm_pass_"):
+-            headers["X-Session-Pass"] = auth_token
+-            headers["Authorization"] = f"Bearer {auth_token}"
+-        else:
+-            headers["Authorization"] = f"Bearer {auth_token}"
++    headers["Authorization"] = f"Bearer {auth_token}"
++    if auth_token.startswith("wm_pass_"):
++        headers["X-Session-Pass"] = auth_token
+ 
+     req = urllib.request.Request(target, data=data, headers=headers, method="POST")
+     try:
+@@ -218,51 +231,114 @@ def push_crystal(
+ 
+ def pull_crystal(
+     crystal_id: str,
+-    tenant_id: str,
++    *,
++    auth_token: str,
+     api_url: str = "https://api.whitemagic.dev",
+ ) -> dict[str, Any]:
+-    """Fetch stored Memory Crystal (keyless read via tenant hash)."""
+-    tenant_hash = compute_tenant_hash(tenant_id)
+-    clean_id = crystal_id.strip()
+-    if clean_id.startswith("sha256:"):
+-        clean_id = clean_id[len("sha256:") :]
+-    if len(clean_id) != 64 or any(char not in "0123456789abcdefABCDEF" for char in clean_id):
++    """Fetch a crystal from the authenticated owner's server-derived scope."""
++    match = CRYSTAL_ID_RE.fullmatch(crystal_id) if isinstance(crystal_id, str) else None
++    if not match:
+         raise ValueError("crystal ID must be a SHA-256 hex digest, optionally prefixed by 'sha256:'")
+-    target = f"{_require_https_api(api_url)}/crystals/{clean_id}?tenant={urllib.parse.quote(tenant_hash)}"
++    if not isinstance(auth_token, str) or not auth_token.strip():
++        raise ValueError("auth_token is required")
++    clean_id = match.group(1).lower()
++    target = f"{_require_https_api(api_url)}/crystals/{clean_id}"
+ 
+     req = urllib.request.Request(
+         target,
+-        headers={"User-Agent": "whitemagic-crystal-client/1.0"},
++        headers={"User-Agent": "whitemagic-crystal-client/1.0", "Authorization": f"Bearer {auth_token}"},
+         method="GET",
+     )
+     try:
+-        with urllib.request.urlopen(req, timeout=30) as res:
++        opener = urllib.request.build_opener(_NoRedirectHandler)
++        with opener.open(req, timeout=30) as res:
+             return json.loads(res.read().decode("utf-8"))
+     except urllib.error.HTTPError as e:
++        if 300 <= e.code < 400:
++            raise RuntimeError(f"HTTP {e.code}: redirect refused") from None
+         err_msg = e.read().decode("utf-8", errors="replace")
+         raise RuntimeError(f"HTTP {e.code}: {err_msg}") from e
+ 
+ 
+ def pull_lineage(
+-    tenant_id: str,
++    *,
++    auth_token: str,
+     api_url: str = "https://api.whitemagic.dev",
+ ) -> list[dict[str, Any]]:
+-    """Fetch DAG lineage for tenant crystals (keyless read)."""
+-    tenant_hash = compute_tenant_hash(tenant_id)
+-    target = f"{_require_https_api(api_url)}/crystals/lineage?tenant={urllib.parse.quote(tenant_hash)}"
++    """Fetch DAG lineage for the authenticated owner."""
++    if not isinstance(auth_token, str) or not auth_token.strip():
++        raise ValueError("auth_token is required")
++    target = f"{_require_https_api(api_url)}/crystals/lineage"
+ 
+     req = urllib.request.Request(
+         target,
+-        headers={"User-Agent": "whitemagic-crystal-client/1.0"},
++        headers={"User-Agent": "whitemagic-crystal-client/1.0", "Authorization": f"Bearer {auth_token}"},
+         method="GET",
+     )
+     try:
+-        with urllib.request.urlopen(req, timeout=30) as res:
++        opener = urllib.request.build_opener(_NoRedirectHandler)
++        with opener.open(req, timeout=30) as res:
+             doc = json.loads(res.read().decode("utf-8"))
+             return doc.get("crystals", [])
+     except urllib.error.HTTPError as e:
++        if 300 <= e.code < 400:
++            raise RuntimeError(f"HTTP {e.code}: redirect refused") from None
++        err_msg = e.read().decode("utf-8", errors="replace")
++        raise RuntimeError(f"HTTP {e.code}: {err_msg}") from e
++
++
++def fetch_owner_locator(*, auth_token: str, api_url: str = "https://api.whitemagic.dev") -> str:
++    """Fetch the registry-mapped locator after explicit owner authentication."""
++    if not isinstance(auth_token, str) or not auth_token.strip():
++        raise ValueError("auth_token is required")
++    target = f"{_require_https_api(api_url)}/crystals/owner-locator"
++    req = urllib.request.Request(target, headers={
++        "User-Agent": "whitemagic-crystal-client/1.0",
++        "Authorization": f"Bearer {auth_token}",
++    }, method="GET")
++    try:
++        opener = urllib.request.build_opener(_NoRedirectHandler)
++        with opener.open(req, timeout=30) as res:
++            doc = json.loads(res.read().decode("utf-8"))
++    except urllib.error.HTTPError as e:
++        if 300 <= e.code < 400:
++            raise RuntimeError(f"HTTP {e.code}: redirect refused") from None
+         err_msg = e.read().decode("utf-8", errors="replace")
+         raise RuntimeError(f"HTTP {e.code}: {err_msg}") from e
++    locator = doc.get("owner_locator") if isinstance(doc, dict) else None
++    if not isinstance(locator, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", locator):
++        raise RuntimeError("gateway returned an invalid owner locator")
++    return locator
++
++
++def _token_from_inputs(token_env: str, token_file: str | None) -> str:
++    if token_file:
++        fd = os.open(
++            token_file,
++            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0),
++        )
++        try:
++            st = os.fstat(fd)
++            if not stat.S_ISREG(st.st_mode):
++                raise ValueError("token file must be a regular non-symlink file")
++            if os.name == "posix" and st.st_mode & 0o077:
++                raise ValueError("token file permissions must be 0600 or stricter")
++            if st.st_size > 4096:
++                raise ValueError("token file exceeds 4096 bytes")
++            with os.fdopen(fd, "r", encoding="utf-8") as stream:
++                fd = -1
++                raw_token = stream.read(4097)
++                if len(raw_token.encode("utf-8")) > 4096:
++                    raise ValueError("token file exceeds 4096 bytes")
++                token = raw_token.strip()
++        finally:
++            if fd >= 0:
++                os.close(fd)
++    else:
++        token = os.environ.get(token_env, "")
++    if not token:
++        raise ValueError(f"credential unavailable; set {token_env} or use --token-file")
++    return token
+ 
+ 
+ def main():
+@@ -278,7 +354,9 @@ def main():
+     seal_cmd.add_argument("--content", help="Plaintext content string")
+     seal_cmd.add_argument("--file", help="Path to plaintext file")
+     seal_cmd.add_argument("--key", help="Hex-encoded 32-byte key or key file path", required=True)
+-    seal_cmd.add_argument("--tenant", help="Tenant ID string", required=True)
++    seal_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
++    seal_cmd.add_argument("--token-env", default="WM_CRYSTAL_TOKEN", help="Environment variable containing bearer credential")
++    seal_cmd.add_argument("--token-file", help="Protected credential file (0600 or stricter)")
+     seal_cmd.add_argument("--parent", help="Parent crystal ID (for chain DAG)", default=None)
+     seal_cmd.add_argument("--cipher", choices=["AES-256-GCM", "ChaCha20-Poly1305"], default="AES-256-GCM")
+     seal_cmd.add_argument("--out", help="Output JSON envelope file")
+@@ -297,17 +375,20 @@ def main():
+         default="WM_CRYSTAL_TOKEN",
+         help="environment variable containing the API key or session pass (default: WM_CRYSTAL_TOKEN)",
+     )
++    push_cmd.add_argument("--token-file", help="Protected credential file (0600 or stricter)")
+ 
+     # pull
+-    pull_cmd = sub.add_parser("pull", help="Keylessly pull crystal envelope from remote gateway")
++    pull_cmd = sub.add_parser("pull", help="Pull crystal envelope from authenticated owner scope")
+     pull_cmd.add_argument("--id", help="Crystal ID (sha256:... or hex)", required=True)
+-    pull_cmd.add_argument("--tenant", help="Tenant ID", required=True)
++    pull_cmd.add_argument("--token-env", default="WM_CRYSTAL_TOKEN", help="Environment variable containing bearer credential")
++    pull_cmd.add_argument("--token-file", help="Protected credential file (0600 or stricter)")
+     pull_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
+     pull_cmd.add_argument("--out", help="Save pulled envelope to JSON file")
+ 
+     # lineage
+-    lineage_cmd = sub.add_parser("lineage", help="Fetch crystal lineage DAG for tenant")
+-    lineage_cmd.add_argument("--tenant", help="Tenant ID", required=True)
++    lineage_cmd = sub.add_parser("lineage", help="Fetch crystal lineage DAG for authenticated owner")
++    lineage_cmd.add_argument("--token-env", default="WM_CRYSTAL_TOKEN", help="Environment variable containing bearer credential")
++    lineage_cmd.add_argument("--token-file", help="Protected credential file (0600 or stricter)")
+     lineage_cmd.add_argument("--api", default="https://api.whitemagic.dev", help="Gateway URL")
+ 
+     args = ap.parse_args()
+@@ -344,12 +425,15 @@ def main():
+             content = args.content
+         else:
+             content = sys.stdin.read()
++        token = _token_from_inputs(args.token_env, args.token_file)
++        locator = fetch_owner_locator(auth_token=token, api_url=args.api)
+         envelope = seal_crystal(
+             content=content,
+             key=key,
+-            tenant_id=args.tenant,
++            tenant_id="owner-locator",
+             parent_crystal_id=args.parent,
+             cipher=args.cipher,
++            owner_locator=locator,
+         )
+         out_json = json.dumps(envelope, indent=2)
+         if args.out:
+@@ -369,14 +453,12 @@ def main():
+ 
+     elif args.command == "push":
+         envelope = json.loads(open(args.envelope, "r", encoding="utf-8").read())
+-        token = os.environ.get(args.token_env, "")
+-        if not token:
+-            raise SystemExit(f"set {args.token_env} with an API key or session pass before pushing")
++        token = _token_from_inputs(args.token_env, args.token_file)
+         res = push_crystal(envelope, api_url=args.api, auth_token=token)
+         print(json.dumps(res, indent=2))
+ 
+     elif args.command == "pull":
+-        doc = pull_crystal(args.id, args.tenant, api_url=args.api)
++        doc = pull_crystal(args.id, auth_token=_token_from_inputs(args.token_env, args.token_file), api_url=args.api)
+         out_json = json.dumps(doc, indent=2)
+         if args.out:
+             with open(args.out, "w", encoding="utf-8") as f:
+@@ -386,7 +468,7 @@ def main():
+             print(out_json)
+ 
+     elif args.command == "lineage":
+-        items = pull_lineage(args.tenant, api_url=args.api)
++        items = pull_lineage(auth_token=_token_from_inputs(args.token_env, args.token_file), api_url=args.api)
+         print(json.dumps(items, indent=2))
+ 
+     else:
+diff --git a/scripts/tests/test_crystal_client.py b/scripts/tests/test_crystal_client.py
+index 4af5794..537fbe4 100644
+--- a/scripts/tests/test_crystal_client.py
++++ b/scripts/tests/test_crystal_client.py
+@@ -2,7 +2,10 @@
+ 
+ import copy
+ import hashlib
++import json
++import os
+ import sys
++import tempfile
+ import unittest
+ from io import BytesIO
+ from pathlib import Path
+@@ -69,7 +72,7 @@ class CrystalClientTest(unittest.TestCase):
+ 
+     def test_pull_rejects_malformed_ids_before_network_access(self) -> None:
+         with self.assertRaises(ValueError):
+-            cc.pull_crystal("../../other-path", "test-tenant")
++            cc.pull_crystal("../../other-path", auth_token="dummy-token")
+ 
+     def test_push_fails_closed_on_redirect(self) -> None:
+         fake_opener = Mock()
+@@ -100,6 +103,154 @@ class CrystalClientTest(unittest.TestCase):
+             )
+         self.assertEqual(raised.exception.code, 307)
+ 
++    def test_all_owner_requests_are_authenticated_and_use_fixed_paths(self) -> None:
++        locator = "sha256:" + "a" * 64
++
++        class Response:
++            def __init__(self, value):
++                self.payload = json.dumps(value).encode("utf-8")
++
++            def __enter__(self):
++                return self
++
++            def __exit__(self, *_):
++                return False
++
++            def read(self):
++                return self.payload
++
++        opener = Mock()
++        opener.open.side_effect = [
++            Response({"stored": True}),
++            Response({"crystal_id": "sha256:" + "b" * 64}),
++            Response({"crystals": []}),
++            Response({"owner_locator": locator}),
++        ]
++        token = "dummy-owner-token"
++        with patch.object(cc.urllib.request, "build_opener", return_value=opener) as build:
++            cc.push_crystal({"ciphertext": "fixture"}, auth_token=token)
++            cc.pull_crystal("sha256:" + "b" * 64, auth_token=token)
++            self.assertEqual(cc.pull_lineage(auth_token=token), [])
++            self.assertEqual(cc.fetch_owner_locator(auth_token=token), locator)
++
++        requests = [call.args[0] for call in opener.open.call_args_list]
++        self.assertEqual([request.get_method() for request in requests], ["POST", "GET", "GET", "GET"])
++        self.assertTrue(all(request.get_header("Authorization") == f"Bearer {token}" for request in requests))
++        self.assertEqual(requests[0].full_url, "https://api.whitemagic.dev/crystals")
++        self.assertEqual(requests[1].full_url, f"https://api.whitemagic.dev/crystals/{'b' * 64}")
++        self.assertEqual(requests[2].full_url, "https://api.whitemagic.dev/crystals/lineage")
++        self.assertEqual(requests[3].full_url, "https://api.whitemagic.dev/crystals/owner-locator")
++        self.assertTrue(all("tenant=" not in request.full_url for request in requests))
++        self.assertEqual(build.call_count, 4)
++        self.assertTrue(all(call.args == (cc._NoRedirectHandler,) for call in build.call_args_list))
++
++    def test_invalid_id_and_origins_fail_before_network_for_all_owner_requests(self) -> None:
++        invalid_origins = (
++            "http://example.test",
++            "https://user:pass@example.test",
++            "https://example.test/path",
++            "https://example.test?x=1",
++            "https://example.test:bad",
++        )
++        with patch.object(cc.urllib.request, "build_opener") as build:
++            for origin in invalid_origins:
++                calls = (
++                    lambda: cc.push_crystal({}, api_url=origin, auth_token="dummy"),
++                    lambda: cc.pull_crystal("b" * 64, api_url=origin, auth_token="dummy"),
++                    lambda: cc.pull_lineage(api_url=origin, auth_token="dummy"),
++                    lambda: cc.fetch_owner_locator(api_url=origin, auth_token="dummy"),
++                )
++                for call in calls:
++                    with self.subTest(origin=origin), self.assertRaises(ValueError):
++                        call()
++            for malformed in ("../escape", "g" * 64, "a" * 63, "a" * 64 + "/x"):
++                with self.assertRaises(ValueError):
++                    cc.pull_crystal(malformed, auth_token="dummy")
++            build.assert_not_called()
++
++    def test_redirects_are_refused_for_all_owner_requests_without_echoing_token(self) -> None:
++        token = "dummy-owner-token"
++        calls = (
++            lambda: cc.push_crystal({}, auth_token=token),
++            lambda: cc.pull_crystal("a" * 64, auth_token=token),
++            lambda: cc.pull_lineage(auth_token=token),
++            lambda: cc.fetch_owner_locator(auth_token=token),
++        )
++        for call in calls:
++            fake_opener = Mock()
++            fake_opener.open.side_effect = HTTPError(
++                "https://api.whitemagic.dev/crystals", 302, "Found", {},
++                BytesIO(token.encode()),
++            )
++            with patch.object(cc.urllib.request, "build_opener", return_value=fake_opener) as build:
++                with self.assertRaisesRegex(RuntimeError, "redirect refused") as raised:
++                    call()
++            self.assertNotIn(token, str(raised.exception))
++            build.assert_called_once_with(cc._NoRedirectHandler)
++
++    def test_owner_calls_require_keyword_auth_and_token_file_is_protected(self) -> None:
++        with self.assertRaises(TypeError):
++            cc.pull_crystal("a" * 64, "legacy-tenant")
++        with self.assertRaises(TypeError):
++            cc.pull_lineage("legacy-tenant")
++
++        with tempfile.TemporaryDirectory() as td:
++            token_path = Path(td) / "token"
++            token_path.write_text("dummy-token\n", encoding="utf-8")
++            os.chmod(token_path, 0o600)
++            self.assertEqual(cc._token_from_inputs("UNSET_WM_CRYSTAL_TOKEN", str(token_path)), "dummy-token")
++            if os.name == "posix":
++                os.chmod(token_path, 0o644)
++                with self.assertRaises(ValueError):
++                    cc._token_from_inputs("UNSET_WM_CRYSTAL_TOKEN", str(token_path))
++            link_path = Path(td) / "token-link"
++            link_path.symlink_to(token_path)
++            with self.assertRaises((OSError, ValueError)):
++                cc._token_from_inputs("UNSET_WM_CRYSTAL_TOKEN", str(link_path))
++
++    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO support required")
++    def test_fifo_token_path_is_rejected_without_blocking(self) -> None:
++        import subprocess
++
++        with tempfile.TemporaryDirectory() as td:
++            fifo = Path(td) / "token-fifo"
++            os.mkfifo(fifo)
++            code = (
++                "import importlib.util,sys; "
++                "s=importlib.util.spec_from_file_location('cc',sys.argv[1]); "
++                "m=importlib.util.module_from_spec(s); s.loader.exec_module(m); "
++                "\ntry: m._token_from_inputs('UNSET',sys.argv[2])\n"
++                "except (ValueError,OSError): raise SystemExit(0)\n"
++                "raise SystemExit(4)"
++            )
++            result = subprocess.run(
++                [sys.executable, "-c", code, str(SCRIPTS / "crystal_client.py"), str(fifo)],
++                capture_output=True, timeout=3, check=False,
++            )
++            self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
++
++    def test_cli_uses_env_or_file_credentials_and_no_tenant_or_token_arguments(self) -> None:
++        import contextlib
++        import io
++
++        original_argv = sys.argv
++        output = io.StringIO()
++        try:
++            for command in ("seal", "push", "pull", "lineage"):
++                sys.argv = [str(SCRIPTS / "crystal_client.py"), command, "--help"]
++                with contextlib.redirect_stdout(output), self.assertRaises(SystemExit):
++                    cc.main()
++                help_text = output.getvalue()
++                self.assertIn("--token-env", help_text)
++                self.assertIn("--token-file", help_text)
++                self.assertNotIn("--token ", help_text)
++                if command in ("seal", "pull", "lineage"):
++                    self.assertNotIn("--tenant", help_text)
++                output.seek(0)
++                output.truncate(0)
++        finally:
++            sys.argv = original_argv
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
