@@ -1,8 +1,17 @@
 # Human-review brief: W3C Agent Identity Registry Protocol CG — 2026-10-06
 
-**Status:** preparation draft for Lucas's review, checked 2026-09-30. It makes
+**Status:** preparation draft for Lucas's review, checked 2026-09-30; refreshed
+2026-10-15. It makes
 no commitment on behalf of the project or any participant. No correspondence,
 agenda submission, or follow-up has been sent as part of preparing this note.
+
+**Reviewer refresh (2026-10-15):** the standard is now formally **CPR (Causal
+Provenance Receipts)** (formerly Continuity Receipts; wire identifiers
+unchanged — see SPEC.md nomenclature note). The 2026-10-20 meeting agenda is
+published: no CPR item on it; additional topics go under AOB (§6), and the
+following meeting is 2026-11-17 (IIW 43, Nov 3–6, intervenes). See
+`docs/CROSSWALK_W3C_AGENT_IDENTITY_CG_v0.md` (§2 naming row) for the updated
+external wording.
 
 ## 1. What we can accurately say
 
@@ -67,7 +76,7 @@ repository draft returned 404 during this review.
 | §4.4 C2PA alignment | Ask whether content provenance and action receipts have a useful interface; no CR/C2PA integration has been tested here. |
 | §4.5 Authorization scope across organizations | AADP bound-permit -00 is a relevant work-in-progress comparison. Its recipient config owns issuer scope/currentness; CR does not implement permit verification or cross-organization authorization. |
 | §4.6 Identifier collisions that fail open | This is a possible discussion of identifier binding. CR can describe its own issuer/key checks and their limits, without calling them prior art or claiming to solve registry collisions. |
-| §4.7 ARIA / WAI-ARIA disambiguation | Naming clarity may be relevant; use “agent continuity receipt” when CR's receipt could be confused with the SCITT draft's recovery-registration receipt. |
+| §4.7 ARIA / WAI-ARIA disambiguation | Naming clarity may be relevant; the standard is now formally “CPR (Causal Provenance Receipts)” — use “CPR” externally, noting the former name to explain the transition, and distinguishing it from the SCITT draft's recovery-registration receipt (`draft-nikolaichuk-scitt-continuity-receipts`). |
 
 No agenda item asks for a CR presentation. Treat these as listening notes, not
 claims that the CG requested, accepted, or plans to adopt CR material.

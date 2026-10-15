@@ -1,7 +1,8 @@
-# Crosswalk: Continuity Receipts ↔ W3C Agent Identity CG themes (v0)
+# Crosswalk: CPR (Causal Provenance Receipts) ↔ W3C Agent Identity CG themes (v0)
 
-**Status:** preparation draft for WhiteMagic / Lucas review, 2026-10-08.
-been sent to the CG; no agenda item, correspondence, or commitment exists. Not
+**Status:** preparation draft for WhiteMagic / Lucas review, 2026-10-08;
+refreshed 2026-10-15 (nomenclature + meeting facts). No correspondence, agenda
+item, or commitment has been sent to the CG. Not
 endorsed by W3C or any draft author. Language is bounded deliberately — keep it
 that way if anything from here is ever spoken or posted.
 **Target:** W3C Agent Identity Registry Protocol CG, next meeting 2026-10-20.
@@ -9,9 +10,17 @@ that way if anything from here is ever spoken or posted.
 `docs/CROSSWALK_AER1_AADP_SCITT.md`, `docs/CROSSWALK_SAHU_ACTA_ASQAV.md`,
 `docs/DESIGN_NOTE_SCHEME_REGISTRY_2026-10-08.md`.
 
-## 1. Bounded description of CR (reuse verbatim)
+**Reviewer refresh (2026-10-15):** the standard is formally **CPR (Causal
+Provenance Receipts)** (formerly Continuity Receipts — renamed to avoid the
+SCITT collision; wire identifiers unchanged). The 2026-10-20 CG agenda is
+published: no CPR item; additional topics go under AOB (§6); the following
+meeting is 2026-11-17 (IIW 43, Nov 3–6, intervenes). Rechecked against the
+live agenda and merged `main`; CI-core verified locally (149 python tests,
+40 + 21 vectors, rust suite, 40/40 python↔rust differential).
 
-`continuity-receipt/0.5` is a published format for signed agent-task records
+## 1. Bounded description of CPR (reuse verbatim)
+
+`continuity-receipt/0.5` (CPR core, wire identifier) is a published format for signed agent-task records
 with offline-verifiable record integrity, chain links, agreement references,
 and optional revocation and anchor evidence. The verifier checks the signed
 claims and their configured bindings; it does not prove that issuer claims
@@ -30,7 +39,7 @@ to act. Missing and contradictory evidence remain distinct verdict states.
 | Revocation & currentness | Optional revocation record + anchor evidence in-bundle; verifier can require configured freshness. | Distributed revocation discovery; relying-party authorization decisions. |
 | Delegation / mandate boundaries (§4.5) | 0.6 `authority.grant` candidate records a **signed issuer/operator assertion** with declared scope/window; `authority_ref` links records to a grant. | That the signer was authorized by the named principal; permit verification or cross-org authorization (AADP comparison only). |
 | Provenance vs content (§4.4) | Receipts are content-free: canonical claims + digests; no C2PA integration tested. | Synthetic-media provenance; content truth; business outcomes. |
-| Naming (§4.7) | Use "agent continuity receipt" to avoid collision with SCITT's recovery-registration receipt. | — |
+| Naming (§4.7) | The standard is now formally **CPR (Causal Provenance Receipts)** (formerly Continuity Receipts), chosen precisely to avoid collision with SCITT's recovery-registration receipt (`draft-nikolaichuk-scitt-continuity-receipts`); wire identifiers remain `continuity-receipt/0.x`. Use "CPR" externally; mention the former name only to explain the transition. | — |
 
 ## 3. Two proposals we could offer (bounded, if invited)
 

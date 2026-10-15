@@ -1,15 +1,16 @@
-# Continuity Receipt 0.6-pq Candidate Profile — Post-Quantum Dual-Signing
+# CPR (Causal Provenance Receipts) 0.6-pq Candidate Profile — Post-Quantum Dual-Signing
 
 > **Status:** Candidate Profile Specification Draft (2026-10-11)  
 > **Target:** W3C Agent Identity Registry Protocol CG & CCG Quantum-Safe Cryptosuites  
 > **Companion Documents:** `SPEC_0.6_DRAFT.md`, `docs/DESIGN_NOTE_PQ_DUAL_SIGN_RECEIPTS_2026-10-08.md`, `docs/CROSSWALK_W3C_AGENT_IDENTITY_CG_v0.md`  
 > **Reference Implementation:** Rust `crates/wm-gen3-core/src/mandala.rs` & Python `continuity_receipt`  
+> **Nomenclature (2026-10-15):** CPR — Causal Provenance Receipts (formerly Continuity Receipts); wire identifiers remain `continuity-receipt/0.x`. The 2026-10-20 W3C Agent Identity CG agenda carries no CPR item (AOB §6 is the door; next meeting 2026-11-17).
 
 ---
 
 ## 1. Scope & Bounded Context
 
-This profile defines an additive, backward-compatible dual-signature mechanism (`continuity-receipt/0.6-pq`) allowing Continuity Receipts to survive the migration to Post-Quantum Cryptography (PQC) without altering the underlying JCS canonicalization, record digest model, or historical verifiability of older receipt chains.
+This profile defines an additive, backward-compatible dual-signature mechanism (`continuity-receipt/0.6-pq`) allowing CPR receipts to survive the migration to Post-Quantum Cryptography (PQC) without altering the underlying JCS canonicalization, record digest model, or historical verifiability of older receipt chains.
 
 ### Invariant Guarantees
 1. **Identical Canonical Bytes:** Both classical (Ed25519) and post-quantum (ML-DSA / SLH-DSA) signatures are computed over the identical JCS canonical representation of the unsigned receipt.
