@@ -30,40 +30,37 @@ chair.
 
 ## Draft message (bounded; reuses the crosswalk §1 wording)
 
-> **Subject:** Intro — CPR (Causal Provenance Receipts): a bounded crosswalk
-> against the group's themes (informational; no adoption claims)
+> **Subject:** Intro — Causal Provenance Receipts (CPR) and the group's themes
+> (informational)
 >
-> Hello all — a brief introduction, one informational pointer, and no ask
-> beyond corrections if any.
+> Hello — a short introduction and one informational pointer; corrections-only,
+> please.
 >
-> I maintain CPR (Causal Provenance Receipts; previously "continuity
-> receipts" — renamed to avoid collision with
-> draft-nikolaichuk-scitt-continuity-receipts, which registers SCITT recovery
-> statements). CPR is a published format for signed agent-task records with
-> offline-verifiable record integrity, chain links, agreement references, and
-> optional revocation and anchor evidence. Reference verifiers exist in
-> Python, Rust, and JavaScript, with a public vector corpus:
+> I maintain CPR (Causal Provenance Receipts; earlier "continuity receipts" —
+> renamed to avoid collision with draft-nikolaichuk-scitt-continuity-receipts,
+> which registers SCITT recovery statements). It is a published format for
+> signed agent-task records with offline-verifiable integrity, chain links,
+> agreement references, and optional revocation/anchor evidence, with
+> Python/Rust/JavaScript verifiers and a public vector corpus:
 > <https://github.com/lbailey94/continuity-receipt> (Apache-2.0).
 >
-> What a CPR verifier checks are the signed claims and their configured
-> bindings; it does not prove that issuer claims correspond to real-world
-> events, and its issuer identifiers / `did:key` signatures do not by
-> themselves establish a real-world principal, authorization, or permission
-> to act. Missing and contradictory evidence remain distinct verdict states.
+> What the verifier checks are the signed claims and their configured
+> bindings. It does not prove that issuer claims correspond to real-world
+> events, and its `did:key` identifiers do not establish a real-world
+> principal, authorization, or permission to act. Missing and contradictory
+> evidence remain distinct verdict states.
 >
-> Since the group is examining agent identity registry questions, I wrote a
-> bounded crosswalk of CPR against the themes in the public agendas (identifier
-> binding, collisions vs. resolution failure, revocation/currentness,
-> delegation boundaries, provenance vs. content, naming):
+> For the group's registry themes — identifier binding, collisions vs.
+> resolution failure, revocation/currentness, delegation boundaries,
+> provenance vs. content — I wrote a bounded crosswalk:
 > <https://github.com/lbailey94/continuity-receipt/blob/main/docs/CROSSWALK_W3C_AGENT_IDENTITY_CG_v0.md>.
 > It is an informational local comparison — not endorsed by W3C or any draft
-> author, and it makes no prior-art claim.
+> author, and no prior-art claim.
 >
-> If the group's landscape document would benefit from a per-project entry
-> (for example: published vectors + independent verifiers as a
-> conformance-evidence surface), I can provide a short, factual entry when
-> entries open. Otherwise feel free to ignore this note — and I'm happy to
-> answer any corrections.
+> If the landscape document would benefit from a factual per-project entry
+> when entries open (published vectors + independent verifiers as a
+> conformance-evidence surface), I can provide one. Otherwise, please ignore
+> this note — and I'm happy to answer any corrections.
 >
 > Best regards,
 > Lucas
