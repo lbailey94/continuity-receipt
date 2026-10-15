@@ -164,5 +164,26 @@ drafts have pending media-type requests; a joint registration may be cleaner.
   `docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md`,
   `docs/DESIGN_NOTE_HEAD_COMMITMENT.md`, `CONFORMANCE.md`, `THREAT_MODEL.md`
 
+## Position vs. the live landscape (checked 2026-10-15)
+
+The agent-receipts space at IETF is active and crowded; positioning must be
+explicit, not implied:
+
+| Live work | Grain | Relationship to this profile |
+|---|---|---|
+| `draft-zambo-aer1` (-19; 85-vector kit, 7 language runners, independent verifiers, Nostr anchors) | per tool call / workflow / job timeline | Closest mainstream sibling. AER-1 is URL-resolution-first and carries provenance classes; this profile is offline-first, session-lifecycle, head-committed. Cite as interop partner, not competitor. |
+| `draft-mih-scitt-agent-action-capsule` (-04) + `draft-mih-sokolov-scitt-payload-binding` (CPB) | per agent action; COSE_Sign1 + plain JCS canonicalization | Directly adjacent mechanics (same envelope family + JCS). CPB defines the canonicalization/binding layer; this profile defines a session-lifecycle payload. Coordinate, don't duplicate: reference CPB for binding semantics. |
+| `draft-schrock-agent-operation-continuity` + AEB/BCR family | one provider-operation occurrence across executor replacement | Overlaps the "continuity" vocabulary at operation grain; this profile is session-state grain with resumption evidence. Differentiate explicitly (occurrence identity vs session head). |
+| `draft-sabey-succession-receipts` | authority succession transitions | Implementation may reference succession receipts as evidence; not a substitute for session head commitment. |
+| `draft-marques-asqav-compliance-receipts` | regulatory bindings (EU AI Act 12/26, DORA, NIST, SEC 17a-4…) | Demand-side overlap with §7's regulated-retention profile; interim: cross-reference, do not duplicate the compliance mapping in -00. |
+| `draft-saha-aadp` | per-action authorization permits | Consumer-profile input for §7 authority-required; no overlap in mechanism. |
+
+Two consequences for -00: (1) the previously-simple claim "sibling work is
+per-action, we are session-lifecycle" is no longer fully true (AOC and
+succession receipts touch lifecycle fragments) — the -00 must state the
+**resumption/final-state-head** niche precisely; (2) attach CPB/JCS binding
+and AER-1 interop pointers so a reader can compose the pieces without
+believing this profile re-invents them.
+
 _This skeleton is for internal review; it makes no commitments and has not
 been submitted anywhere._
