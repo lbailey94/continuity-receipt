@@ -286,6 +286,38 @@ class CrystalClientTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cryptographically destroyed"):
             cc.unseal_crystal(erased, kek_v2)
 
+    def test_i4_i6_client_sig_and_set_commitment_read_path(self) -> None:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+        kek = bytes(range(32))
+        ed_seed = b"test-ed25519-crystal-seed-32byte"
+        anchor_seed = b"test-ed25519-anchor-seed-32bytes"
+        anchor_pub = Ed25519PrivateKey.from_private_bytes(anchor_seed).public_key().public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        )
+        tenant_hash = cc.compute_tenant_hash("tenant-i6")
+
+        c1 = cc.seal_crystal(b"step 1", kek, "tenant-i6", kek_version=1)
+        c1 = cc.sign_crystal_envelope(c1, ed_seed)
+        c2 = cc.seal_crystal(b"step 2", kek, "tenant-i6", parent_crystal_id=c1["crystal_id"], kek_version=1)
+        c2 = cc.sign_crystal_envelope(c2, ed_seed, pq_alg="ml-dsa-65", pq_public_key_b64="cHFfcHVi", pq_sig_b64="cHFfc2ln")
+
+        self.assertTrue(cc.verify_crystal_client_sig(c1))
+        self.assertTrue(cc.verify_crystal_client_sig(c2, pq_verifier=lambda pub, msg, sig: sig == "cHFfc2ln"))
+
+        comm = cc.compute_crystal_set_commitment([c1, c2], tenant_hash, signing_key=anchor_seed)
+        pts = cc.verify_and_unseal_crystal_set(
+            [c1, c2], kek, tenant_hash, expected_commitment=comm, anchor_public_key=anchor_pub
+        )
+        self.assertEqual(pts, [b"step 1", b"step 2"])
+
+        # Rollback / truncation to [c1] must raise CrystalRollbackError against comm
+        with self.assertRaises(cc.CrystalRollbackError):
+            cc.verify_and_unseal_crystal_set(
+                [c1], kek, tenant_hash, expected_commitment=comm, anchor_public_key=anchor_pub
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
