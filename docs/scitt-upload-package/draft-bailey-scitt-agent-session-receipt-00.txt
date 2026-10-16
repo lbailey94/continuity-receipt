@@ -1,0 +1,363 @@
+
+
+
+
+SCITT Working Group                                            L. Bailey
+Internet-Draft                                           WhiteMagic Labs
+Intended status: Informational                          15 October 2026
+Expires: 18 April 2027
+
+
+       Causal Provenance Receipts for Agent Sessions: A SCITT Profile
+               draft-bailey-scitt-agent-session-receipt-00
+
+Abstract
+
+   This document defines a Supply Chain Integrity, Transparency, and
+   Trust (SCITT) payload profile for agent session provenance: signed
+   records that bind an autonomous agent session's lifecycle (start,
+   governed tool dispatch, state transitions, termination, and
+   settlement) to offline-verifiable cryptographic evidence, with an
+   explicit head commitment that detects local hash-chain truncation and
+   whole-store rollback.  It reuses the SCITT architecture (RFC 9943)
+   and COSE receipt envelope (RFC 9942): the Causal Provenance Receipt
+   (CPR) bundle is the signed statement payload, and registration with a
+   Transparency Service is optional and explicitly disclosed.  This
+   profile addresses the session-lifecycle and resumption-evidence grain
+   rather than isolated per-action telemetry, while preserving bounded
+   verifier semantics: a verifier checks cryptographic signatures,
+   canonical digests, chain links, and external anchors; it does not
+   prove that unallegeable physical events occurred.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 18 April 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (https://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Revised BSD License text as described in Section 4.e of the
+   Trust Legal Provisions and are provided without warranty as described
+   in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Conventions and Terminology
+   3.  Position in the Agent-Evidence Landscape
+   4.  Payload Format and Required Members
+   5.  Verdict Vocabulary and Error Classes
+   6.  Head Commitment and External Anchoring
+   7.  SCITT Registration Profile (Offline-First)
+   8.  Consumer Profiles
+   9.  Implementation Status
+   10. Security Considerations
+   11. IANA Considerations
+   12. References
+     12.1.  Normative References
+     12.2.  Informative References
+   Author's Address
+
+1.  Introduction
+
+   Autonomous AI agents execute work across sessions that span context-
+   window resets, process restarts, sandboxed tool executions, and cross-
+   agent handoffs.  While individual per-action telemetry formats attest
+   that a single tool call or action capsule was signed, a relying party
+   or resuming agent faces a distinct lifecycle question:
+
+   *  Is the session state being resumed the complete, un-truncated
+      continuation of the prior session, or has the underlying store
+      been rolled back, spliced, or selectively pruned at rest?
+
+   Causal Provenance Receipts (CPR; wire specification identifiers
+   "continuity-receipt/0.1" through "continuity-receipt/0.6") define a
+   hash-chained, canonically serialized receipt bundle format with an
+   explicit head commitment ("chain_head") designed for offline
+   verification before session resumption or cross-party settlement.
+
+   This document specifies how CPR session receipts and bundles map onto
+   the SCITT architecture [RFC9943] and COSE receipt profiles [RFC9942]
+   without modifying either base standard.
+
+2.  Conventions and Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   Causal Provenance Receipt (CPR):
+      A signed, JCS-canonicalized receipt or hash-chained receipt bundle
+      using wire format identifiers "continuity-receipt/0.x".  The name
+      "Causal Provenance Receipt" disambiguates this agent-session
+      format from stateful-asset recovery proposals in SCITT.
+
+   Session Bundle:
+      An ordered sequence of receipts ("task.decision",
+      "authority.grant", "tool.execution", "artifact.delivery",
+      "task.termination", "task.settlement") sharing a "task_id" and
+      linked by SHA-256 predecessor digests ("prev").
+
+   Head Commitment ("chain_head"):
+      A signed commitment to the final sequence number, receipt digest,
+      and ordered record count of a session or memory store export,
+      enabling detection of tail truncation and snapshot rollback when
+      paired with an off-store anchor or SCITT Transparency Service
+      registration.
+
+3.  Position in the Agent-Evidence Landscape
+
+   Several individual submissions in SCITT and adjacent groups address
+   agent telemetry at different grains:
+
+   *  Per-action and workflow timelines (such as AER-1 and Agent Action
+      Capsules) attest individual tool invocations or action capsules.
+      This profile operates at the session-lifecycle and resumption-head
+      grain and can reference per-action digests as child artifacts.
+
+   *  Payload binding specifications using COSE_Sign1 over RFC 8785 JSON
+      Canonicalization Scheme (JCS) share the same canonicalization
+      primitive and compose directly with Section 4 of this document.
+
+   *  Operation-continuity and succession drafts address executor
+      replacement or authority handoff events; such records MAY be
+      carried as authority inputs within a CPR session bundle, whereas
+      this profile defines the end-to-end session chain and final-state
+      head commitment.
+
+4.  Payload Format and Required Members
+
+   A CPR payload is a UTF-8 JSON object canonicalized according to the
+   JSON Canonicalization Scheme (JCS) [RFC8785], rejecting duplicate
+   object member names, non-finite numbers, and unpaired UTF-16
+   surrogates.
+
+   At the bundle level, a conforming payload MUST contain:
+
+   *  "spec": String identifying the wire specification version (for
+      example, "continuity-receipt/0.5" or "continuity-receipt/0.6").
+
+   *  "task_id": Non-empty string identifying the governed session or
+      task.
+
+   *  "receipts": Non-empty array of ordered receipt objects.  Each
+      receipt object MUST carry "seq" (0-based contiguous integer),
+      "type" (lifecycle step identifier), "issued_at" (RFC 3339 UTC
+      timestamp), "prev" (null on "seq" 0; "sha256:<64-hex>" of the
+      canonical unsigned bytes of receipt "seq - 1" thereafter), and
+      "sig" ("alg", "key", "value").
+
+   *  "chain_head" (REQUIRED for the head-committed consumer profile in
+      Section 8): Object binding "seq" (final receipt index),
+      "head_digest" ("sha256:<64-hex>" of the final receipt), and
+      optional external anchor or SCITT registration receipt references.
+
+   When wrapped as a SCITT Signed Statement [RFC9943], the JCS-canonical
+   bytes of the CPR bundle (or individual session/state-transition
+   receipt) form the COSE_Sign1 payload, with the issuer's verification
+   key identified in the protected header.
+
+5.  Verdict Vocabulary and Error Classes
+
+   A conforming verifier evaluates a bundle deterministically and emits
+   one of four closed verdicts:
+
+   1.  "TRUSTED": All signatures, JCS digests, sequence links, redaction
+       commitments, and required head/anchor bindings are valid.
+
+   2.  "PROVISIONAL": Cryptographic integrity holds, but an optional or
+       time-pending external anchor or registration proof is not yet
+       finalized.
+
+   3.  "INSUFFICIENT_EVIDENCE": Required lifecycle steps, disclosures,
+       or anchor proofs are absent (missing evidence, distinct from
+       contradictory evidence).
+
+   4.  "UNTRUSTED": Any signature, digest, predecessor link, or head
+       commitment is invalid or contradictory.
+
+   Verifiers MUST distinguish missing evidence ("INSUFFICIENT_EVIDENCE")
+   from contradictory or tampered evidence ("UNTRUSTED").
+
+6.  Head Commitment and External Anchoring
+
+   An adversary with write access to an agent's local storage directory
+   who holds no signing keys cannot forge a new record signature, but
+   can delete trailing records (tail truncation) or restore the entire
+   directory from an earlier genuine snapshot (whole-store rollback)
+   such that every remaining signature and internal hash link still
+   verifies.
+
+   Closing tail truncation and whole-store rollback requires comparing
+   the store's current head against a "chain_head" or set commitment
+   anchored outside the mutable store (via a SCITT Transparency Service
+   receipt [RFC9942], an OpenTimestamps calendar proof, or an
+   independent witness log).  Verifiers evaluating anchored chains MUST
+   enforce the following check order and report the first failure:
+
+   1.  Record signature validity ("signature_invalid");
+   2.  Anchor or registration signature validity
+       ("anchor_signature_invalid");
+   3.  Chain/context identifier binding ("record_from_other_chain");
+   4.  Predecessor hash-chain continuity ("chain_link_broken");
+   5.  Presence of the anchored head index ("anchored_head_missing");
+   6.  Equality of the anchored head digest ("anchored_head_mismatch").
+
+7.  SCITT Registration Profile (Offline-First)
+
+   The base profile is offline-first: verifiers MUST be able to evaluate
+   bundles without network access using the embedded signatures and
+   detached anchor proofs.  When a bundle or "chain_head" is registered
+   with a SCITT Transparency Service, the returned COSE receipt
+   [RFC9942] is attached under the bundle's "anchors" array with
+   "type": "scitt.cose_receipt".
+
+8.  Consumer Profiles
+
+   Relying parties select among three normative consumer profiles:
+
+   *  Head-Committed Resumption Profile: Requires "chain_head" and
+      off-store anchor verification on the read path prior to loading
+      agent memory or resuming a session.
+
+   *  Authority-Bound Profile: Requires an "authority.grant" receipt
+      preceding execution receipts.  Note that "authority.grant" is a
+      signed assertion by its issuer; relying parties MUST evaluate
+      whether the issuer is authorized for the target resource.
+
+   *  Regulated-Retention Profile: Requires complete disclosure or
+      digest-committed selective redaction alongside an external
+      timestamp anchor.
+
+9.  Implementation Status
+
+   Note to RFC Editor: Please remove this section before publication, as
+   well as the reference to [RFC7942].
+
+   This section records the status of known implementations of the
+   protocol defined by this specification, per [RFC7942]:
+
+   *  Reference Repository: "lbailey94/continuity-receipt" (Apache-2.0,
+      https://github.com/lbailey94/continuity-receipt).
+
+   *  Independent Language Verifiers: Three complete verifier
+      implementations exist in Python ("continuity-receipt" 0.5.1 on
+      PyPI, 149 tests), Rust ("continuity-receipt" 0.5.1 on crates.io,
+      44 tests), and JavaScript ("continuity-receipt" 0.1.1 on npm, 130
+      tests), with 40/40 differential parity across the shared bundle
+      corpus and 21 verification-receipt vectors.
+
+   *  External Anchored-Chain Conformance: Evaluated against the 14-case
+      "anchored-record-chain/v1" corpus ("probityai/agent-evidence-
+      vectors"), achieving 14/14 conformance with 0 disagreements on the
+      external verifier rail.
+
+   *  Storage-Edit Integrity Evaluation: Evaluated against the nine
+      storage-level edit classes (T1-T9) of the Agent Memory Integrity
+      ("agmi") suite on the read path, rejecting 8/9 edits with a same-
+      disk commitment and 9/9 edits (including T9 whole-store snapshot
+      rollback) when the head commitment is anchored off-store.
+
+   *  Public Conformance Referee: A stateless conformance referee is
+      operated at "https://api.whitemagic.dev/conformance" over 40
+      bundle vectors, 21 verification-receipt vectors, and 208 hostile-
+      input cases.
+
+10. Security Considerations
+
+   *  Attestation vs. Ground Truth: A valid signature proves that the
+      holder of the private key signed the canonical statement; it does
+      not prove that the described computation was uncompromised or that
+      the signer held real-world authority.
+
+   *  Truncation Window: Records appended after the most recent off-
+      store anchor are protected by internal hash links against middle
+      deletion or reordering, but remain vulnerable to tail truncation
+      until the next anchor is published.
+
+   *  Post-Quantum Transition: A candidate hybrid signature profile
+      ("0.6-pq") combining Ed25519 with ML-DSA-44/65 (FIPS 204) and
+      SLH-DSA-SHA2-128s (FIPS 205) over identical JCS canonical bytes is
+      specified in the companion repository to prevent downgrade attacks
+      under "pq-required" relying-party policies.
+
+11. IANA Considerations
+
+   This document makes no immediate IANA requests in revision -00.
+   Future revisions intend to request registration of the media type
+   "application/agent-session-receipt+json" (and corresponding COSE
+   content-format identifier) in coordination with related SCITT agent
+   payload specifications.
+
+12. References
+
+12.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC8785]  Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+              Canonicalization Scheme (JCS)", RFC 8785,
+              DOI 10.17487/RFC8785, June 2020,
+              <https://www.rfc-editor.org/info/rfc8785>.
+
+   [RFC8949]  Bormann, C. and P. Hoffman, "Concise Binary Object
+              Representation (CBOR)", STD 94, RFC 8949,
+              DOI 10.17487/RFC8949, December 2020,
+              <https://www.rfc-editor.org/info/rfc8949>.
+
+   [RFC9942]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
+              Y., and S. Lasker, "SCITT Receipt Profile", RFC 9942,
+              2026.
+
+   [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
+              Y., and S. Lasker, "An Architecture for Trustworthy and
+              Transparent Digital Supply Chains (SCITT)", RFC 9943,
+              2026.
+
+12.2.  Informative References
+
+   [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
+              Code: The Implementation Status Section", BCP 205,
+              RFC 7942, DOI 10.17487/RFC7942, July 2016,
+              <https://www.rfc-editor.org/info/rfc7942>.
+
+   [BMWG-AMI] Khandelwal, Y., "Benchmarking Methodology for Agent Memory
+              Integrity", Work in Progress, Internet-Draft, draft-
+              khandelwal-bmwg-agent-memory-integrity-01, October 2026.
+
+Author's Address
+
+   Lucas Bailey
+   WhiteMagic Labs
+   Email: envoy@whitemagic.dev
+   URI:   https://www.whitemagic.dev
