@@ -75,7 +75,7 @@ tools/make_vectors.py      regenerates the vectors (fresh ids/timestamps; publis
 tools/hostile_input_probe.py  malformed-input corpus, structured outcomes + parity
 tools/interop_sahu_vectors.py  reproduce draft-sahu agent-action-receipts vectors
 tools/interop_acta_probe.py    ACTA/asqav minimal-construction probe (pinned revisions)
-tools/interop_aer1_probe.py    live AER-1 receipt verification probe (draft-zambo-aer1-04)
+tools/interop_aer1_probe.py    live AER-1 receipt verification probe (draft-zambo-aer1-20)
 tests/                     conformance suite (vectors, schema, primitives)
 ```
 
@@ -106,7 +106,7 @@ python3 -m unittest discover -s tests -v
 
 The reviewed hosted API/package/ERC update was deployed on 2026-09-30 after
 explicit maintainer approval. Public `GET https://api.whitemagic.dev/info`
-reports verifier package 0.5.0, supporting specs 0.1–0.6 (0.6 experimental).
+reports verifier package 0.5.1, supporting specs 0.1–0.6 (0.6 experimental).
 The primary checked installed Python module hashes against the published
 wheel,82 live loopback vector/input cases, 13 authenticated public `/verify`
 cases, and 4 live loopback ERC cases with independently verified Ed25519

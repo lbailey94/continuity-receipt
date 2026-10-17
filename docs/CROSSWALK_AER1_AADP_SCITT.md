@@ -1,12 +1,12 @@
 # Crosswalk and triage: AER-1, AADP bound permits, and SCITT Continuity Receipts
 
-**Status:** informational, checked 2026-09-30. This is a local comparison of
+**Status:** informational, checked 2026-10-16. This is a local comparison of
 working drafts and repository evidence. It is not normative, an endorsement,
 an adoption statement, or evidence of author or group agreement. Internet-
 Drafts can change. Companion: `CROSSWALK_SAHU_ACTA_ASQAV.md`.
 
-**Drafts checked:** [AER-1 -05](https://datatracker.ietf.org/doc/html/draft-zambo-aer1-05)
-(Independent, intended Informational; dated 2026-09-30);
+**Drafts checked:** [AER-1 -20](https://datatracker.ietf.org/doc/html/draft-zambo-aer1-20)
+(Independent, intended Informational; checked 2026-10-16; originally compared against -04/-05);
 [AADP bound permits -00](https://datatracker.ietf.org/doc/html/draft-saha-aadp-bound-permit-00)
 (individual Internet-Draft, intended Standards Track; dated 2026-09-29),
 read with its base [AADP -04](https://datatracker.ietf.org/doc/html/draft-saha-aadp-04);
@@ -19,7 +19,7 @@ in [SCRAPI -05](https://datatracker.ietf.org/doc/html/draft-ietf-scitt-scrapi-05
 
 | Work | Object and stated scope | Possible relationship to continuity-receipt | Evidence boundary |
 |---|---|---|---|
-| AER-1 -05 | A portable record of one agent tool execution; §§7–8 add a hash-chained job timeline and a workflow receipt over ordered step receipts. | Fine-grained execution evidence could be referenced by a CR record, if a future digest profile is defined. | Its hash procedure confirms committed bytes and recorded links, not external outcomes or events it did not observe. The checked-in probe is a single live fixture check, not AER-1 conformance. |
+| AER-1 -20 | A portable record of one agent tool execution; §§7–8 add a hash-chained job timeline and a workflow receipt over ordered step receipts; v2 verifier separates SHA-256 commitment checks from provenance/metadata binding and issuer authentication. | Fine-grained execution evidence could be referenced by a CR record, if a future digest profile is defined. | Its hash procedure confirms committed bytes and recorded links, not external outcomes or events it did not observe. The checked-in probe verifies live 0.3 and 0.4 fixtures against v1/v2 endpoints, not full AER-1 conformance. |
 | AADP bound permit -00, with AADP -04 | A short-lived PDP-signed decision permit bound to one recipient, presenter key, HTTP request and action instance; a referenced mandate remains separately evaluated. | A later CR record could refer to a permit that a recipient actually checked. | AADP requires recipient-owned scope/currentness policy. The permit alone does not override recipient policy or establish broader principal identity, adoption, or exactly-once effect. No AADP probe or integration is evidenced here. |
 | SCITT Continuity Receipts -01 | A recovery statement about a stateful artifact registered in a SCITT transparency service; the returned receipt proves registration and log position. | An agent-state recovery could be a separate registration or a CR could carry a SCITT receipt reference after its profile is defined. | A SCITT receipt does not prove recovery occurred, recovered bytes match, or an attestation was verified/favourable. No CR-to-SCITT registration or interoperability is evidenced here. |
 
@@ -29,23 +29,28 @@ The following are related repository surfaces, not interchangeable claims:
 
 | CR surface | Current checked state | What it does not establish |
 |---|---|---|
-| Core protocol and verifier | `SPEC.md` describes published `continuity-receipt/0.5`. The 0.5.0 Python and Rust packages also accept 0.6 verifier behavior; 0.6 is still a development draft with no standalone 0.6 release. See `CAPABILITY_MATRIX.md`. | Package acceptance of a draft version does not make 0.6 normative, an external standard, or interoperable with any draft below. Core `TRUSTED` verifies the disclosed bundle under the implemented CR rules; it is not a general action authorization or proof that issuer claims happened. |
+| Core protocol and verifier | `SPEC.md` describes published `continuity-receipt/0.5`. The 0.5.1 Python and Rust packages also accept 0.6 verifier behavior; 0.6 is still a development draft with no standalone 0.6 release. See `CAPABILITY_MATRIX.md`. | Package acceptance of a draft version does not make 0.6 normative, an external standard, or interoperable with any draft below. Core `TRUSTED` verifies the disclosed bundle under the implemented CR rules; it is not a general action authorization or proof that issuer claims happened. |
 | Local Python consumer assessment | The unsigned `continuity-consumer` profile is separately versioned, local policy assessment for CR 0.1–0.4. It checks configured issuer/spec lists and optional record presence after core verification; it does not fetch or discover evidence. | `ACCEPT` does not authenticate the real-world identity or independent key custody of an issuer, establish execution or freshness, check external revocation, or authorize an action. This is not a cross-host adopter result. |
-| 0.6 authority candidate | `SPEC_0.6_DRAFT.md` and its local candidate vectors cover `authority.grant` as a signed issuer/operator assertion and optional in-bundle linkage. The verifier behavior is present experimentally in the 0.5.0 packages. | The record does not prove that its signer was authorized by the named principal. It is not a recipient-checked AADP permit, policy decision, delegated identity credential, or independent authorization path. The authority-required consumer profile is proposed, not implemented. |
+| 0.6 authority candidate | `SPEC_0.6_DRAFT.md` and its local candidate vectors cover `authority.grant` as a signed issuer/operator assertion and optional in-bundle linkage. The verifier behavior is present experimentally in the 0.5.1 packages. | The record does not prove that its signer was authorized by the named principal. It is not a recipient-checked AADP permit, policy decision, delegated identity credential, or independent authorization path. The authority-required consumer profile is proposed, not implemented. |
 
 Consequently, a crosswalk to AADP describes a possible future composition
 between separate decisions and records. It does not upgrade any of the three
 CR surfaces above or turn CR into an authorization protocol.
 
-## 3. AER-1 -05
+## 3. AER-1 (-04 through -20)
 
-AER-1 -05 defines a small execution receipt with an identifier, creation time,
+AER-1 defines a compact execution receipt with an identifier, creation time,
 tool and caller scope, provenance class, `canonical_bytes`, and an
 `output_hash`. The hash is SHA-256 over the exact UTF-8 bytes represented by
 `canonical_bytes`; the verifier must reproduce those bytes before confirming
 the output commitment. The receipt's bytes/commitment are not the digest of the
 whole AER-1 record. The draft also requires provenance to remain visible and
-says verification cannot turn a report into an observation (§§3–6).
+says verification cannot turn a report into an observation (§§3–6). In
+schema `0.4` (and the `/api/v2/receipt/<id>/verify` endpoint), `issuer_claims`
+(`provenance_class`) are committed inside `canonical_bytes`, and the verifier
+explicitly disaggregates `commitment_matches`, `canonical_payload_matches`,
+`provenance_binding`, `metadata_binding`, `issuer_authentication`, `signature`,
+and `chain`.
 
 Sections 7 and 8 cover, respectively, hash-chained job timelines and workflow
 receipts. Those links can show tampering in the recorded sequence; they do not
@@ -61,19 +66,18 @@ that a third-party service is currently available.
 | `canonical_bytes` / `output_hash` | A CR record's own signed/canonical body and digest | Different objects and digest scopes. AER-1 hashes execution output bytes; it does not define a digest of the whole receipt for use as a CR external reference. |
 | §§7–8 job/workflow links | CR `prev` chain and agreement/lifecycle links | Structures and checks differ; neither implies the other's semantics. |
 
-**Probe bound.** `tools/interop_aer1_probe.py` is labelled against -04 and the
-crosswalk's original dated probe record concerns one live example. Its code
-checks public URL HTTP 200, requested `id`, the `verification_status` string,
+**Probe bound.** `tools/interop_aer1_probe.py` checks public URL HTTP 200,
+requested `id`, commitment verification status (`verified` on schema `0.4` or
+`commitment_matches` on schema `0.3`, plus v2 `checks.commitment_matches`),
 base64 decoding, strict UTF-8, SHA-256 equality against `output_hash`, and
-`canonical_byte_length` only when that extra field is present. The dated
-crosswalk record reports one fixture (`130da435-e157-498e-af90-605866a86a27`)
-whose recomputed output hash matched
-`sha256:0492c18e09059aa2e30ba0864f6aada2ef08475a5b35944cbf2a9ce46d12b9f1`.
-That observation is tied to 2026-09-30 and does not establish current service
-availability. It does not verify a general AER-1 corpus, job-chain or workflow
-receipt, anchor, observed provenance, real-world action, service availability
-over time, or independent implementation. As of this review, upstream is -05;
-this review did not requalify the existing -04-labelled probe against -05. No
+`canonical_byte_length` when present. Re-probed on 2026-10-16 against both the
+original §3 `0.3` fixture (`130da435-e157-498e-af90-605866a86a27`, recomputed
+`sha256:0492c18e09059aa2e30ba0864f6aada2ef08475a5b35944cbf2a9ce46d12b9f1`)
+and the `0.4` fixture (`abe8253b-3fee-4efc-b692-7427394b90b5`, recomputed
+`sha256:5d3b50526385bbee6109b71a9c19a5aa3e0d0f7a36b08557d1a44f5b902c3edc`
+with `provenance_binding: pass` and `metadata_binding: pass` on v2). It does
+not verify a general AER-1 corpus, job-chain or workflow receipt, anchor,
+observed provenance, real-world action, or independent implementation. No
 AER-1 adoption or endorsement is claimed.
 
 ## 4. AADP bound permits -00: recipient scope and currentness
