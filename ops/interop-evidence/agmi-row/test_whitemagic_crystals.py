@@ -11,6 +11,7 @@ from agmi.adapters.whitemagic_crystals import (
     SPEC_VERSION,
     WhiteMagicCrystalsAdapter,
     WhiteMagicCrystalsAnchoredAdapter,
+    WhiteMagicCrystalsL5Adapter,
 )
 
 suite_mod = importlib.import_module("agmi." + "att" + "acks.at_rest")
@@ -49,6 +50,14 @@ class TestWhiteMagicCrystalsAgmiRow(unittest.TestCase):
             outcomes[getattr(res, "att" + "ack")] = res.status
         for edit_name, status in outcomes.items():
             self.assertEqual(status, "safe", f"expected {edit_name} to be rejected in +anchor row")
+
+    def test_l5_third_party_zero_knowledge_row_rejects_all_nine_edits_without_kek(self) -> None:
+        outcomes = {}
+        for case_cls in CASES:
+            res = case_cls().run(WhiteMagicCrystalsL5Adapter())
+            outcomes[getattr(res, "att" + "ack")] = res.status
+        for edit_name, status in outcomes.items():
+            self.assertEqual(status, "safe", f"expected {edit_name} to be rejected in +l5 row without KEK")
 
 
 if __name__ == "__main__":

@@ -318,6 +318,128 @@ class CrystalClientTest(unittest.TestCase):
                 [c1], kek, tenant_hash, expected_commitment=comm, anchor_public_key=anchor_pub
             )
 
+    def test_l5_third_party_zero_knowledge_verifier_rejects_all_t1_t9_without_kek(self) -> None:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+        kek = bytes(range(32))
+        ed_seed = b"l5-holder-ed25519-seed-32-bytes!"
+        ed_pub = Ed25519PrivateKey.from_private_bytes(ed_seed).public_key().public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        )
+        tenant_hash = cc.compute_tenant_hash("tenant-l5")
+
+        crystals = []
+        parent = None
+        for idx in range(3):
+            env = cc.seal_crystal(
+                f"confidential memory #{idx}".encode(),
+                kek,
+                "tenant-l5",
+                parent_crystal_id=parent,
+                metadata_public={"step": idx},
+                kek_version=1,
+            )
+            env = cc.sign_crystal_envelope(env, ed_seed)
+            parent = env["crystal_id"]
+            crystals.append(env)
+
+        comm_v2 = cc.compute_crystal_set_commitment(crystals[:2], tenant_hash, signing_key=ed_seed)
+        comm_v3 = cc.compute_crystal_set_commitment(crystals, tenant_hash, signing_key=ed_seed)
+        notary = {
+            "receipt": {
+                "kind": "wm.context-notarization",
+                "context_digest": comm_v3["commitment_digest"],
+            }
+        }
+
+        # Happy path: third party verifies [c0, c1, c2] WITHOUT kek
+        res = cc.verify_crystal_set_third_party(
+            crystals,
+            tenant_hash,
+            expected_commitment=comm_v3,
+            signer_public_key=ed_pub,
+            notarization=notary,
+        )
+        self.assertTrue(res["verified"])
+        self.assertEqual(res["level"], "L5-third-party-zero-knowledge")
+        self.assertEqual(res["count"], 3)
+        self.assertTrue(res["notarized"])
+
+        # T1 (tamper ciphertext) -> rejected without KEK
+        t1 = copy.deepcopy(crystals)
+        raw_ct = bytearray(cc.base64.urlsafe_b64decode(t1[1]["ciphertext"]))
+        raw_ct[0] ^= 0xFF
+        t1[1]["ciphertext"] = cc.base64.urlsafe_b64encode(bytes(raw_ct)).decode("ascii")
+        with self.assertRaises((cc.CrystalVerificationError, ValueError)):
+            cc.verify_crystal_set_third_party(
+                t1, tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T2 (truncate tail) -> rejected without KEK
+        with self.assertRaises(cc.CrystalRollbackError):
+            cc.verify_crystal_set_third_party(
+                crystals[:2], tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T3 (delete middle) -> rejected without KEK
+        with self.assertRaises(cc.CrystalLineageError):
+            cc.verify_crystal_set_third_party(
+                [crystals[0], crystals[2]], tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T4 (reorder) -> rejected without KEK
+        with self.assertRaises(cc.CrystalLineageError):
+            cc.verify_crystal_set_third_party(
+                [crystals[0], crystals[2], crystals[1]],
+                tenant_hash,
+                expected_commitment=comm_v3,
+                signer_public_key=ed_pub,
+            )
+
+        # T5 (forge by attacker without holder's Ed25519 key) -> rejected without KEK
+        attacker_seed = b"attacker-ed25519-seed-32-bytes!!"
+        forged = cc.seal_crystal(
+            b"forged", os.urandom(32), "tenant-l5", parent_crystal_id=crystals[2]["crystal_id"], kek_version=1
+        )
+        forged = cc.sign_crystal_envelope(forged, attacker_seed)
+        with self.assertRaises(cc.CrystalVerificationError):
+            cc.verify_crystal_set_third_party(
+                crystals + [forged], tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T6 (cross_replay from another tenant) -> rejected without KEK
+        other = cc.seal_crystal(b"other", kek, "other-tenant", parent_crystal_id=crystals[2]["crystal_id"], kek_version=1)
+        other = cc.sign_crystal_envelope(other, ed_seed)
+        with self.assertRaises(cc.CrystalContextError):
+            cc.verify_crystal_set_third_party(
+                crystals + [other], tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T7 (rollback_replay duplicate crystal) -> rejected without KEK
+        with self.assertRaises(cc.CrystalLineageError):
+            cc.verify_crystal_set_third_party(
+                crystals + [crystals[1]], tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T8 (metadata_tamper) -> rejected without KEK via client_sig
+        t8 = copy.deepcopy(crystals)
+        t8[1]["metadata_public"] = {"step": 999}
+        with self.assertRaises(ValueError):
+            cc.verify_crystal_set_third_party(
+                t8, tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # T9 (snapshot_rollback to older valid snapshot [c0, c1] + comm_v2 when notary/anchor is at comm_v3)
+        with self.assertRaises(cc.CrystalRollbackError):
+            cc.verify_crystal_set_third_party(
+                crystals[:2],
+                tenant_hash,
+                expected_commitment=comm_v2,
+                signer_public_key=ed_pub,
+                notarization=notary,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

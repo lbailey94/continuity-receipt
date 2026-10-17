@@ -570,6 +570,141 @@ def verify_and_unseal_crystal_set(
     return plaintexts
 
 
+def verify_crystal_set_third_party(
+    crystals: list[dict[str, Any]],
+    expected_tenant_hash: str,
+    *,
+    expected_commitment: dict[str, Any],
+    signer_public_key: bytes,
+    notarization: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Zero-knowledge third-party verifier (Level L5) for an ordered crystal set.
+
+    Verifies all 9 storage-level integrity properties (T1-T9) WITHOUT the client's
+    32-byte KEK (plaintext remains completely unobservable) and WITHOUT contacting
+    the storage operator:
+      - T1 (tamper): recomputes crystal_id = sha256(id_kek_version_be32 || nonce || ciphertext)
+        and verifies Ed25519 client_sig over canonical envelope bytes.
+      - T2 (truncate), T3 (delete_middle), T4 (reorder), T7 (rollback_replay):
+        verifies unbroken parent_crystal_id DAG from genesis through head_crystal_id,
+        no duplicate IDs, and ordered_crystal_ids_digest match.
+      - T5 (forge): requires every crystal envelope to carry a valid Ed25519 client_sig
+        matching ``signer_public_key``.
+      - T6 (cross_replay): verifies envelope.tenant_hash == expected_tenant_hash.
+      - T8 (metadata_tamper): covered by canonical envelope Ed25519 client_sig.
+      - T9 (snapshot_rollback): verifies Ed25519 signature on ``expected_commitment``
+        (and optional external ``notarization`` receipt binding ``context_digest``).
+    """
+    _require_crypto()
+    if len(signer_public_key) != 32:
+        raise ValueError("signer_public_key must be 32-byte raw Ed25519 public key")
+    expected_pub_hex = signer_public_key.hex().lower()
+
+    if not isinstance(expected_commitment, dict) or expected_commitment.get("kind") != "wm.crystal-set-commitment":
+        raise CrystalRollbackError("invalid or missing crystal-set commitment")
+    sig_obj = expected_commitment.get("sig")
+    if not isinstance(sig_obj, dict):
+        raise CrystalRollbackError("anchor commitment is unsigned")
+    unsigned_comm = {
+        k: v for k, v in expected_commitment.items()
+        if k not in ("sig", "commitment_digest")
+    }
+    canon_comm = json.dumps(unsigned_comm, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    computed_comm_digest = "sha256:" + hashlib.sha256(canon_comm).hexdigest()
+    if expected_commitment.get("commitment_digest") and expected_commitment.get("commitment_digest") != computed_comm_digest:
+        raise CrystalRollbackError("anchor commitment_digest mismatch")
+    try:
+        pub = Ed25519PublicKey.from_public_bytes(signer_public_key)
+        sig_str = str(sig_obj.get("value") or "")
+        raw_sig = base64.urlsafe_b64decode(sig_str + "=" * (-len(sig_str) % 4))
+        pub.verify(raw_sig, canon_comm)
+    except Exception as exc:
+        raise CrystalRollbackError(f"anchor commitment signature invalid: {exc}") from exc
+
+    if expected_commitment.get("tenant_hash") != expected_tenant_hash:
+        raise CrystalContextError("anchor commitment tenant_hash mismatch")
+
+    if notarization is not None:
+        stmt = notarization.get("receipt") or notarization.get("notarization") or notarization
+        if not isinstance(stmt, dict) or stmt.get("kind") != "wm.context-notarization":
+            raise CrystalRollbackError("invalid notarization receipt")
+        if stmt.get("context_digest") != computed_comm_digest:
+            raise CrystalRollbackError(
+                f"notarization context_digest {stmt.get('context_digest')} != commitment {computed_comm_digest}"
+            )
+
+    seen_ids: set[str] = set()
+    for idx, env in enumerate(crystals):
+        if not isinstance(env, dict):
+            raise CrystalVerificationError(f"crystal at index {idx} is not an object")
+        if env.get("tenant_hash") != expected_tenant_hash:
+            raise CrystalContextError(
+                f"cross-context crystal replay at index {idx}: tenant_hash {env.get('tenant_hash')} != {expected_tenant_hash}"
+            )
+        for field in ("crystal_id", "tenant_hash", "cipher", "nonce", "ciphertext", "created_at"):
+            if field not in env:
+                raise CrystalVerificationError(f"malformed envelope at index {idx}: missing field {field!r}")
+
+        env_sig = env.get("client_sig")
+        if not isinstance(env_sig, dict):
+            raise CrystalVerificationError(f"forged or unsigned crystal at index {idx}: missing client_sig")
+        if str(env_sig.get("public_key") or "").lower() != expected_pub_hex:
+            raise CrystalVerificationError(
+                f"crystal at index {idx} signed by unexpected key {env_sig.get('public_key')}"
+            )
+        verify_crystal_client_sig(env)
+
+        nonce = base64.urlsafe_b64decode(env["nonce"])
+        ciphertext = base64.urlsafe_b64decode(env["ciphertext"])
+        kek_version = env.get("kek_version")
+        id_kek_version = env.get("id_kek_version", kek_version)
+        expected_id = compute_crystal_id(ciphertext, nonce=nonce, id_kek_version=id_kek_version)
+        cid = str(env["crystal_id"]).lower()
+        if cid != expected_id.lower():
+            raise CrystalVerificationError(
+                f"crystal content-address verification failed at index {idx}: {cid} != {expected_id}"
+            )
+        if cid in seen_ids:
+            raise CrystalLineageError(f"duplicate crystal_id at index {idx}: {cid}")
+        seen_ids.add(cid)
+
+        parent = env.get("parent_crystal_id")
+        if idx == 0:
+            if parent is not None:
+                raise CrystalLineageError(f"genesis crystal at index 0 has non-null parent_crystal_id: {parent}")
+        else:
+            prev_id = str(crystals[idx - 1]["crystal_id"]).lower()
+            if str(parent or "").lower() != prev_id:
+                raise CrystalLineageError(
+                    f"lineage link broken at index {idx}: parent_crystal_id {parent} != previous {prev_id}"
+                )
+
+    exp_count = int(expected_commitment.get("count", 0))
+    if len(crystals) < exp_count:
+        raise CrystalRollbackError(
+            f"store rollback or truncation detected: store has {len(crystals)} crystals, anchor committed to {exp_count}"
+        )
+    prefix_ids = [str(c["crystal_id"]).lower() for c in crystals[:exp_count]]
+    actual_digest = "sha256:" + hashlib.sha256("\n".join(prefix_ids).encode("utf-8")).hexdigest()
+    exp_head = expected_commitment.get("head_crystal_id")
+    actual_head = prefix_ids[-1] if prefix_ids else None
+    if (exp_head or None) != actual_head:
+        raise CrystalRollbackError(f"anchored head mismatch: expected {exp_head}, found {actual_head}")
+    if expected_commitment.get("ordered_crystal_ids_digest") != actual_digest:
+        raise CrystalRollbackError("ordered_crystal_ids_digest mismatch against anchor commitment")
+
+    return {
+        "verified": True,
+        "level": "L5-third-party-zero-knowledge",
+        "count": len(crystals),
+        "head_crystal_id": actual_head,
+        "tenant_hash": expected_tenant_hash,
+        "signer_public_key": expected_pub_hex,
+        "commitment_digest": computed_comm_digest,
+        "notarized": notarization is not None,
+    }
+
+
 def rotate_crystal_kek(
     crystal_envelope: dict[str, Any],
     old_kek: bytes,

@@ -177,6 +177,7 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
             cipher="chacha20-poly1305",
             kek_version=1,
         )
+        env = self._cc.sign_crystal_envelope(env, ANCHOR_PRIV_BYTES)
         entries.append({"key": slot_key, "value": val, "env": env})
         self._save_entries(ctx, entries)
         self._save_high_water_anchor(ctx, entries)
@@ -337,3 +338,35 @@ class WhiteMagicCrystalsAnchoredAdapter(WhiteMagicCrystalsAdapter):
 
     name = "whitemagic-crystals+anchor"
     anchor_off_store = True
+
+
+class WhiteMagicCrystalsL5Adapter(WhiteMagicCrystalsAnchoredAdapter):
+    """Level L5 third-party zero-knowledge verifier: verifies the crystal chain and off-store commitment without the client KEK."""
+
+    name = "whitemagic-crystals+l5"
+    anchor_off_store = True
+
+    def verify(self) -> bool:
+        self.verify_detail = None
+        entries = self._load_entries(CTX)
+        envelopes = [e["env"] for e in entries]
+        apath = self._anchor_path(CTX)
+        comm = json.loads(apath.read_text(encoding="utf-8")) if apath.is_file() else None
+        try:
+            if comm is None:
+                raise ValueError("missing off-store commitment")
+            self._cc.verify_crystal_set_third_party(
+                envelopes,
+                self._tenant_hash(CTX),
+                expected_commitment=comm,
+                signer_public_key=ANCHOR_PUB_BYTES,
+            )
+            for idx, entry in enumerate(entries):
+                slot_claim = (entry["env"].get("metadata_public") or {}).get("slot")
+                if slot_claim != entry["key"]:
+                    raise ValueError(f"slot binding mismatch at index {idx}: {slot_claim!r} != {entry['key']!r}")
+        except (ValueError, InvalidTag) as exc:
+            self.verify_detail = f"{type(exc).__name__}: {exc}"[:200]
+            return False
+        self.verify_detail = f"verified {len(envelopes)} crystals third-party zero-knowledge (no KEK) ok"
+        return True
