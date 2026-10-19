@@ -279,12 +279,50 @@ class CrystalClientTest(unittest.TestCase):
             cc.unseal_crystal(rotated, kek_v1)
         self.assertEqual(cc.unseal_crystal(rotated, kek_v2), plaintext)
 
-        # I2/I3: destroying the wrapped DEK renders the crystal permanently undecryptable
+        # I2/I3: scrubbing the wrapped DEK renders the scrubbed envelope copy undecryptable
         erased = cc.destroy_crystal_dek(rotated)
         self.assertIsNone(erased["wrapped_dek"])
         self.assertTrue(erased["dek_destroyed"])
-        with self.assertRaisesRegex(ValueError, "cryptographically destroyed"):
+        with self.assertRaisesRegex(ValueError, "scrubbed from this envelope"):
             cc.unseal_crystal(erased, kek_v2)
+        # Scope check (C2): a retained pre-scrub envelope copy remains decryptable if KEK is retained
+        self.assertEqual(cc.unseal_crystal(rotated, kek_v2), plaintext)
+
+    def test_c5_signed_kek_rotation_requires_signer_key_and_resigns_atomically(self) -> None:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+        kek_v1 = bytes(range(32))
+        kek_v2 = bytes(reversed(range(32)))
+        ed_seed = b"c5-holder-ed25519-seed-32-bytes!"
+        wrong_seed = b"c5-wrong!-ed25519-seed-32-bytes!"
+        ed_pub = Ed25519PrivateKey.from_private_bytes(ed_seed).public_key().public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        )
+        tenant_hash = cc.compute_tenant_hash("tenant-c5")
+
+        env = cc.seal_crystal(b"signed rotatable payload", kek_v1, "tenant-c5", kek_version=1)
+        signed_env = cc.sign_crystal_envelope(env, ed_seed)
+
+        # Rotating a signed envelope without ed25519_private_key must fail closed
+        with self.assertRaisesRegex(ValueError, "requires ed25519_private_key"):
+            cc.rotate_crystal_kek(signed_env, kek_v1, kek_v2, 2)
+
+        # Rotating with a mismatched Ed25519 private key must fail closed
+        with self.assertRaisesRegex(ValueError, "does not match existing envelope"):
+            cc.rotate_crystal_kek(signed_env, kek_v1, kek_v2, 2, ed25519_private_key=wrong_seed)
+
+        # Rotating with the matching Ed25519 private key re-signs atomically and verifies cleanly
+        rotated_signed = cc.rotate_crystal_kek(signed_env, kek_v1, kek_v2, 2, ed25519_private_key=ed_seed)
+        self.assertEqual(rotated_signed["crystal_id"], signed_env["crystal_id"])
+        self.assertEqual(rotated_signed["kek_version"], 2)
+        self.assertEqual(cc.unseal_crystal(rotated_signed, kek_v2), b"signed rotatable payload")
+
+        comm = cc.compute_crystal_set_commitment([rotated_signed], tenant_hash, signing_key=ed_seed)
+        res = cc.verify_crystal_set_third_party(
+            [rotated_signed], tenant_hash, expected_commitment=comm, signer_public_key=ed_pub
+        )
+        self.assertTrue(res["verified"])
 
     def test_i4_i6_client_sig_and_set_commitment_read_path(self) -> None:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -303,12 +341,45 @@ class CrystalClientTest(unittest.TestCase):
         c2 = cc.seal_crystal(b"step 2", kek, "tenant-i6", parent_crystal_id=c1["crystal_id"], kek_version=1)
         c2 = cc.sign_crystal_envelope(c2, ed_seed, pq_alg="ml-dsa-65", pq_public_key_b64="cHFfcHVi", pq_sig_b64="cHFfc2ln")
 
-        self.assertTrue(cc.verify_crystal_client_sig(c1))
-        self.assertTrue(cc.verify_crystal_client_sig(c2, pq_verifier=lambda pub, msg, sig: sig == "cHFfc2ln"))
+        # An external PQ pin is a required profile policy, even if an attacker
+        # rewrites the unsigned signature metadata to claim Ed25519 only.
+        downgraded = copy.deepcopy(c2)
+        downgraded["client_sig"] = {"alg": "ed25519", **{
+            k: v for k, v in downgraded["client_sig"].items() if k in ("public_key", "value")
+        }}
+        with self.assertRaisesRegex(cc.CrystalVerificationError, "required hybrid"):
+            cc.verify_crystal_set_third_party(
+                [downgraded], tenant_hash, expected_commitment=cc.compute_crystal_set_commitment([downgraded], tenant_hash, signing_key=anchor_seed),
+                signer_public_key=anchor_pub, expected_pq_public_key="cHFfcHVi",
+                pq_verifier=lambda pub, msg, sig: True,
+            )
 
-        comm = cc.compute_crystal_set_commitment([c1, c2], tenant_hash, signing_key=anchor_seed)
+        self.assertTrue(cc.verify_crystal_client_sig(c1))
+        # Fail-closed check (C1): hybrid profile without pq_verifier must raise ValueError
+        with self.assertRaisesRegex(ValueError, "requires an explicit pq_verifier"):
+            cc.verify_crystal_client_sig(c2)
+        self.assertTrue(cc.verify_crystal_client_sig(c2, pq_verifier=lambda pub, msg, sig: sig == "cHFfc2ln"))
+        verifier_calls = []
+        def original_only_verifier(public_key, message, signature):
+            verifier_calls.append(signature)
+            return signature == "cHFfc2ln"
+        with self.assertRaisesRegex(ValueError, "hybrid KEK rotation is unsupported"):
+            cc.rotate_crystal_kek(c2, kek, bytes(reversed(kek)), 2, ed25519_private_key=ed_seed,
+                                  pq_alg="ml-dsa-65", pq_public_key_b64="cHFfcHVi",
+                                  pq_sig_b64="invalid-new-signature",
+                                  pq_verifier=original_only_verifier)
+        # The supplied new signature is never emitted or accepted. Rotation is
+        # refused before a hybrid result can silently downgrade or go unverified.
+        self.assertEqual(verifier_calls, ["cHFfc2ln"])
+
+        # Use standard Ed25519 on c2 for standard read-path unseal without custom pq_verifier
+        c2_ed = cc.sign_crystal_envelope(
+            cc.seal_crystal(b"step 2", kek, "tenant-i6", parent_crystal_id=c1["crystal_id"], kek_version=1),
+            ed_seed,
+        )
+        comm = cc.compute_crystal_set_commitment([c1, c2_ed], tenant_hash, signing_key=anchor_seed)
         pts = cc.verify_and_unseal_crystal_set(
-            [c1, c2], kek, tenant_hash, expected_commitment=comm, anchor_public_key=anchor_pub
+            [c1, c2_ed], kek, tenant_hash, expected_commitment=comm, anchor_public_key=anchor_pub
         )
         self.assertEqual(pts, [b"step 1", b"step 2"])
 
@@ -325,6 +396,10 @@ class CrystalClientTest(unittest.TestCase):
         kek = bytes(range(32))
         ed_seed = b"l5-holder-ed25519-seed-32-bytes!"
         ed_pub = Ed25519PrivateKey.from_private_bytes(ed_seed).public_key().public_bytes(
+            Encoding.Raw, PublicFormat.Raw
+        )
+        notary_seed = b"l5-notary-ed25519-seed-32-bytes!"
+        notary_pub = Ed25519PrivateKey.from_private_bytes(notary_seed).public_key().public_bytes(
             Encoding.Raw, PublicFormat.Raw
         )
         tenant_hash = cc.compute_tenant_hash("tenant-l5")
@@ -346,25 +421,91 @@ class CrystalClientTest(unittest.TestCase):
 
         comm_v2 = cc.compute_crystal_set_commitment(crystals[:2], tenant_hash, signing_key=ed_seed)
         comm_v3 = cc.compute_crystal_set_commitment(crystals, tenant_hash, signing_key=ed_seed)
-        notary = {
-            "receipt": {
-                "kind": "wm.context-notarization",
-                "context_digest": comm_v3["commitment_digest"],
-            }
-        }
+        signed_notarization = cc.sign_context_notarization(
+            comm_v3["commitment_digest"], notary_seed, highwater_count=3
+        )
+        notary = {"receipt": signed_notarization}
 
-        # Happy path: third party verifies [c0, c1, c2] WITHOUT kek
+        # Happy path: third party verifies [c0, c1, c2] WITHOUT kek using trusted notary_public_key
         res = cc.verify_crystal_set_third_party(
             crystals,
             tenant_hash,
             expected_commitment=comm_v3,
             signer_public_key=ed_pub,
             notarization=notary,
+            notary_public_key=notary_pub,
         )
         self.assertTrue(res["verified"])
         self.assertEqual(res["level"], "L5-third-party-zero-knowledge")
         self.assertEqual(res["count"], 3)
         self.assertTrue(res["notarized"])
+
+        bool_version_notary = copy.deepcopy(notary)
+        bool_version_notary["receipt"]["version"] = True
+        with self.assertRaisesRegex(cc.CrystalVerificationError, "unsupported notarization version"):
+            cc.verify_crystal_set_third_party(
+                crystals, tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub,
+                notarization=bool_version_notary, notary_public_key=notary_pub,
+            )
+
+        conflicting_descriptors = copy.deepcopy(notary)
+        other_seed = b"other-l5-notary-seed-32-bytes!!!"
+        other_pub = Ed25519PrivateKey.from_private_bytes(other_seed).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+        alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        encoded = b"\xed\x01" + other_pub
+        number = int.from_bytes(encoded, "big")
+        did_suffix = ""
+        while number:
+            number, rem = divmod(number, 58)
+            did_suffix = alphabet[rem] + did_suffix
+        leading_zeros = len(encoded) - len(encoded.lstrip(b"\0"))
+        other_did = "did:key:z" + "1" * leading_zeros + did_suffix
+        conflicting_descriptors["receipt"]["sig"]["key"] = other_did
+        with self.assertRaisesRegex(cc.CrystalVerificationError, "does not match trusted"):
+            cc.verify_crystal_set_third_party(
+                crystals, tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub,
+                notarization=conflicting_descriptors, notary_public_key=notary_pub,
+            )
+
+        # C1 negative probe: replacing Ed25519 client_sig with alg="ml-dsa-65" + garbage pq_sig + tampered metadata MUST fail
+        c1_bypass = copy.deepcopy(crystals)
+        c1_bypass[1]["metadata_public"] = {"step": 999999, "tampered": True}
+        c1_bypass[1]["client_sig"] = {
+            "alg": "ml-dsa-65",
+            "public_key": ed_pub.hex(),
+            "pq_public_key": "garbage",
+            "pq_sig": "not-verified-at-all",
+        }
+        with self.assertRaises(cc.CrystalVerificationError):
+            cc.verify_crystal_set_third_party(
+                c1_bypass, tenant_hash, expected_commitment=comm_v3, signer_public_key=ed_pub
+            )
+
+        # C3 negative probe: unsigned two-field notarization dict MUST fail
+        unsigned_notary = {
+            "receipt": {
+                "kind": "wm.context-notarization",
+                "context_digest": comm_v3["commitment_digest"],
+            }
+        }
+        with self.assertRaises(cc.CrystalVerificationError):
+            cc.verify_crystal_set_third_party(
+                crystals,
+                tenant_hash,
+                expected_commitment=comm_v3,
+                signer_public_key=ed_pub,
+                notarization=unsigned_notary,
+                notary_public_key=notary_pub,
+            )
+        # Omitting notary_public_key when notarization is supplied MUST fail closed
+        with self.assertRaises(cc.CrystalVerificationError):
+            cc.verify_crystal_set_third_party(
+                crystals,
+                tenant_hash,
+                expected_commitment=comm_v3,
+                signer_public_key=ed_pub,
+                notarization=notary,
+            )
 
         # T1 (tamper ciphertext) -> rejected without KEK
         t1 = copy.deepcopy(crystals)
@@ -438,6 +579,7 @@ class CrystalClientTest(unittest.TestCase):
                 expected_commitment=comm_v2,
                 signer_public_key=ed_pub,
                 notarization=notary,
+                notary_public_key=notary_pub,
             )
 
 
