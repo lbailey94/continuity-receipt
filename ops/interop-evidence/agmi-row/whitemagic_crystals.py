@@ -29,7 +29,7 @@ content-addressed, lineage-chained memory store for agents.
    AAD (`cipher|tenant_hash|parent_crystal_id|created_at|metadata_public`).
 
 5. What is pinned?
-   `crystal_client.py` from `lbailey94/whitemagic` (`WMv10` @ `880b31b`),
+   `crystal_client.py` from `lbailey94/whitemagic` (`WMv10` @ `0fe89e3`),
    Python 3.12 + `cryptography`. Two configurations:
      - `whitemagic-crystals`: commitment stored inside `store-<ctx>/` on the
        same disk.
@@ -56,7 +56,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from agmi.adapters.base import MemoryAdapter, Record
 
-PIN = "880b31b"
+PIN = "0fe89e3"
 SPEC_VERSION = "wm-crystal/1.0"
 CTX, OTHER = "a", "b"
 STORE_FILE = "crystals.json"
@@ -74,12 +74,31 @@ ANCHOR_PUB_BYTES = (
 )
 
 
+CRYSTAL_CLIENT_ENV = "AGMI_WHITEMAGIC_CRYSTAL_CLIENT"
+
+
+def _crystal_client_path() -> Path | None:
+    """Locate the pinned crystal_client.py.
+
+    The row needs a checkout of lbailey94/whitemagic (WMv10/scripts). It is not
+    on a package index, so, as the Recallspection and HDP rows do, the suite
+    skips the row unless the checkout is named in the environment.
+    """
+    named = os.environ.get(CRYSTAL_CLIENT_ENV)
+    if not named:
+        return None
+    p = Path(named).expanduser().resolve()
+    return p if p.is_file() else None
+
+
 def _load_crystal_client():
-    default_path = "/home/lucas/Desktop/front burner/WHITEMAGIC/WMv10/scripts/crystal_client.py"
-    client_path = os.environ.get("AGMI_WHITEMAGIC_CRYSTAL_CLIENT", default_path)
-    p = Path(client_path).expanduser().resolve()
-    if not p.is_file():
-        raise RuntimeError(f"crystal_client.py not found at {p}")
+    p = _crystal_client_path()
+    if p is None:
+        raise RuntimeError(
+            "crystal_client.py not found: set "
+            f"{CRYSTAL_CLIENT_ENV} to WMv10/scripts/crystal_client.py from "
+            "github.com/lbailey94/whitemagic at the pinned commit"
+        )
     spec = importlib.util.spec_from_file_location("wm_crystal_client", p)
     mod = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
