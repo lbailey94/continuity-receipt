@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import datetime as dt
 import importlib.util
 import json
 import os
@@ -59,6 +60,7 @@ PIN = "880b31b"
 SPEC_VERSION = "wm-crystal/1.0"
 CTX, OTHER = "a", "b"
 STORE_FILE = "crystals.json"
+ERASURES_FILE = "erasures.json"
 ANCHOR_FILE = "commitment.json"
 SEED_TOKEN = "agmi-seed-"
 OTHER_TOKEN = "agmi-other-"
@@ -92,6 +94,7 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
     supports_replay = True
     supports_metadata = True
     supports_snapshot = True
+    supports_erase = True
     detection_point = "read"
 
     anchor_off_store = False
@@ -116,6 +119,11 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
         if self.anchor_off_store:
             return self._root / "offstore-anchors" / f"{ctx}-{ANCHOR_FILE}"
         return self._dir(ctx) / ANCHOR_FILE
+
+    def _erasures_path(self, ctx: str) -> Path:
+        # The erasure list is part of the store: it rolls back with the store,
+        # which is exactly why the *anchor* has to commit to it.
+        return self._dir(ctx) / ERASURES_FILE
 
     def _tenant_hash(self, ctx: str) -> str:
         return self._cc.compute_tenant_hash(f"tenant-{ctx}")
@@ -145,21 +153,37 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
             json.dumps(entries, indent=2, sort_keys=True), encoding="utf-8"
         )
 
-    def _save_high_water_anchor(self, ctx: str, entries: list[dict]) -> None:
+    def _load_erasures(self, ctx: str) -> list[dict]:
+        p = self._erasures_path(ctx)
+        if not p.is_file():
+            return []
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    def _save_erasures(self, ctx: str, erasures: list[dict]) -> None:
+        self._erasures_path(ctx).write_text(
+            json.dumps(erasures, indent=2, sort_keys=True), encoding="utf-8"
+        )
+
+    def _save_anchor(self, ctx: str, entries: list[dict]) -> None:
+        """Rewrite the set commitment over the store *and* its erasure list.
+
+        Deliberately not a high-water mark. A count that only grows catches T9
+        (append then roll back) but not T10: erasure lowers the count, so a
+        restored pre-erasure copy is a superset of the anchor and passes. The
+        commitment therefore carries ``erasure_count``, an
+        ``erased_crystal_ids_digest`` and a ``revision`` that increases on every
+        add and every erase. Where the anchor lives then decides the outcome:
+        inside the store it rolls back with the copy (T10 served), outside it it
+        does not (T10 refused).
+        """
         apath = self._anchor_path(ctx)
         envelopes = [e["env"] for e in entries]
-        if apath.is_file():
-            try:
-                cur = json.loads(apath.read_text(encoding="utf-8"))
-                if int(cur.get("count", 0)) > len(envelopes):
-                    return
-            except Exception:
-                pass
         apath.parent.mkdir(parents=True, exist_ok=True)
         comm = self._cc.compute_crystal_set_commitment(
             envelopes,
             self._tenant_hash(ctx),
             signing_key=ANCHOR_PRIV_BYTES,
+            erasures=self._load_erasures(ctx),
         )
         apath.write_text(json.dumps(comm, indent=2, sort_keys=True), encoding="utf-8")
 
@@ -180,7 +204,7 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
         env = self._cc.sign_crystal_envelope(env, ANCHOR_PRIV_BYTES)
         entries.append({"key": slot_key, "value": val, "env": env})
         self._save_entries(ctx, entries)
-        self._save_high_water_anchor(ctx, entries)
+        self._save_anchor(ctx, entries)
 
     def seed(self, n: int) -> None:
         for i in range(n):
@@ -193,6 +217,31 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
     def append_genuine(self) -> None:
         n = len(self._load_entries(CTX))
         self._append_one(CTX, SEED_TOKEN, n)
+
+    def erase_genuine(self) -> list[str]:
+        """Erase the newest crystal through the tool's own erasure path.
+
+        The tail is erased so the remaining lineage DAG stays valid without
+        rewriting any untouched record (the attack checks exactly that). The
+        erasure writes a tombstone to the erasure list and rewrites the set
+        commitment — the state T10 then tries to undo.
+        """
+        entries = self._load_entries(CTX)
+        if not entries:
+            raise RuntimeError("no crystal to erase")
+        victim = entries.pop()
+        cid = str(victim["env"]["crystal_id"]).lower()
+        erasures = self._load_erasures(CTX)
+        erasures.append({
+            "crystal_id": cid,
+            "slot": victim["key"],
+            "erased_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "class": "access_control_and_ciphertext_purge",
+        })
+        self._save_entries(CTX, entries)
+        self._save_erasures(CTX, erasures)
+        self._save_anchor(CTX, entries)
+        return [victim["key"]]
 
     def _records(self, ctx: str) -> list[Record]:
         entries = self._load_entries(ctx)
@@ -319,6 +368,7 @@ class WhiteMagicCrystalsAdapter(MemoryAdapter):
                 self._tenant_hash(CTX),
                 expected_commitment=comm,
                 anchor_public_key=ANCHOR_PUB_BYTES,
+                erasures=self._load_erasures(CTX),
             )
             for idx, (entry, pt_bytes) in enumerate(zip(entries, plaintexts)):
                 slot_claim = (entry["env"].get("metadata_public") or {}).get("slot")
@@ -360,6 +410,7 @@ class WhiteMagicCrystalsL5Adapter(WhiteMagicCrystalsAnchoredAdapter):
                 self._tenant_hash(CTX),
                 expected_commitment=comm,
                 signer_public_key=ANCHOR_PUB_BYTES,
+                erasures=self._load_erasures(CTX),
             )
             for idx, entry in enumerate(entries):
                 slot_claim = (entry["env"].get("metadata_public") or {}).get("slot")

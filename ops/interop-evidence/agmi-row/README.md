@@ -1,8 +1,43 @@
 # agmi Row Submission Packet — WhiteMagic Memory Crystals (`wm-crystal/1.0`)
 
-**Rows measured:**
-1. `whitemagic-crystals` (default: high-water set commitment stored beside the crystal store on the same disk) — **8/9 rejected on read path (Level L3)**
-2. `whitemagic-crystals+anchor` (high-water set commitment anchored off the store directory) — **9/9 rejected on read path (Level L4)**
+**Rows measured (ten edits, including T10 erasure resurrection):**
+
+| Row | Anchor location | Anchor content | Read-path verdicts |
+|---|---|---|---|
+| `whitemagic-crystals` | inside `store-<ctx>/` | erasure-aware | 8/10 rejected (T9, T10 served) |
+| `whitemagic-crystals+anchor` | outside the store | erasure-aware | **10/10 rejected** |
+| `whitemagic-crystals+l5` | outside the store | erasure-aware | **10/10 rejected without the KEK** |
+
+Measured 2026-10-22 against agmi `cee8a66` (ten edits, `AT_REST_ATTACKS_WITH_ERASE`),
+`crystal_client` `wm-crystal/1.0` with the erasure-aware commitment below.
+
+## Two variables, held apart
+
+The row separates two independent things, which the earlier nine-edit run
+conflated:
+
+1. **Anchor location** separates T9. A commitment inside the store rolls back
+   with a restored copy; one outside it does not.
+2. **Anchor content** separates T10. A high-water count alone cannot catch an
+   erased record coming back: erasure *lowers* the count, so a restored
+   pre-erasure copy is a superset of what the anchor recorded and passes a
+   `len(store) >= count` check.
+
+Counterfactual, same store and same off-store anchor location, changing only
+the commitment content:
+
+```text
+old high-water commitment    snapshot_rollback  -> safe
+old high-water commitment    erase_resurrect    -> VULNERABLE
+erasure-aware commitment     snapshot_rollback  -> safe
+erasure-aware commitment     erase_resurrect    -> safe
+```
+
+The erasure-aware commitment binds `erasure_count`,
+`erased_crystal_ids_digest` and `revision = len(cells) + len(erasures)`, which
+strictly increases on every add *and* every erase. The erasure list itself
+stays in the store and rolls back with it; only the off-store anchor makes the
+difference visible.
 
 ---
 
@@ -43,6 +78,7 @@ cross_replay         safe        detected on reload (CrystalContextError: cross-
 rollback_replay      safe        detected on reload (CrystalLineageError: duplicate crystal_id at index 4: sha256:b508c022a
 metadata_tamper      safe        detected on reload (InvalidTag: )
 snapshot_rollback    VULNERABLE  the older copy opened as current; the newest genuine record is gone without an error
+erase_resurrect      VULNERABLE  the restored copy opened as current; the record the store had erased is served again
 ```
 
 ### `whitemagic-crystals+anchor` (Commitment Anchored Off-Store)
@@ -56,4 +92,5 @@ cross_replay         safe        detected on reload (CrystalContextError: cross-
 rollback_replay      safe        detected on reload (CrystalLineageError: duplicate crystal_id at index 4: sha256:b1dd7b7c0
 metadata_tamper      safe        detected on reload (InvalidTag: )
 snapshot_rollback    safe        the store noticed it was older than its last committed state (CrystalRollbackError: store 
+erase_resurrect      safe        the store noticed that a record it had erased was back (CrystalRollbackError: erasure_count
 ```
