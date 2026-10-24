@@ -30,8 +30,9 @@ WhiteMagic **Memory Crystals (`wm-crystal/1.0`)** implement that non-custodial c
 
 ## 3. Measured Conformance Evidence (`I7` & `I8`)
 
-1. **`agmi` Nine-Edit Storage Integrity Matrix (`ops/interop-evidence/agmi-row/`):**
-   - `whitemagic-crystals` (default local commitment): **8/9 rejected on read path (Level L3)**.
-   - `whitemagic-crystals+anchor` (off-store commitment): **9/9 rejected on read path (Level L4)**, catching `T9` whole-store snapshot rollback via `CrystalRollbackError`.
+1. **`agmi` Ten-Edit Storage Integrity Matrix (`ops/interop-evidence/agmi-row/`, re-measured 2026-10-22 against agmi `cee8a66`):**
+   - `whitemagic-crystals` (commitment inside the store): **8/10 rejected on read path**; `T9` whole-store rollback and `T10` erasure resurrection are both served.
+   - `whitemagic-crystals+anchor` (commitment outside the store): **10/10 rejected on read path**, catching `T9` via `CrystalRollbackError` and `T10` via the erasure binding (`erasure_count` / `erased_crystal_ids_digest` / `revision`).
+   - Counterfactual: an off-store anchor carrying only a high-water *count* refuses `T9` and still serves `T10`. Anchor location and anchor content are separate variables; the erasure case needs a commitment that observes erasure, not one that only grows.
 2. **`probity` `anchored-record-chain/v1` External Verifier Harness (`ops/interop-evidence/anchored-chain-conformance-report-2026-10-15.json`):**
    - `tools/verify_anchored_chain.py` executed via the external rail: **14/14 cases conformant, 0 disagreements, 0 suite refusals**.
