@@ -4,8 +4,8 @@
 
 SCITT Working Group                                            L. Bailey
 Internet-Draft                                           WhiteMagic Labs
-Intended status: Informational                          15 October 2026
-Expires: 18 April 2027
+Intended status: Informational                          25 October 2026
+Expires: 28 April 2027
 
 
        Causal Provenance Receipts for Agent Sessions: A SCITT Profile
@@ -19,15 +19,15 @@ Abstract
    governed tool dispatch, state transitions, termination, and
    settlement) to offline-verifiable cryptographic evidence, with an
    explicit head commitment that detects local hash-chain truncation and
-   whole-store rollback.  It reuses the SCITT architecture (RFC 9943)
-   and COSE receipt envelope (RFC 9942): the Causal Provenance Receipt
-   (CPR) bundle is the signed statement payload, and registration with a
-   Transparency Service is optional and explicitly disclosed.  This
-   profile addresses the session-lifecycle and resumption-evidence grain
-   rather than isolated per-action telemetry, while preserving bounded
-   verifier semantics: a verifier checks cryptographic signatures,
-   canonical digests, chain links, and external anchors; it does not
-   prove that unallegeable physical events occurred.
+   whole-store rollback.  It reuses the SCITT architecture and COSE
+   receipt envelope: the Causal Provenance Receipt (CPR) bundle is the
+   signed statement payload, and registration with a Transparency
+   Service is optional and explicitly disclosed.  This profile addresses
+   the session-lifecycle and resumption-evidence grain rather than
+   isolated per-action telemetry, while preserving bounded verifier
+   semantics: a verifier checks cryptographic signatures, canonical
+   digests, chain links, and external anchors; it does not prove that
+   unallegeable physical events occurred.
 
 Status of This Memo
 
@@ -44,7 +44,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 April 2027.
+   This Internet-Draft will expire on 28 April 2027.
 
 Copyright Notice
 
@@ -82,10 +82,10 @@ Table of Contents
 1.  Introduction
 
    Autonomous AI agents execute work across sessions that span context-
-   window resets, process restarts, sandboxed tool executions, and cross-
-   agent handoffs.  While individual per-action telemetry formats attest
-   that a single tool call or action capsule was signed, a relying party
-   or resuming agent faces a distinct lifecycle question:
+   window resets, process restarts, sandboxed tool executions, and
+   cross-agent handoffs.  While individual per-action telemetry formats
+   attest that a single tool call or action capsule was signed, a
+   relying party or resuming agent faces a distinct lifecycle question:
 
    *  Is the session state being resumed the complete, un-truncated
       continuation of the prior session, or has the underlying store
@@ -117,15 +117,16 @@ Table of Contents
 
    Session Bundle:
       An ordered sequence of receipts ("task.decision",
-      "authority.grant", "tool.execution", "artifact.delivery",
-      "task.termination", "task.settlement") sharing a "task_id" and
-      linked by SHA-256 predecessor digests ("prev").
+      "authority.grant", "task.execution", "delivery.attestation",
+      "task.termination", "settlement") sharing a "task_id" and linked
+      by SHA-256 predecessor digests ("prev").
 
    Head Commitment ("chain_head"):
-      A signed commitment to the final sequence number, receipt digest,
-      and ordered record count of a session or memory store export,
-      enabling detection of tail truncation and snapshot rollback when
-      paired with an off-store anchor or SCITT Transparency Service
+      A commitment object binding the final sequence number ("seq"),
+      final receipt identifier ("receipt_id"), and canonical receipt
+      digest ("digest") of a session or memory store export, enabling
+      detection of tail truncation and snapshot rollback when paired
+      with an off-store anchor or SCITT Transparency Service
       registration.
 
 3.  Position in the Agent-Evidence Landscape
@@ -172,13 +173,14 @@ Table of Contents
 
    *  "chain_head" (REQUIRED for the head-committed consumer profile in
       Section 8): Object binding "seq" (final receipt index),
-      "head_digest" ("sha256:<64-hex>" of the final receipt), and
-      optional external anchor or SCITT registration receipt references.
+      "receipt_id" (final receipt identifier), "digest"
+      ("sha256:<64-hex>" of the final receipt), and optional external
+      anchor or SCITT registration receipt references.
 
-   When wrapped as a SCITT Signed Statement [RFC9943], the JCS-canonical
-   bytes of the CPR bundle (or individual session/state-transition
-   receipt) form the COSE_Sign1 payload, with the issuer's verification
-   key identified in the protected header.
+   When wrapped as a SCITT Signed Statement [RFC9943] encoded in CBOR
+   [RFC8949], the JCS-canonical bytes of the CPR bundle (or individual
+   session/state-transition receipt) form the COSE_Sign1 payload, with
+   the issuer's verification key identified in the protected header.
 
 5.  Verdict Vocabulary and Error Classes
 
@@ -232,8 +234,9 @@ Table of Contents
    bundles without network access using the embedded signatures and
    detached anchor proofs.  When a bundle or "chain_head" is registered
    with a SCITT Transparency Service, the returned COSE receipt
-   [RFC9942] is attached under the bundle's "anchors" array with
-   "type": "scitt.cose_receipt".
+   [RFC9942] is attached under the bundle's "anchors" array using the
+   SCITT profile extension "type": "scitt.cose_receipt" (or "custom" in
+   strict 0.5 validators).
 
 8.  Consumer Profiles
 
@@ -265,26 +268,28 @@ Table of Contents
 
    *  Independent Language Verifiers: Three complete verifier
       implementations exist in Python ("continuity-receipt" 0.5.1 on
-      PyPI, 149 tests), Rust ("continuity-receipt" 0.5.1 on crates.io,
-      44 tests), and JavaScript ("continuity-receipt" 0.1.1 on npm, 130
-      tests), with 40/40 differential parity across the shared bundle
-      corpus and 21 verification-receipt vectors.
+      PyPI), Rust ("continuity-receipt" 0.5.1 on crates.io), and
+      JavaScript ("continuity-receipt" 0.1.1 on npm), validated across
+      80 canonical JSON vector fixtures (including 27 verification-
+      receipt vectors) with 100% differential verdict parity across all
+      three engines on the shared conformance corpus.
 
    *  External Anchored-Chain Conformance: Evaluated against the 14-case
       "anchored-record-chain/v1" corpus ("probityai/agent-evidence-
       vectors"), achieving 14/14 conformance with 0 disagreements on the
       external verifier rail.
 
-   *  Storage-Edit Integrity Evaluation: Evaluated against the nine
-      storage-level edit classes (T1-T9) of the Agent Memory Integrity
-      ("agmi") suite on the read path, rejecting 8/9 edits with a same-
-      disk commitment and 9/9 edits (including T9 whole-store snapshot
-      rollback) when the head commitment is anchored off-store.
+   *  Storage-Edit Integrity Evaluation: Evaluated against the ten
+      storage-level edit classes (T1-T10) of the Agent Memory Integrity
+      ("agmi") suite [BMWG-AMI] on the read path, rejecting 8/10 edits
+      with a same-disk commitment and 10/10 edits (including T9 whole-
+      store snapshot rollback and T10 erasure resurrection) when an
+      erasure-aware commitment is anchored off-store.
 
    *  Public Conformance Referee: A stateless conformance referee is
-      operated at "https://api.whitemagic.dev/conformance" over 40
-      bundle vectors, 21 verification-receipt vectors, and 208 hostile-
-      input cases.
+      operated at "https://api.whitemagic.dev/conformance" grading
+      submitted verifier outputs against the pinned bundle,
+      verification-receipt, and hostile-input corpora.
 
 10. Security Considerations
 
@@ -335,14 +340,15 @@ Table of Contents
               DOI 10.17487/RFC8949, December 2020,
               <https://www.rfc-editor.org/info/rfc8949>.
 
-   [RFC9942]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
-              Y., and S. Lasker, "SCITT Receipt Profile", RFC 9942,
-              2026.
+   [RFC9942]  Steele, O., Birkholz, H., Delignat-Lavaud, A., and C.
+              Fournet, "CBOR Object Signing and Encryption (COSE)
+              Receipts", RFC 9942, June 2026,
+              <https://www.rfc-editor.org/info/rfc9942>.
 
    [RFC9943]  Birkholz, H., Delignat-Lavaud, A., Fournet, C., Deshpande,
               Y., and S. Lasker, "An Architecture for Trustworthy and
-              Transparent Digital Supply Chains (SCITT)", RFC 9943,
-              2026.
+              Transparent Digital Supply Chains", RFC 9943, June 2026,
+              <https://www.rfc-editor.org/info/rfc9943>.
 
 12.2.  Informative References
 
