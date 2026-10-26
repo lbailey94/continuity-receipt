@@ -12,7 +12,7 @@
   "verifier": {
     "command": [
       "/usr/bin/python3",
-      "/home/lucas/Desktop/front burner/WHITEMAGIC/worktrees/cr-main/tools/verify_anchored_chain.py"
+      "tools/verify_anchored_chain.py"
     ],
     "note": "continuity-receipt 0.5.1 / tools/verify_anchored_chain.py (RFC 8785 JCS + Ed25519)",
     "vectorsExecuted": 14

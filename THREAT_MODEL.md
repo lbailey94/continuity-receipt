@@ -29,4 +29,4 @@ No custody of funds, no payment protocol, no arbitration, no reputation scoring,
 
 ## Reporting
 
-Security-relevant issues in the spec or the reference verifier: open an issue or email the maintainer (`lbailey94@protonmail.com`); do not file public issues containing exploit details for the verifier before a fix is prepared.
+Security-relevant issues in the spec or the reference verifier: open an issue or email the maintainer (`security@whitemagic.dev`); do not file public issues containing exploit details for the verifier before a fix is prepared.

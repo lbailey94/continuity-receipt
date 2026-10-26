@@ -25,7 +25,7 @@ Please report suspected vulnerabilities privately:
 
 1. GitHub Security Advisory (preferred) — repository → **Security** →
    **Report a vulnerability**.
-2. Email <lbailey94@protonmail.com>.
+2. Email <security@whitemagic.dev>.
 
 Do not open a public issue for a vulnerability. Include a minimal
 counterexample if you can: a receipt bundle, the command run, the observed

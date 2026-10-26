@@ -54,10 +54,6 @@ CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
 ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 example
 REVIEW_BRIEF.md            frozen v0.4 independent-review scope
-REVIEW_BRIEF_05.md         v0.5 external adversarial review scope (review remains open)
-REVIEW_NOTES_05.md         0.5 design record and qualification limits
-INTEGRATION_READINESS.md    exact-candidate gate for producer and verifier integration
-REVIEW_RESPONSE.md         response to the first independent review (findings → fixes)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
@@ -112,7 +108,7 @@ wheel,82 live loopback vector/input cases, 13 authenticated public `/verify`
 cases, and 4 live loopback ERC cases with independently verified Ed25519
 attestations. Temporary evaluation credentials were removed. These checks
 made no payment and performed no EVM relay; authenticated public ERC POST
-remains untested. See [the deployment record](ops/HOSTED_STAGING_2026-09-30.md).
+remains untested.
 The request below illustrates the adapter shape; consult the live documentation
 for credentials and payment gating.
 
