@@ -1,7 +1,7 @@
 {
   "name": "continuity-receipt",
   "version": "0.1.1",
-  "description": "Offline verifier for continuity-receipt bundles (spec 0.1-0.6), with verdict parity against the Python reference implementation.",
+  "description": "Offline verifier for Causal Provenance Receipts (CPR, continuity-receipt spec 0.1-0.6), with verdict parity against the Python and Rust reference implementations.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

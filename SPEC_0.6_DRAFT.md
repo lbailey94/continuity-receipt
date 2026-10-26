@@ -1,4 +1,4 @@
-# Continuity Receipt 0.6 candidate — authority
+# Causal Provenance Receipts (CPR) 0.6 candidate — authority (`continuity-receipt/0.6`)
 
 **Status:** development candidate in this checkout. Spec 0.5 is the published
 release (2026-09-30; tooling 0.5.1), and the hosted verifier (0.5.1) accepts

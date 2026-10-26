@@ -51,7 +51,7 @@ AEAD-decrypts over bound AAD. Detection point: **read**, in a fresh process.
 **5. What exactly is pinned?**
 
 `crystal_client.py` from `github.com/lbailey94/whitemagic`, `WMv10/scripts`,
-commit `0fe89e3`; Python 3.12, `cryptography`. The checkout is not on a package
+commit `586ed21` (`0fe89e3`); Python 3.12, `cryptography`. The checkout is not on a package
 index, so the module skips unless `AGMI_WHITEMAGIC_CRYSTAL_CLIENT` names it, as
 the Recallspection and HDP rows do.
 
@@ -136,8 +136,10 @@ erasure-aware commitment     erase_resurrect    -> safe
 ```
 
 The commitment therefore also binds `erasure_count`,
-`erased_crystal_ids_digest` and `revision = len(cells) + len(erasures)`, which
-strictly increases on every add **and** every erase. The erasure list stays in
+`erased_crystal_ids_digest`, and `revision = len(cells) + len(erasures)` (which
+increases on add and stays level — never decreasing — when one live cell is
+converted into one tombstone, while `erasure_count` and
+`erased_crystal_ids_digest` distinguish the transition). The erasure list stays in
 the store and rolls back with it; only the off-store anchor makes the
 difference visible.
 

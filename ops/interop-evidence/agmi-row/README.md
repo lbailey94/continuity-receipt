@@ -34,10 +34,19 @@ erasure-aware commitment     erase_resurrect    -> safe
 ```
 
 The erasure-aware commitment binds `erasure_count`,
-`erased_crystal_ids_digest` and `revision = len(cells) + len(erasures)`, which
-strictly increases on every add *and* every erase. The erasure list itself
+`erased_crystal_ids_digest`, and `revision = len(cells) + len(erasures)` (which
+increases on add and stays level — never decreasing — when one live cell is
+converted to one tombstone, while `erasure_count` and
+`erased_crystal_ids_digest` distinguish the transition). The erasure list itself
 stays in the store and rolls back with it; only the off-store anchor makes the
 difference visible.
+
+### W3C 4-Field Conformance Result Mapping (`T9` & `T10`)
+
+| Case | 1. Property | 2. Evidence | 3. Result | 4. Detection point & treatment |
+|---|---|---|---|---|
+| **T9 (`snapshot_rollback`)** | Rollback rejection of an older authentic store snapshot | Off-store monotonic state commitment retained outside the restored store boundary | Colocated anchor: `unobservable`<br>Off-store anchor: `verified` | `read-time` / `rejected` (pass) vs `accepted` (fail) |
+| **T10 (`erase_resurrect`)** | Non-resurrection of an erased cell on backup restore | Off-store state commitment binding `erasure_count`, `erased_crystal_ids_digest`, and `revision` | Colocated anchor: `unobservable`<br>Off-store count-only: `unverified`<br>Off-store erasure-aware: `verified` | `read-time` / `rejected` (pass) vs `accepted` (fail) |
 
 ---
 
@@ -61,7 +70,7 @@ difference visible.
    - unwraps the per-crystal 32-byte DEK under `KEK` v(1) and AEAD-decrypts `ciphertext` with bound AAD (`cipher|tenant_hash|parent_crystal_id|created_at|metadata_public`).
 
 5. **What is pinned?**
-   `whitemagic crystal_client wm-crystal/1.0` at commit `880b31b` (`lbailey94/whitemagic`, `WMv10/scripts/crystal_client.py`), Python 3.12 + `cryptography`.
+   `whitemagic crystal_client wm-crystal/1.0` at commit `586ed21` (`0fe89e3`, `lbailey94/whitemagic`, `WMv10/scripts/crystal_client.py`), Python 3.12 + `cryptography`.
 
 ---
 
