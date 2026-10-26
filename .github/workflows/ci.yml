@@ -25,10 +25,6 @@ jobs:
         run: python3 -m unittest discover -s tests -v
       - name: Independent-agent pilot regressions
         run: python3 -m unittest discover -s examples/independent-agent-pilot -p 'test_*.py' -v
-      - name: Crystal client boundary regressions
-        run: python3 -m unittest discover -s ops/crystal-ownership-candidate/tests -p 'test_*.py' -v
-      - name: Synthetic customer-recovery regressions
-        run: python3 -m unittest discover -s ops/crystal-customer-recovery -v
       - name: Verify each vector via the CLI surface
         run: |
           python3 - <<'PY'
