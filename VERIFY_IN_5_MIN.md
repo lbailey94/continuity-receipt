@@ -1,117 +1,98 @@
-# Verify in 5 minutes
+# Verify a CPR bundle in five minutes
 
-One page, copy-paste, no account required for any step except the hosted API
-call — and that key is free and instant.
+This local example needs Python 3.11+, Git, and network access to acquire the
+source and install dependencies. Verification then runs offline. It uses a
+public fixture with a test key; `TRUSTED` means the fixture meets the verifier's
+rules, not that a real task occurred or that you should trust an arbitrary key.
 
-## 0. Install (30 seconds)
+## 1. Acquire a pinned fixture and install
 
-```bash
-python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt==0.5.1
-```
-
-## 1. Verify a bundle offline (30 seconds)
-
-Any Causal Provenance Receipt (CPR) bundle verifies with one command — no network, no
-accounts, no trust in the channel:
+Run from a fresh directory. This installs the published Python package
+0.5.1 and obtains the vectors from a specific source revision:
 
 ```bash
-cpr-verify vectors/02_happy_full.json
-# (or: continuity-receipt-verify vectors/02_happy_full.json)
-# {"verdict": "TRUSTED", "errors": [], …}
+git clone https://github.com/lbailey94/continuity-receipt.git
+cd continuity-receipt
+git checkout --detach 146c4d2439e4f11cc50776e754e98081bb41869e
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install continuity-receipt==0.5.1
+cp vectors/02_happy_full.json bundle.json
+cpr-verify bundle.json
+# verdict: TRUSTED; exit status: 0
 ```
 
-The four verdicts are `TRUSTED`, `PROVISIONAL`, `INSUFFICIENT_EVIDENCE`,
-`UNTRUSTED`. `INSUFFICIENT_EVIDENCE` is not the same as false — it means the
-evidence to decide is missing. Exit code is 0 only for `TRUSTED`.
+The fixture commit and installed package are distinct pins. To review source
+instead, install the selected checkout with `python -m pip install .` and
+follow [the review brief](REVIEW_BRIEF.md). That tests a locally built package;
+it does not verify the registry artifact's provenance.
 
-Or in Python:
+## 2. Check failure cases
 
-```python
-import json
-from continuity_receipt import verify_bundle
-
-bundle = json.load(open("bundle.json"))
-result = verify_bundle(bundle)
-print(result.verdict, result.codes())
-```
-
-## 2. Get a hosted verdict (60 seconds)
-
-Free evaluation key (50 calls/day, no account): <https://mcp.whitemagic.dev/keys>
+These commands should return exit status 1. Inspect their JSON output as well
+as their exit status:
 
 ```bash
-export WM_API_KEY=...   # paste the key you received
-curl -s https://api.whitemagic.dev/verify \
+cpr-verify vectors/03_tampered_body.json
+# UNTRUSTED; errors include bad_signature
+cpr-verify vectors/09_erased_content.json
+# INSUFFICIENT_EVIDENCE
+cpr-verify vectors/10b_anchor_missing.json --require-anchor
+# PROVISIONAL
+```
+
+Only `TRUSTED` exits 0. Missing evidence and contradictory evidence are
+different outcomes; neither should silently become acceptance. A receiver
+must apply its own issuer, authority, completeness, and currentness policy.
+
+## 3. Check a signed verification receipt locally
+
+```bash
+continuity-receipt-verify-receipt vectors/verification/01_valid.json \
+  --bundle vectors/verification/bundle.json
+# valid: true; digest_match: true; exit status: 0
+continuity-receipt-verify-receipt vectors/verification/02_tampered_signature.json
+# valid: false; errors include bad_signature; exit status: 1
+```
+
+A verification receipt binds a signer's recorded result to a bundle digest.
+Checking it does not recompute the result or establish that the signer is an
+authorized, independent, or honest evaluator. Re-run bundle verification to
+compare the actual result, and pin the expected verifier key through a
+channel you trust.
+
+## Optional hosted verification
+
+The hosted API is a separate runtime and data-handling boundary. Send only a
+public fixture for this exercise. Current key eligibility and limits are at
+<https://mcp.whitemagic.dev/keys>; the API contract is at
+<https://api.whitemagic.dev/docs>. Obtain a key explicitly before running:
+
+```bash
+export WM_API_KEY=...  # key you obtained
+curl --fail-with-body -sS https://api.whitemagic.dev/verify \
   -H "Authorization: Bearer $WM_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d @bundle.json | jq '{verdict, errors}'
+  --data-binary @bundle.json
 ```
 
-No key at all? A keyless call answers HTTP 402 with x402 payment
-requirements (USDC on Base, $0.003/call) — the response is machine-readable
-and self-describing. See `api.whitemagic.dev/docs`.
+A keyless request may return an HTTP 402 x402 offer. Inspect its current
+requirements and the [hosted terms](https://www.whitemagic.dev/hosted) before
+choosing to purchase anything; this recipe does not perform payment. Hosted
+results and signed receipts need their own runtime/version/key evidence.
 
-## 3. Get a signed verification receipt, verify it offline (2 minutes)
+## Further checks
 
-Add `?receipt=1` to the same call and the service returns a signed record of
-the **whole result** — verdict, errors, provisional/insufficient reasons, and
-the summary — so you can audit *how and why* it was reached:
-
-```bash
-curl -s "https://api.whitemagic.dev/verify?receipt=1" \
-  -H "Authorization: Bearer $WM_API_KEY" \
-  -H 'Content-Type: application/json' \
-  -d @bundle.json | jq '.verification_receipt' > receipt.json
-
-continuity-receipt-verify-receipt receipt.json --bundle bundle.json
-# {"valid": true, "errors": [], "verdict": "TRUSTED", "digest_match": true, …}
-```
-
-Or in Python:
-
-```python
-import json
-from continuity_receipt import verify_verification_receipt
-
-receipt = json.load(open("receipt.json"))
-bundle = json.load(open("bundle.json"))
-result = verify_verification_receipt(receipt, bundle)
-print(result.valid, result.verdict, result.digest_match)
-```
-
-What just happened: the receipt binds the SHA-256 of the bundle's canonical
-bytes to the full result — verdict, error codes, errors, reasons, summary —
-plus the verifier implementation and version, and the time — signed by the
-service's `did:key` (published at `api.whitemagic.dev/info`).
-`digest_match: true` proves the receipt is about *your* bundle; the signature
-proves who said it. The service never stores your bundle.
-
-Tamper with a signed value in `receipt.json` and re-run — `bad_signature`.
-(Whitespace or key-order edits do not change the canonical object, so those
-still verify.) Tamper with the bundle — `bundle_digest_mismatch`.
-
-A receipt check does **not** recompute the verification result: it proves a
-signer made a signed, internally consistent statement about your bundle's
-digest. To check the recorded result itself, re-run step 1 over the bundle and
-compare — the receipt is evidence about the verification run, the bundle is
-the evidence about the task.
-
-## What you can claim now
-
-> "This bundle verified as TRUSTED under continuity-receipt 0.5, at time T,
-> by implementation X version Y — and here is the signed statement, checkable
-> offline."
-
-That is the whole integration. No SDK required; the wire formats are JSON.
-
-## Where things are
-
-- Spec: `SPEC.md` · verification receipts: `VERIFICATION_RECEIPTS.md`
-- Schema: `schema/` · vectors: `vectors/` (40 bundle cases) and
-  `vectors/verification/` (21 receipt cases)
-- Second implementation: `cargo install continuity-receipt`
-- Hosted API contract: <https://api.whitemagic.dev/docs> ·
-  OpenAPI: <https://api.whitemagic.dev/openapi.json>
-- Keys & limits: <https://mcp.whitemagic.dev/keys> (free, instant) or
-  <https://www.whitemagic.dev/contact> (invoiced, $5 / 10k calls)
+- [Specification](SPEC.md), [verification receipts](VERIFICATION_RECEIPTS.md),
+  [threat model](THREAT_MODEL.md), and [review scope](REVIEW_BRIEF.md).
+- Bundle manifests: `vectors/manifest.json`, `vectors/manifest-0.5.json`,
+  and experimental `vectors/manifest-0.6.json`.
+- Receipt manifest: `vectors/verification/manifest.json`.
+- The audit-preparation candidate additionally provides `tools/audit_smoke.sh`
+  to check an installed Python package from an empty working directory. That
+  script is not part of the older fixture revision checked out above; run it
+  from the selected review candidate, with jq installed, as described in its
+  review brief.
+- Rust: `cargo install continuity-receipt --version 0.5.1`.
+  Separate language implementations in this repository are maintained by the
+  same project; parity does not establish an independent audit.

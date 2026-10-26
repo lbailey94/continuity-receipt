@@ -1,17 +1,24 @@
 # Causal Provenance Receipts (CPR)
 
-**An open specification, test vectors, and reference verifiers for verifiable causal task provenance, offline auditability, and session resuscitation across autonomous AI agents.**
+**An open specification, test vectors, and reference verifiers for signed agent-task records and offline integrity checks.**
 
-> **Nomenclature Resolution:** Formerly published as *Continuity Receipts*, this standard has formally transitioned to **CPR (Causal Provenance Receipts)** to eliminate collision with IETF SCITT recovery statements (`draft-nikolaichuk-scitt-continuity-receipts-01`) while expressing the two core dimensions of the protocol:
-> 1. **Causal Provenance:** Mathematical, hash-chained cause-and-effect audit trails (decision → authority → execution → delivery → termination → settlement), verified offline without trusting the operator.
-> 2. **Session Resuscitation (Anti-Amnesia):** Like medical CPR reviving circulation, a Causal Provenance Receipt brings autonomous agent sessions back to life after crashes, runtime reboots, or model context window resets by binding to state-head commitments, memory vectors, tool outputs, and authority grants.
+> **Project naming:** Formerly called *Continuity Receipts*, this project uses
+> **CPR (Causal Provenance Receipts)** to distinguish agent-task records from
+> SCITT asset-recovery proposals. Wire identifiers remain `continuity-receipt/*`.
+> Signed hash links bind the disclosed records and their references; they do
+> not prove that recorded events happened. Checkpointed session recovery is
+> an experimental consumer use case requiring retained state and receiver
+> policy; the receipt format alone does not restore an agent session.
 
 **Spec version:** `continuity-receipt/0.5` (CPR core) — published 2026-09-30. `0.1`–`0.4`
 remain supported; `0.6` is an experimental development candidate
 ([SPEC_0.6_DRAFT.md](SPEC_0.6_DRAFT.md) & [SPEC_0.6_PQ_PROFILE_DRAFT.md](SPEC_0.6_PQ_PROFILE_DRAFT.md)). Open items are listed in `SPEC.md` §11.
 **License:** Apache-2.0 (specification text, code, and vectors).
 
-**SCITT & IETF Mapping:** See [docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md](docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md) for RFC 9943 envelope alignment, IETF SCITT recovery statement crosswalk, and RFC 9052 COSE_Sign1 compact binary encoding (~34% size reduction).
+**SCITT design work:** [The mapping note](docs/SCITT_MAPPING_AND_COSE_SIGN1_FEASIBILITY.md)
+lists the unresolved envelope, registration, trust-policy, and interoperability
+work. A CPR signature is not a SCITT registration receipt. No COSE size or speed
+improvement is established by this checkout.
 
 **Version matrix** — the spec and the reference implementations version independently:
 
@@ -20,12 +27,26 @@ remain supported; `0.6` is an experimental development candidate
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
 | Python reference + CLIs | **0.5.1** | `pip install continuity-receipt==0.5.1` |
 | Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
-| JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt` |
+| JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt@0.1.1` |
 
-The pinned install commands resolve to the published release (0.5.1).
+The Python and Rust commands pin package 0.5.1; JavaScript versions independently
+and pins 0.1.1. These are registry package pins, separate from a source commit.
 
-All implementations support spec 0.5 (local authority, execution sandbox vocabulary, runner profiles, state commitments, duplicate member rejection, and consumer profile assessment) with identical verdicts and codes over the full vector set.
-Verify the version you have with `continuity-verify --help` or `continuity-receipt-verify --help` (Python, Rust, or JS).
+The three language verifiers support spec 0.5 record checks: local-authority
+and sandbox-class vocabulary, runner-profile binding, state commitments, and
+duplicate-member rejection. Consumer policy assessment is Python-only and
+accepts receipt specs 0.1–0.4. Differential fixture agreement does not prove
+that a producer actually enforced the sandbox or held external authority.
+These implementations are maintained by the same project. See the
+[review brief](REVIEW_BRIEF.md) for exact scope, reproducible checks, and limits.
+Current source and the published Python 0.5.1 wheel differ on experimental
+0.6 head-binding checks; the review brief records a counterexample. Do not
+infer that a registry package enforces the current source's expected-head
+rules from their matching version strings.
+Record the installed package metadata and artifact hash when reporting results.
+For Python, `python -c 'from importlib.metadata import version; print(version("continuity-receipt"))'`
+reports the installed package version; a version string alone does not identify
+the source tree or binary bytes.
 
 A **Causal Provenance Receipt (CPR)** is a signed, hash-chained record of one governed task:
 **decision → authority → execution → delivery → termination → settlement**. It is designed to be verified offline by any third party — insurers, arbiters, procurement, courts, other agents — without trusting the channel that delivered it or accepting someone else's verification. What it proves is bounded: a receipt attests what its issuer signed, not that the described events occurred — issuer honesty is out of scope by design (`THREAT_MODEL.md` #2–#3, `CONFORMANCE_TABLE.md` §E).
@@ -53,7 +74,7 @@ VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
 VERIFY_IN_5_MIN.md         the integration kit page (copy-paste, no SDK)
 ADOPTER_GUIDE.md            verify, emit, capture; provenance labels and 0.5 example
-REVIEW_BRIEF.md            frozen v0.4 independent-review scope
+REVIEW_BRIEF.md            current pinned review scope, commands, and trust limits
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
@@ -158,7 +179,7 @@ receipt valid), unknown member. Schema:
 
 - **Origin:** developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite (49 tests, dogfood evidence). This repository is the format's public home; it versions independently of any product release train.
 - **Releases:** `0.1` (2026-09-18) — spec, reference verifier, 11 vectors. `0.2` (2026-09-18) — `authority.succession`, bundle-level revocation statements, counterparty attestation rules, millisecond timestamps, `merkle-sha256:` provenance, anchor typing, JSON Schema, CI, machine-readable vector manifest. `0.3` (2026-09-23) — `agreement.offer` / `agreement.accept` with digest binding, terms/id equality, and expiry semantics; vectors 16–16f; schema 0.3. Tooling `0.3.3` (2026-09-23) — verification receipts (companion v1: schema, 20 vectors, reference verifier + CLI; records the full result — errors, reasons, summary — with offline consistency checks and an anchoring recipe), agreement emitters, integration kit. `0.4` (2026-09-24, published) — the offer → accept binding carried through the chain (`offeree` required and signer-checked; `agreement_ref` on the bound stages), hostile-input hardening (whole-shape validation, input boundaries, structured outcomes in both implementations), the rule-by-rule conformance table, and the compatibility vector. Tooling `0.4.0` (published) — schema 0.4, 40 bundle + 21 receipt vectors, `tools/hostile_input_probe.py` in CI. `0.5` (2026-09-30, published) — local authority (`mandala_class: local`), execution sandbox vocabulary with `runner_profile` binding, `state.commitment` (chain-head and file snapshots), duplicate-member rejection in all parsers, and the consumer profile assessment; schema 0.5, candidate vectors 22–23b, crosswalk documentation. Tooling `0.5.0` (published) — PyPI + crates.io. Tooling `0.5.1` (2026-10-01, published) — packaging alignment (version metadata); includes the reviewed consumer hardening.
-- **Second implementation:** `rust/` — an independent Rust verifier
+- **Second implementation:** `rust/` — a separate Rust verifier maintained in this project
   (crate `continuity-receipt`) with the same verdict/error semantics; `cargo test`
   checks all 40 bundle vectors and CI diffs it against the Python reference
   (40/40) and the verification-receipt vectors (21/21, crate 0.4.0), with

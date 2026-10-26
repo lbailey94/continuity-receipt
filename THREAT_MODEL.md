@@ -1,6 +1,6 @@
 # Threat model
 
-**Scope:** what Continuity Receipts prove, what they do not, and how each attack class is handled in `continuity-receipt/0.1`–`0.4`. The rule-by-rule checks and their vectors are in `CONFORMANCE_TABLE.md`; §E there is the non-enforcement boundary.
+**Scope:** what Causal Provenance Receipts prove, what they do not, and how each attack class is handled by the core verifier. The published specification is `continuity-receipt/0.5`; accepted 0.6 authority records remain experimental. The table retains version labels for when checks were introduced. The rule-by-rule checks and their vectors are in `CONFORMANCE_TABLE.md`; §E there is the non-enforcement boundary. See `REVIEW_BRIEF.md` for the current review baseline.
 
 A receipt is evidence about what a governed system recorded and signed — not a claim about ground truth. The verifier's job is to distinguish **missing** evidence (`PROVISIONAL`, `INSUFFICIENT_EVIDENCE`) from **false** evidence (`UNTRUSTED`), and to make the difference legible to a third party who trusts nobody in the chain.
 
@@ -8,7 +8,7 @@ A receipt is evidence about what a governed system recorded and signed — not a
 
 | # | Threat | Status | Mitigation / rule |
 |---|---|---|---|
-| 1 | **Bundle tampering** (edit a field, drop a receipt, reorder) | Handled | Hash chain (`prev`), Ed25519 signatures over canonical bytes, contiguous `seq`; verdict `UNTRUSTED`. |
+| 1 | **Bundle tampering** (edit signed fields, reorder, break interior links) | Handled within checked rules | Hash chain (`prev`), Ed25519 signatures over canonical bytes, contiguous `seq`; invalid signatures or links yield `UNTRUSTED`. Removing a genuine tail or restoring a genuine old bundle need not break these checks: currentness/completeness require an independently retained expected head and consumer policy outside the mutable bundle. |
 | 2 | **Dishonest issuer at issuance** (signs a false record) | Out of scope by design | Receipts attest *what was recorded*, not that the record is true. Grounding comes from hashes, counterparty attestations, sandbox/resource evidence, and external anchors. Consumers must treat issuer-attested fields as issuer claims. |
 | 3 | **Colluding issuer + counterparty** | Out of scope | Two signatures are still only two parties. Anchoring and independent logs are the outer-layer remedies; the format makes their inputs verifiable rather than preventing collusion. |
 | 4 | **Counterparty attestation forged or tampered** | Handled (0.2) | When present, the attestation is verified over the body with `counterparty.attestation` removed; invalid → `bad_attestation` (`UNTRUSTED`). Absence is reported in the verifier summary but does not downgrade the verdict; consumers that require attestations must check for them. |

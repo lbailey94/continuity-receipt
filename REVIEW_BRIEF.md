@@ -1,126 +1,119 @@
-# Independent review brief — verification receipts and the verifier surface
+# Review brief: CPR verification and its trust boundary
 
-**Status:** open invitation, 2026-09-23. One page of scope, questions, and
-logistics.
-**Materials frozen at:** tag `v0.4.0` (created 2026-09-24 at commit
-`59b401a`) — spec `continuity-receipt/0.4` (published); Python tooling
-**0.4.0** (PyPI); Rust crate **0.4.0** (crates.io); hosted service verifier
-0.4.0 (live).
-**Repository:** <https://github.com/lbailey94/continuity-receipt> ·
-**Contact:** envoy@whitemagic.dev (subject: "verification review") ·
-**First-round response:** `REVIEW_RESPONSE.md` (findings → fixes, hostile corpus).
+Prepared 26 October 2026. This is a proposed technical review scope, not a
+completed independent audit or an agreement to commission one.
 
-## Why
+Implementation baseline: `146c4d2439e4f11cc50776e754e98081bb41869e`.
+Record `git rev-parse HEAD`, `git status --short`, interpreter/compiler
+versions, and artifact hashes with every review run. A later source commit,
+registry package, local receiver candidate, or hosted deployment needs its
+own identity and evidence.
 
-Continuity Receipt is an open format for verifiable records of governed
-agent tasks, with two independent implementations and a hosted verification
-service. Verification receipts extend it: a verifier signs the full result of
-a verification run — verdict, errors, reasons, summary — so any third party
-can audit *what was checked and how the result was reached*, offline. We are
-approaching standards bodies (W3C AI Agent Memory CG) and enterprise pilots;
-before making external claims we want an adversarial technical review by
-someone with no stake in the outcome.
+Repository: <https://github.com/lbailey94/continuity-receipt>.
+Contact: `security@whitemagic.dev` for security findings.
 
-**We are asking you to find what is wrong, not to validate.** A report that
-finds nothing of consequence is less useful than one that names three real
-weaknesses.
+## What is being reviewed
 
-## In scope
+CPR verifies signed records and their disclosed commitments. The published
+specification is `continuity-receipt/0.5`; Python and Rust package metadata
+is 0.5.1, and the JavaScript package metadata is 0.1.1. Implementations also
+accept experimental 0.6 authority records. Package acceptance does not make
+the 0.6 draft normative.
 
-1. **Verification receipt format v1** — `VERIFICATION_RECEIPTS.md`, schema
-   `schema/verification-receipt-1.schema.json`, vectors
-   `vectors/verification/` (21 cases): wire format, the JCS-canonical
-   `bundle_digest` rule, the offline consistency rules (`error_codes_mismatch`,
-   `verdict_mismatch`), revocation semantics (including the positive case), the
-   anchoring recipe.
-2. **Core bundle verification** — `SPEC.md` (0.4), `continuity_receipt/verify.py`,
-   `vectors/` (40 cases): chain, signature, attestation, redaction/erasure
-   semantics, the 0.4 agreement-binding rules, hostile-input handling.
-3. **Two implementations** — Python reference (`continuity_receipt/`) and Rust
-   (`rust/src/`, crate 0.4.0), plus the differential claims
-   (`tools/differential_vectors.py` 40/40,
-   `tools/differential_verification_receipts.py` 21/21) and the hostile-input
-   parity claim (`tools/hostile_input_probe.py --require-parity`).
-4. **Cryptographic core** — Ed25519 + `did:key` handling, the pinned JCS
-   subset (`canon.py` / `canon.rs`; floats rejected), salted commitments
-   (`commit_field`), the canonical-view signing rule.
-5. **Anchor tooling** — `ANCHORING.md`, `continuity_receipt/anchor.py` and
-   `rust/src/anchor.rs`: OpenTimestamps detached-proof replay (LEB128 varints,
-   merkle replay), Bitcoin header handling, failure modes.
-6. **Hosted service as one issuer** — the service contract
-   (<https://api.whitemagic.dev/docs>, `GET /info`, OpenAPI) and, for the
-   reviewer, the service source on request: signing-key handling, rotation and
-   revocation procedure, cache semantics, contract-vs-spec consistency.
-7. **Claims discipline** — do `CONFORMANCE.md`, `CONFORMANCE_TABLE.md`,
-   `THREAT_MODEL.md`, and `VERIFICATION_RECEIPTS.md` claim more than the
-   implementation supports? Are any table cells softened to avoid work?
+The Python, Rust, and JavaScript verifiers are separate language
+implementations maintained in this project. Their agreement is differential
+test evidence, not three independent organizations auditing each other.
+Fixture totals and expected outcomes live in the manifests; count them from
+the selected checkout rather than copying a historical test tally.
 
-## Out of scope
+### Known source/package mismatch: experimental head binding
 
-- Issuer honesty (receipts attest what was recorded, not that it is true).
-- Proof-of-work / Bitcoin chain validation (headers are caller-supplied).
-- Payment rails, OS/infrastructure hardening, marketing claims.
-- Spec 0.1/0.2 beyond "still verifies".
+On 26 October, the published PyPI 0.5.1 wheel
+(`sha256:9268eeff8208a3ac3ee9425c9267a48632d59ddd7044097a5542ee4880183144`)
+returned `TRUSTED` with exit 0 for `vectors/25b_head_mismatch.json`.
+The implementation baseline above returned `UNTRUSTED`, `head_mismatch`,
+exit 1 for the same bytes. Both report package version 0.5.1. This concerns
+the experimental 0.6 `chain_head` behavior, not a failure of the published
+0.5 signature rules.
 
-## Questions we would like answered
+Reproduce by installing the registry wheel and the selected source into
+separate environments, then invoking `python -m continuity_receipt.verify`
+on that fixture from outside either checkout. The full installed-package
+smoke stops at the registry mismatch. Keep this release gate open: current
+source tests cannot qualify the published package or a hosted runtime for
+head binding. Shipping that behavior requires a separately identified,
+versioned artifact and its acceptance evidence.
 
-1. Can a receipt be forged, replayed, or made ambiguous across
-   serializations — given the digest and consistency rules?
-2. Can the consistency checks be bypassed so a receipt reports a clean verdict
-   while carrying failures?
-3. Is the JCS-subset pinning sound for the schema's ASCII-key domain? Where
-   could Python and Rust diverge on the same bytes?
-4. Revocation: can a revoked issuer key still produce receipts that pass? What
-   does the known pre-revocation-compromise gap mean in practice?
-5. Does anchoring the canonical view actually bound `verified_at`, or is there
-   a gap between what is stamped and what is verified?
-6. Does the hosted service's contract (cache, rate limits, error shapes)
-   contradict or weaken the spec?
-7. Redaction/erasure: can a commitment be substituted, or a required field
-   hidden, without detection?
-8. Anything in the threat model that is asserted but not tested.
-9. Can the 0.4 binding be evaded — wrong offeree/signer, chronology, ref
-   substitution, mixed-version downgrade — given the new rules and vectors?
-10. Does hostile-input handling stay structured and parity-consistent beyond
-   the sampled corpus (leaf/deletion mutations, boundaries)?
+## First review scope
 
-## Deliverable
+| Boundary | Code and evidence | Questions to try to falsify |
+|---|---|---|
+| Raw input to structured result | `continuity_receipt/strict_json.py`, `verify.py`; corresponding Rust/JS parsers; `tests/test_hostile_input.py` | Do duplicate members, invalid UTF-8, non-finite numbers, deep inputs, or oversized bundles crash, become ambiguous, or differ across languages? |
+| Signed object to bundle verdict | `SPEC.md`, `canon.py`, `keys.py`, `records.py`; `vectors/manifest.json`, `manifest-0.5.json` | Can altered bytes, substituted references, bad signatures, or missing required evidence produce a clean verdict? |
+| Verification receipt to recorded result | `VERIFICATION_RECEIPTS.md`, `verification.py`; `vectors/verification/manifest.json` | Are bundle digest, error codes, reasons, verdict, and revocation rules internally consistent? Does the caller pin the expected issuer separately? |
+| Signed claim to consumer decision | `consumer.py`, `SPEC_0.6_DRAFT.md`, `THREAT_MODEL.md` | Are issuer assertions, caller policy, principal authority, execution, and freshness kept distinct? |
+| Anchor representation to proof verification | `ANCHORING.md`, `anchor.py`, Rust anchor tooling | Does checking an anchor's shape or digest get confused with verifying its proof, trusted time, or a validated Bitcoin chain? |
 
-A written report (publication encouraged; we will publish it alongside our
-response) containing:
+## Reproduce from a clean checkout
 
-- findings classified **critical / major / minor / nit**, each with
-  reproduction steps (a failing vector or a script is ideal);
-- an explicit list of what you did **not** cover;
-- a short statement of the residual risk you would attach to the format.
+Use an isolated environment and the selected source, with Python 3.11+, jq,
+Node.js, and Rust/Cargo available for the respective language checks:
 
-We will fix or explicitly document every finding. We will not ask for an NDA,
-nor to review the report before publication. Please disclose conflicts of
-interest; we will decline reviewers with a stake in competing formats.
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install . jsonschema
+python -m unittest discover -s tests -v
+python -m unittest discover -s examples/independent-agent-pilot -p 'test_*.py' -v
+bash tools/audit_smoke.sh
+cargo test --locked --manifest-path rust/Cargo.toml
+cargo build --locked --manifest-path rust/Cargo.toml
+python tools/differential_vectors.py
+python tools/differential_vectors.py --manifest vectors/manifest-0.5.json
+python tools/differential_vectors.py --manifest vectors/manifest-0.6.json
+python tools/differential_verification_receipts.py
+python tools/hostile_input_probe.py --sample 300 --require-parity
+(cd js && npm ci --no-audit --no-fund && npm test && node tools/parity.mjs --strict)
+```
 
-## Logistics
+Dependency installation may use the network. `audit_smoke.sh` performs only
+local verification after installation, runs from a temporary empty working
+directory, and rejects an import from this source checkout. It checks the
+installed Python package against all three bundle manifests and the
+verification-receipt manifest, including expected failure exit codes.
+It is a fixture check, not fuzzing, an audit, or a hosted-service test.
 
-- **Effort:** scoped as ~3–5 working days; two rounds (initial report, response
-  review) preferred.
-- **Compensation:** fixed fee, budgeted; terms agreed before work starts.
-- **Access:** public repo and packages; live service keyless endpoints, and a
-  review key with a raised cap on request.
-- **Reproduce:**
+## Explicit limits and useful negative controls
 
-  ```bash
-  python3 -m unittest discover -s tests -v
-  python3 tools/differential_vectors.py
-  python3 tools/differential_verification_receipts.py
-  python3 tools/hostile_input_probe.py --require-parity
-  cargo test --manifest-path rust/Cargo.toml
-  ```
+- `TRUSTED` is a verdict under CPR's implemented rules. A valid signature
+  binds bytes to a key; the caller must establish the expected issuer and
+  whether that issuer is authorized. It does not establish truthful events,
+  complete capture, resource isolation, or consent.
+- Restoring a genuine old bundle can preserve every signature. Currentness
+  requires an independently retained expected head or policy outside the
+  rolled-back data. A bundle's own state commitment is an issuer claim.
+- The experimental checkpointed memory receiver is a separate candidate,
+  absent from this baseline. It gates its named resume path; it does not
+  intercept every WhiteMagic read. Restoring both old data and matching old
+  trust state can recover previously accepted text. Secure deletion and
+  universal non-resurrection are not established.
+- Salted commitments and checking encrypted-state digests without a
+  decryption key do not, by themselves, establish a zero-knowledge proof
+  protocol.
+- A SCITT mapping draft and a signed CPR verification receipt do not
+  establish registration with a SCITT transparency service or COSE receipt
+  interoperability. Those require separate wire examples and verification.
+- Hosted key custody, deployed bytes, access control, caching, logging,
+  payment handling, and availability are a separate review scope. Local
+  results do not qualify that runtime.
+- Pre-publication key compromise, withheld revocation statements, and
+  issuer-asserted time remain trust-policy concerns described in
+  `THREAT_MODEL.md`.
 
-## Known weaknesses (so you can aim past them)
+## Reviewer output
 
-- Pre-revocation key compromise is not detectable (`THREAT_MODEL.md`).
-- Revocation-list freshness: a mirror can withhold a statement.
-- `verified_at` is issuer-asserted unless the receipt is anchored.
-- Verification receipts are v1 and young; the format was revised once before
-  external issuance (see `CHANGELOG.md`, 0.3.3), and 0.4 was shaped by an
-  independent review whose findings and responses are in the changelog.
-- The Rust receipt CLI accepts local revocation documents only (no URLs).
+For each finding, record the exact commit/artifact, affected boundary,
+reproducer, expected and actual result, severity rationale, and coverage
+limits. Keep a finding open until its disposition and any claimed fix have
+been checked against the revised artifact. Review effort, compensation,
+access, and disclosure timing must be agreed separately before an engagement.
