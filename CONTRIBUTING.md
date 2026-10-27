@@ -22,6 +22,7 @@
 ```bash
 pip install 'cryptography>=42' jsonschema
 python3 tools/make_vectors.py            # regenerates vectors + manifest (non-deterministic ids/timestamps)
+python3 tools/make_receiver_vectors.py   # updates only Python local-receiver implementation fixtures
 python3 -m unittest discover -s tests -v # 40 bundle + 21 receipt vectors + schema + primitives
 ```
 
