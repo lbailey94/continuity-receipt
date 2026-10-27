@@ -20,6 +20,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 CPR_ROOT = Path(__file__).resolve().parents[1]
+# This tool is also launched by file path from CI, where sys.path[0] is the
+# tools/ directory. Prefer this checkout over any globally installed package.
+sys.path.insert(0, str(CPR_ROOT))
 FIXED_NOW = "2026-10-23T12:00:00Z"
 FIXED_SEED = bytes(range(32))
 CONTEXT = "lane07-full-journey"
