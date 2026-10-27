@@ -55,6 +55,10 @@ class ThreatEvaluation:
     status: str
     mitigation: str
     details: str = ""
+    property: str = ""
+    evidence: str = ""
+    result: str = ""  # verified, unverified, unobservable
+    detection_point_and_treatment: str = ""
 
 
 @dataclass
@@ -141,6 +145,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t01_safe else STATUS_VULNERABLE,
             mitigation="Ed25519 signature over canonical unsigned record view",
             details="Cryptographic signature verification refuses payload alteration",
+            property="T01: Content Integrity",
+            evidence="Ed25519 signature over canonical unsigned record view",
+            result="verified" if t01_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (signature verification refusal)"
+            if t01_safe
+            else "read-time: accepted (tampered record parsed)",
         )
     )
 
@@ -158,6 +168,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t02_safe else STATUS_VULNERABLE,
             mitigation="Bundle termination marker and task lifecycle settlement",
             details="Truncation refuses when lifecycle termination record is lost",
+            property="T02: Chain Sufficiency (Tail Completeness)",
+            evidence="Bundle termination marker and task lifecycle settlement",
+            result="verified" if t02_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (missing termination record)"
+            if t02_safe
+            else "read-time: accepted (truncated chain)",
         )
     )
 
@@ -175,6 +191,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t03_safe else STATUS_VULNERABLE,
             mitigation="Contiguous sequence numbers (seq) and prev-digest linkage",
             details="Missing intermediate index or broken prev-hash link refuses bundle",
+            property="T03: Non-Omission (Middle Deletion Refusal)",
+            evidence="Contiguous sequence numbers (seq) and prev-digest linkage",
+            result="verified" if t03_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (seq_noncontiguous or prev mismatch)"
+            if t03_safe
+            else "read-time: accepted (deleted intermediate)",
         )
     )
 
@@ -195,6 +217,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t04_safe else STATUS_VULNERABLE,
             mitigation="Strict monotonic sequence increment and DAG prev linkage",
             details="Out-of-order execution rejected by chronology and prev validator",
+            property="T04: Causal Ordering (Permutation Refusal)",
+            evidence="Strict monotonic sequence increment and DAG prev linkage",
+            result="verified" if t04_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (chronology or prev validator refusal)"
+            if t04_safe
+            else "read-time: accepted (permuted order)",
         )
     )
 
@@ -215,6 +243,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t05_safe else STATUS_VULNERABLE,
             mitigation="did:key public key identity and Ed25519 verification",
             details="Unsigned or forged records fail signature verification",
+            property="T05: Provenance & Attribution (Forgery Refusal)",
+            evidence="did:key public key identity and Ed25519 signature verification",
+            result="verified" if t05_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (bad signature or forged injection)"
+            if t05_safe
+            else "read-time: accepted (forged injection)",
         )
     )
 
@@ -231,6 +265,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t06_safe else STATUS_VULNERABLE,
             mitigation="Bound task_id and tenant context in each signed record",
             details="Mismatched task_id triggers task_mismatch fatal error",
+            property="T06: Tenant & Context Isolation",
+            evidence="Bound task_id and tenant context in each signed record",
+            result="verified" if t06_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (task_id mismatch refusal)"
+            if t06_safe
+            else "read-time: accepted (cross-context injection)",
         )
     )
 
@@ -249,6 +289,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t07_safe else STATUS_VULNERABLE,
             mitigation="Monotonic sequence verification and unbroken causal chain",
             details="Replay of superseded sequence index triggers seq_noncontiguous",
+            property="T07: Anti-Rollback (Superseded Record Replay Refusal)",
+            evidence="Monotonic sequence verification and unbroken causal chain",
+            result="verified" if t07_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (seq_noncontiguous on replayed index)"
+            if t07_safe
+            else "read-time: accepted (replayed version)",
         )
     )
 
@@ -266,6 +312,12 @@ def evaluate_pacmi(
             status=STATUS_SAFE if t08_safe else STATUS_VULNERABLE,
             mitigation="Type schema conformance and signed envelope header bindings",
             details="Header tampering invalidates signature and type schema check",
+            property="T08: Metadata Integrity & Schema Conformance",
+            evidence="Type schema conformance and signed envelope header bindings",
+            result="verified" if t08_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (type schema and signature invalidation)"
+            if t08_safe
+            else "read-time: accepted (mutated headers)",
         )
     )
 
@@ -283,6 +335,11 @@ def evaluate_pacmi(
                 if body.get("anchor_location") == "offstore" or body.get("offstore"):
                     has_anchor = True
                     break
+        if not has_anchor:
+            if bool(bundle_data.get("anchors")):
+                has_anchor = True
+            elif isinstance(bundle_data.get("chain_head"), dict) and bundle_data["chain_head"].get("anchored"):
+                has_anchor = True
 
     report.offstore_anchor_present = has_anchor
     threat_evals.append(
@@ -295,6 +352,12 @@ def evaluate_pacmi(
             details="External anchor refuses rollback when store state is restored to older snapshot"
             if has_anchor
             else "Vulnerable: Store-internal commitment rolls back with disk snapshot without an off-store anchor",
+            property="T09: External Freshness (Snapshot Rollback Refusal)",
+            evidence="Off-store anchor (independent ledger / external commitment)",
+            result="verified" if has_anchor else "unverified",
+            detection_point_and_treatment="read-time: rejected (anchor mismatch on restore)"
+            if has_anchor
+            else "read-time: accepted (stale snapshot served without anchor)",
         )
     )
 
@@ -330,6 +393,12 @@ def evaluate_pacmi(
                 if not has_erasure_commitment
                 else "Vulnerable: Requires off-store anchor to prevent erasure commitment from rolling back"
             ),
+            property="T10: Cryptographic Erasure Preservation (Resurrection Refusal)",
+            evidence="Erasure-aware set commitment (erasure_count + erased_ids_digest + revision) anchored off-store",
+            result="verified" if t10_safe else "unverified",
+            detection_point_and_treatment="read-time: rejected (revision mismatch / erased crystal resurrected)"
+            if t10_safe
+            else "read-time: accepted (resurrected record served)",
         )
     )
 
@@ -342,7 +411,23 @@ def evaluate_pacmi(
     return report
 
 
-def format_report_cli(report: PACMIReport) -> str:
+def format_w3c_4field_table(report: PACMIReport) -> str:
+    """Formats the evaluation as a standard W3C 4-field conformance table."""
+    headers = ["Property", "Evidence", "Result", "Detection point and treatment"]
+    md_lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for t in report.threats:
+        prop = t.property or f"{t.code}: {t.name}"
+        ev = t.evidence or t.mitigation
+        res = t.result or ("verified" if t.status == STATUS_SAFE else "unverified")
+        treat = t.detection_point_and_treatment or t.details
+        md_lines.append(f"| {prop} | {ev} | {res} | {treat} |")
+    return "\n".join(md_lines)
+
+
+def format_report_cli(report: PACMIReport, show_table: bool = False) -> str:
     """Formats the PACMI evaluation report for terminal presentation."""
     lines = [
         "================================================================================",
@@ -367,6 +452,14 @@ def format_report_cli(report: PACMIReport) -> str:
         if t.status == STATUS_VULNERABLE:
             lines.append(f"        -> Note: {t.details}")
 
+    if show_table:
+        lines.extend([
+            "--------------------------------------------------------------------------------",
+            "  W3C 4-FIELD RESULT SCHEMA (COMMUNITY WORKING DRAFT):",
+            "--------------------------------------------------------------------------------",
+            format_w3c_4field_table(report),
+        ])
+
     lines.extend([
         "--------------------------------------------------------------------------------",
         f"  FINAL VERDICT:              {report.verdict} ({report.score} attacks neutralized)",
@@ -387,6 +480,11 @@ def main(argv: list[str] | None = None) -> int:
         "-a",
         help="Optional path to external off-store anchor or commitment (.json)",
         default=None,
+    )
+    parser.add_argument(
+        "--table",
+        action="store_true",
+        help="Display the W3C 4-field result schema table (Property, Evidence, Result, Treatment)",
     )
     parser.add_argument(
         "--json",
@@ -426,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
-        print(format_report_cli(report))
+        print(format_report_cli(report, show_table=args.table))
 
     return 0 if report.verdict == "CONFORMANT" else 1
 
