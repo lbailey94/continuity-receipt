@@ -50,8 +50,8 @@ AEAD-decrypts over bound AAD. Detection point: **read**, in a fresh process.
 
 **5. What exactly is pinned?**
 
-`crystal_client.py` from `github.com/lbailey94/whitemagic`, `WMv10/scripts`,
-commit `0fe89e3`; Python 3.12, `cryptography`. The checkout is not on a package
+`crystal_client.py` from `github.com/lbailey94/whitemagic`, `scripts/crystal_client.py`,
+commit `586ed21` (`0fe89e3`); Python 3.12, `cryptography`. The checkout is not on a package
 index, so the module skips unless `AGMI_WHITEMAGIC_CRYSTAL_CLIENT` names it, as
 the Recallspection and HDP rows do.
 
@@ -162,7 +162,7 @@ cd agmi && git checkout cee8a66
 cp <continuity-receipt>/ops/interop-evidence/agmi-row/whitemagic_crystals.py agmi/adapters/
 cp <continuity-receipt>/ops/interop-evidence/agmi-row/test_whitemagic_crystals.py tests/
 
-export AGMI_WHITEMAGIC_CRYSTAL_CLIENT=<whitemagic>/WMv10/scripts/crystal_client.py
+export AGMI_WHITEMAGIC_CRYSTAL_CLIENT=<whitemagic>/scripts/crystal_client.py
 PYTHONPATH=. python3 -m pytest tests/test_whitemagic_crystals.py -q   # 5 passed
 
 PYTHONPATH=. python3 -c "
