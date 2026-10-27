@@ -21,6 +21,7 @@ from .verification import (
     verify_verification_receipt,
 )
 from .verify import VerifyResult, verify_bundle
+from .pacmi import PACMIReport, ThreatEvaluation, evaluate_pacmi
 
 SPEC_ID = "continuity-receipt/0.5"
 
@@ -29,10 +30,13 @@ __all__ = [
     "__version__",
     "RECORD_TYPES",
     "REQUIRED_FIELDS",
+    "PACMIReport",
+    "ThreatEvaluation",
     "VerificationReceiptResult",
     "VerifyResult",
     "canonical_bytes",
     "commit_field",
+    "evaluate_pacmi",
     "issue_verification_receipt",
     "new_envelope",
     "required_fields",
