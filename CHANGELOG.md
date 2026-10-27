@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.2 — Python-only local receiver patch (2026-10-27)
+
+The Python package adds the experimental checkpointed local memory receiver
+and its `cpr-memory` command. Publication bounds open directory descriptors,
+removes uncommitted staging data on handled failure, and reclaims only
+staging or renamed generations absent from the committed publication audit.
+The Python-only receiver vectors are explicitly implementation fixtures.
+The CPR 0.5 wire specification, schemas, published CPR vector manifests,
+Rust crate, and JavaScript package are unchanged; this release makes no
+standalone CPR 0.6 claim.
+
 ## 0.6 development specification — no standalone 0.6 release
 
 An authority record: `authority.grant` (principal, agent, scope, window,

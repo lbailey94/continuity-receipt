@@ -120,7 +120,27 @@
     "disclose": "continuity-receipt-disclose",
     "anchor": "continuity-receipt-anchor",
     "verify_receipt": "continuity-receipt-verify-receipt",
-    "check_pacmi": "continuity-receipt-check-pacmi"
+    "check_pacmi": "continuity-receipt-check-pacmi",
+    "experimental_memory": "cpr-memory"
+  },
+  "experimental_memory_receiver": {
+    "status": "local candidate",
+    "document": "docs/EXPERIMENTAL_MEMORY_RESUME.md",
+    "spec": "continuity-receipt/0.5",
+    "state_kind": "file-snapshot-v1",
+    "checkpoint_version": 1,
+    "trusted_reference": "separately retained local SQLite database",
+    "publication": "explicit pinned-key operator action with expected-reference compare-and-swap",
+    "scope": "declared local snapshot",
+    "max_files": 64,
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 4194304,
+    "max_tree_entries": 4096,
+    "max_directory_depth": 32,
+    "durable_publisher_platform": "POSIX descriptor-relative I/O and Linux renameat2",
+    "erasure": "absence from current accepted snapshot; old generation bytes remain",
+    "joint_trust_and_data_rollback_detection": false,
+    "external_operator_qualification": false
   },
   "verification_receipts": {
     "supported": true,

@@ -1,6 +1,6 @@
 [project]
 name = "continuity-receipt"
-version = "0.5.1"
+version = "0.5.2"
 description = "Causal Provenance Receipts (CPR) — open specification, test vectors, and reference verifiers for verifiable records of governed AI-agent tasks"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -44,6 +44,7 @@ continuity-receipt-disclose = "continuity_receipt.disclose:main"
 continuity-receipt-anchor = "continuity_receipt.anchor:main"
 continuity-receipt-verify-receipt = "continuity_receipt.verification:main"
 continuity-receipt-check-pacmi = "continuity_receipt.pacmi:main"
+cpr-memory = "continuity_receipt.memory_resume:main"
 
 [build-system]
 requires = ["setuptools>=77"]
