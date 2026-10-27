@@ -42,6 +42,7 @@ continuity-receipt-verify = "continuity_receipt.verify:main"
 continuity-receipt-disclose = "continuity_receipt.disclose:main"
 continuity-receipt-anchor = "continuity_receipt.anchor:main"
 continuity-receipt-verify-receipt = "continuity_receipt.verification:main"
+cpr-memory = "continuity_receipt.memory_resume:main"
 
 [build-system]
 requires = ["setuptools>=77"]

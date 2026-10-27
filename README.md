@@ -119,6 +119,12 @@ python3 -m continuity_receipt.verify vectors/02_happy_full.json
 python3 -m unittest discover -s tests -v
 ```
 
+This checkout also contains an experimental local `cpr-memory` receiver for
+signed file snapshots, a separately retained checkpoint reference, and an
+explicitly named resume path. It is a source candidate, not a released feature;
+see [the receiver guide](docs/EXPERIMENTAL_MEMORY_RESUME.md) and
+[the local profile contract](docs/LOCAL_RECEIVER_PROFILE.md) for its limits.
+
 ## ERC-8004 Validation (Base)
 
 The reviewed hosted API/package/ERC update was deployed on 2026-09-30 after
