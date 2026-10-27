@@ -1,3 +1,4 @@
+import resource
 import sys
 import tempfile
 import unittest
@@ -102,6 +103,8 @@ class ReceiverStoreTests(unittest.TestCase):
                                  fault_hook=crash)
                 self.assertEqual(self.store.current_reference(), old)
                 self.assertEqual(self.store.recall(now=self.now)["files"], {"notes.txt": b"one"})
+                generations = {p.name for p in (self.data / "generations").iterdir()}
+                self.assertEqual(generations, {old["generation_id"]})
         def crash_after_commit(where):
             if where == "after_commit":
                 raise RuntimeError("simulated crash")
@@ -111,6 +114,31 @@ class ReceiverStoreTests(unittest.TestCase):
         current = self.store.current_reference()
         self.assertNotEqual(current, old)
         self.assertEqual(self.store.recall(now=self.now)["files"], {"notes.txt": b"committed"})
+        self.assertTrue((self.data / "generations" / current["generation_id"]).is_dir())
+
+    def test_publish_reclaims_uncommitted_crash_orphans_but_keeps_audited_generations(self):
+        first = self.publish()
+        generations = self.data / "generations"
+        (generations / (".stage-" + "f" * 32)).mkdir()
+        orphan = "e" * 32
+        (generations / orphan).mkdir()
+        result = self.publish({"notes.txt": b"next"}, expected=first["reference"]["checkpoint_digest"])
+        self.assertEqual(result["outcome"], "ACCEPT", result)
+        names = {p.name for p in generations.iterdir()}
+        self.assertEqual(names, {first["reference"]["generation_id"], result["reference"]["generation_id"]})
+
+    def test_deep_valid_snapshot_stays_within_a_bounded_descriptor_budget(self):
+        depth = "/".join(f"d{i}" for i in range(16))
+        files = {f"{depth}/file-{i}.txt": str(i).encode() for i in range(64)}
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        if hard < 64:
+            self.skipTest("host descriptor limit is below the bounded test budget")
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(64, hard), hard))
+        try:
+            result = self.publish(files)
+        finally:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (soft, hard))
+        self.assertEqual(result["outcome"], "ACCEPT", result)
 
     def test_recall_rejects_symlinked_snapshot_file_without_sink_release(self):
         published = self.publish()

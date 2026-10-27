@@ -60,9 +60,12 @@ Paths are relative POSIX paths normalized to Unicode NFC; symlinks and special
 files are refused. Full selected-snapshot verification happens before a path
 is emitted. This is local experimental custody: signed integrity does not
 establish completeness, truth, freshness beyond the configured checkpoint,
-issuer honesty, or universal erasure. Old immutable generations remain on
-disk, and restoring the trust database together with old data can restore an
-older accepted reference.
+issuer honesty, or universal erasure. Older committed generations remain on
+disk; only staging or renamed generations absent from the committed audit are
+eligible for recovery cleanup. Restoring the trust database together with old
+data can restore an older accepted reference. Receiver-specific fixtures are
+in `vectors/receiver-file-snapshot-v1.json`; they exercise this Python helper
+and do not define a CPR wire specification or independent implementation.
 
 The current durable publisher requires POSIX descriptor-relative no-follow
 I/O and Linux `renameat2(RENAME_NOREPLACE)`. Unsupported publication fails

@@ -1,6 +1,6 @@
 [project]
 name = "continuity-receipt"
-version = "0.5.1"
+version = "0.5.2"
 description = "Causal Provenance Receipts (CPR) — open specification, test vectors, and reference verifiers for verifiable records of governed AI-agent tasks"
 readme = "README.md"
 requires-python = ">=3.11"

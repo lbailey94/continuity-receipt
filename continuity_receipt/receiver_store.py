@@ -151,6 +151,62 @@ def _write_new_at(parent_fd: int, name: str, content: bytes) -> None:
         os.close(fd)
 
 
+def _write_snapshot_file_at(root_fd: int, relative_path: str, content: bytes) -> None:
+    """Write one file while retaining at most one descriptor per path level."""
+    parts = relative_path.split("/")
+    current_fd = root_fd
+    opened = []
+    try:
+        for part in parts[:-1]:
+            try:
+                child_fd = os.open(part, _dir_flags(), dir_fd=current_fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, mode=0o700, dir_fd=current_fd)
+                except FileExistsError:
+                    pass
+                _fsync_fd(current_fd)
+                child_fd = os.open(part, _dir_flags(), dir_fd=current_fd)
+            opened.append(child_fd)
+            current_fd = child_fd
+        _write_new_at(current_fd, parts[-1], content)
+        _fsync_fd(current_fd)
+    finally:
+        for fd in reversed(opened):
+            os.close(fd)
+
+
+def _remove_tree_at(parent_fd: int, name: str) -> None:
+    """Remove an unpublished tree without following symlinks."""
+    try:
+        info = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    if not stat.S_ISDIR(info.st_mode):
+        os.unlink(name, dir_fd=parent_fd)
+    else:
+        child_fd = os.open(name, _dir_flags(), dir_fd=parent_fd)
+        try:
+            for child in os.listdir(child_fd):
+                _remove_tree_at(child_fd, child)
+            _fsync_fd(child_fd)
+        finally:
+            os.close(child_fd)
+        os.rmdir(name, dir_fd=parent_fd)
+    _fsync_fd(parent_fd)
+
+
+def _recover_uncommitted_generations(generations_fd: int, conn: sqlite3.Connection) -> None:
+    """Reclaim staging/renamed directories absent from committed publication state."""
+    committed = {row[0] for row in conn.execute("SELECT generation_id FROM publication_audit")}
+    current = conn.execute("SELECT generation_id FROM current_reference WHERE singleton=1").fetchone()
+    if current is not None:
+        committed.add(current[0])
+    for name in os.listdir(generations_fd):
+        if name.startswith(".stage-") or (_GENERATION_RE.fullmatch(name) and name not in committed):
+            _remove_tree_at(generations_fd, name)
+
+
 def _capture_tree_at(root_fd: int) -> dict[str, bytes]:
     captured: dict[str, bytes] = {}
     entries = 0
@@ -372,6 +428,7 @@ class ReceiverStore:
         generation_id = secrets.token_hex(16)
         stage_name = ".stage-" + generation_id
         directory_fds = []
+        generations_fd = None
         try:
             self._policy_check(conn)
             conn.execute("BEGIN IMMEDIATE")
@@ -384,6 +441,7 @@ class ReceiverStore:
             directory_fds.append(root_fd)
             generations_fd = _open_child_dir(root_fd, "generations", create=True)
             directory_fds.append(generations_fd)
+            _recover_uncommitted_generations(generations_fd, conn)
             os.mkdir(stage_name, mode=0o700, dir_fd=generations_fd)
             stage_fd = _open_child_dir(generations_fd, stage_name)
             directory_fds.append(stage_fd)
@@ -393,12 +451,7 @@ class ReceiverStore:
             _write_new_at(stage_fd, "checkpoint.json", checkpoint_bytes)
             _write_new_at(stage_fd, "manifest.json", manifest_bytes)
             for rel, data in captured.items():
-                target_fd = files_fd
-                parts = rel.split("/")
-                for part in parts[:-1]:
-                    target_fd = _open_child_dir(target_fd, part, create=True)
-                    directory_fds.append(target_fd)
-                _write_new_at(target_fd, parts[-1], data)
+                _write_snapshot_file_at(files_fd, rel, data)
             for directory_fd in reversed(directory_fds):
                 _fsync_fd(directory_fd)
             self._fault(fault_hook, "after_stage")
@@ -422,6 +475,19 @@ class ReceiverStore:
         except BaseException:
             if conn.in_transaction:
                 conn.rollback()
+            if generations_fd is not None:
+                try:
+                    committed = conn.execute(
+                        "SELECT 1 FROM publication_audit WHERE generation_id=?", (generation_id,)
+                    ).fetchone()
+                except sqlite3.Error:
+                    committed = True  # Preserve data if commit state cannot be determined.
+                if not committed:
+                    for abandoned in (stage_name, generation_id):
+                        try:
+                            _remove_tree_at(generations_fd, abandoned)
+                        except OSError:
+                            pass  # A later serialized publish retries safe orphan recovery.
             raise
         finally:
             for directory_fd in reversed(directory_fds):

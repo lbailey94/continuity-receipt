@@ -6,6 +6,7 @@ implementations and to vectors that exercise it. Sections A–C cover the
 envelope, cross-record, agreement, and companion rules shared by the published
 specs `0.1`–`0.5`; section F covers the 0.5-specific vocabulary. Section G
 tracks the `0.6` development candidate (experimental, not a published spec).
+Section H maps Python-only local receiver tests, not CPR wire conformance.
 Where a rule is deliberately not enforced, the row says so and why. The
 published `vectors/manifest.json` remains the frozen 40-case corpus used by
 the hosted conformance referee.
@@ -120,3 +121,10 @@ The 0.5 corpus is `vectors/manifest-0.5.json` (21 vectors). The published
 | `chain_head.anchored` reuses the anchor type vocabulary and requires a `proof_ref` | `_check_chain_head` | `check_chain_head` | 25f | 25e | Proof verification is the companion tool's job. |
 | `--require-anchor` with a head present but unanchored adds `head_anchor_missing` (PROVISIONAL) | `_check_chain_head` | `check_chain_head` | 25d | — | Anchoring the head is recommended, not required, in the base spec. |
 | Whole-shape pass rejects a non-object `chain_head` as `malformed` | `_check_shape` | `check_shape` | 25a | unit test (`test_head_shape_refused`) | — |
+
+## H. Python experimental local receiver (implementation behavior only)
+
+| Behavior | Python | Rust | Positive | Negative | Limit |
+|---|---|---|---|---|---|
+| `file-snapshot-v1` manifest uses sorted NFC paths, exact byte sizes, and SHA-256 digests | `memory_snapshot.build_manifest` | — | `vectors/receiver-file-snapshot-v1.json` | duplicate normalized path, parent traversal in the same fixture | Python local receiver helper only; not CPR wire conformance |
+| Publication stays within bounded descriptor use and recovers only uncommitted staging/orphan generations | `receiver_store.ReceiverStore.publish` | — | `tests/test_receiver_store.py` | injected failures before commit; retained committed generations | POSIX descriptor-relative I/O and Linux `renameat2`; prior committed generations are retained |
