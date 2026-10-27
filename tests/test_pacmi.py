@@ -52,11 +52,47 @@ class TestPACMIConformance(unittest.TestCase):
 
     def test_cli_formatting(self):
         report = pacmi.evaluate_pacmi(self.happy_bundle)
-        output = pacmi.format_report_cli(report)
+        output = pacmi.format_report_cli(report, show_table=True)
         self.assertIn("W3C PACMI / AGMI", output)
         self.assertIn("T01", output)
         self.assertIn("T10", output)
+        self.assertIn("W3C 4-FIELD RESULT SCHEMA", output)
+        self.assertIn("| Property | Evidence | Result | Detection point and treatment |", output)
         self.assertIn("FINAL VERDICT", output)
+
+    def test_vectors_26_pacmi_threat_matrix_and_counterfactuals(self):
+        # 1. Vector 26: 10/10 CONFORMANT
+        with open(VECTORS_DIR / "26_pacmi_erasure_resurrection.json", "r", encoding="utf-8") as f:
+            v26 = strict_json.loads(f.read())
+        r26 = pacmi.evaluate_pacmi(v26)
+        self.assertEqual(r26.verdict, "CONFORMANT")
+        self.assertEqual(r26.score, "10/10")
+        self.assertTrue(r26.offstore_anchor_present)
+        self.assertTrue(r26.erasure_commitment_present)
+
+        # 2. Vector 26b: 9/10 PARTIAL (T10 counterfactual with high-water only)
+        with open(VECTORS_DIR / "26b_pacmi_high_water_counterfactual.json", "r", encoding="utf-8") as f:
+            v26b = strict_json.loads(f.read())
+        r26b = pacmi.evaluate_pacmi(v26b)
+        self.assertEqual(r26b.verdict, "PARTIAL")
+        self.assertEqual(r26b.score, "9/10")
+        self.assertTrue(r26b.offstore_anchor_present)
+        self.assertFalse(r26b.erasure_commitment_present)
+        threat_map_b = {t.code: t.status for t in r26b.threats}
+        self.assertEqual(threat_map_b["T09"], pacmi.STATUS_SAFE)
+        self.assertEqual(threat_map_b["T10"], pacmi.STATUS_VULNERABLE)
+
+        # 3. Vector 26c: 8/10 PARTIAL (in-store baseline without anchor)
+        with open(VECTORS_DIR / "26c_pacmi_in_store_no_anchor.json", "r", encoding="utf-8") as f:
+            v26c = strict_json.loads(f.read())
+        r26c = pacmi.evaluate_pacmi(v26c)
+        self.assertEqual(r26c.verdict, "PARTIAL")
+        self.assertEqual(r26c.score, "8/10")
+        self.assertFalse(r26c.offstore_anchor_present)
+        self.assertTrue(r26c.erasure_commitment_present)
+        threat_map_c = {t.code: t.status for t in r26c.threats}
+        self.assertEqual(threat_map_c["T09"], pacmi.STATUS_VULNERABLE)
+        self.assertEqual(threat_map_c["T10"], pacmi.STATUS_VULNERABLE)
 
 
 if __name__ == "__main__":
