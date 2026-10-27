@@ -29,7 +29,7 @@ content-addressed, lineage-chained memory store for agents.
    AAD (`cipher|tenant_hash|parent_crystal_id|created_at|metadata_public`).
 
 5. What is pinned?
-   `crystal_client.py` from `lbailey94/whitemagic` (`WMv10` @ `0fe89e3`),
+   `crystal_client.py` from `lbailey94/whitemagic` (`scripts/crystal_client.py` @ `586ed21` / `0fe89e3`),
    Python 3.12 + `cryptography`. Two configurations:
      - `whitemagic-crystals`: commitment stored inside `store-<ctx>/` on the
        same disk.
@@ -80,7 +80,7 @@ CRYSTAL_CLIENT_ENV = "AGMI_WHITEMAGIC_CRYSTAL_CLIENT"
 def _crystal_client_path() -> Path | None:
     """Locate the pinned crystal_client.py.
 
-    The row needs a checkout of lbailey94/whitemagic (WMv10/scripts). It is not
+    The row needs a checkout of lbailey94/whitemagic (scripts/crystal_client.py). It is not
     on a package index, so, as the Recallspection and HDP rows do, the suite
     skips the row unless the checkout is named in the environment.
     """
@@ -96,7 +96,7 @@ def _load_crystal_client():
     if p is None:
         raise RuntimeError(
             "crystal_client.py not found: set "
-            f"{CRYSTAL_CLIENT_ENV} to WMv10/scripts/crystal_client.py from "
+            f"{CRYSTAL_CLIENT_ENV} to scripts/crystal_client.py from "
             "github.com/lbailey94/whitemagic at the pinned commit"
         )
     spec = importlib.util.spec_from_file_location("wm_crystal_client", p)

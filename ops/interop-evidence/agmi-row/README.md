@@ -70,7 +70,7 @@ difference visible.
    - unwraps the per-crystal 32-byte DEK under `KEK` v(1) and AEAD-decrypts `ciphertext` with bound AAD (`cipher|tenant_hash|parent_crystal_id|created_at|metadata_public`).
 
 5. **What is pinned?**
-   `whitemagic crystal_client wm-crystal/1.0` at commit `586ed21` (`0fe89e3`, `lbailey94/whitemagic`, `WMv10/scripts/crystal_client.py`), Python 3.12 + `cryptography`.
+   `whitemagic crystal_client wm-crystal/1.0` at commit `586ed21` (`0fe89e3`, `lbailey94/whitemagic`, `scripts/crystal_client.py`), Python 3.12 + `cryptography`.
 
 ---
 
