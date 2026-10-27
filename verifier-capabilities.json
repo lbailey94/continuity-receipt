@@ -113,12 +113,14 @@
   "cli": {
     "cpr_verify": "cpr-verify",
     "cpr_consumer": "cpr-consumer",
+    "cpr_check_pacmi": "cpr-check-pacmi",
     "verify": "continuity-verify",
     "consumer": "continuity-consumer",
     "receipt_verify": "continuity-receipt-verify",
     "disclose": "continuity-receipt-disclose",
     "anchor": "continuity-receipt-anchor",
     "verify_receipt": "continuity-receipt-verify-receipt",
+    "check_pacmi": "continuity-receipt-check-pacmi",
     "experimental_memory": "cpr-memory"
   },
   "experimental_memory_receiver": {

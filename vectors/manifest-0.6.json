@@ -128,6 +128,36 @@
       "require_anchor": false,
       "note": "0.6 chain_head with an anchored disclosure verifies",
       "schema_valid": true
+    },
+    {
+      "file": "26_pacmi_erasure_resurrection.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "CONFORMANT",
+      "pacmi_score": "10/10",
+      "note": "0.6 PACMI at-rest conformance: off-store anchor + erasure-aware commitment (T01-T10 conformant)",
+      "schema_valid": true
+    },
+    {
+      "file": "26b_pacmi_high_water_counterfactual.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "PARTIAL",
+      "pacmi_score": "9/10",
+      "note": "0.6 PACMI counterfactual: off-store anchor + high-water only commitment (T10 vulnerable, 9/10)",
+      "schema_valid": true
+    },
+    {
+      "file": "26c_pacmi_in_store_no_anchor.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "PARTIAL",
+      "pacmi_score": "8/10",
+      "note": "0.6 PACMI in-store baseline: no off-store anchor (T09/T10 vulnerable, 8/10)",
+      "schema_valid": true
     }
   ]
 }

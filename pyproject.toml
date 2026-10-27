@@ -36,12 +36,14 @@ Specification = "https://github.com/lbailey94/continuity-receipt/blob/main/SPEC.
 [project.scripts]
 cpr-verify = "continuity_receipt.verify:main"
 cpr-consumer = "continuity_receipt.consumer:main"
+cpr-check-pacmi = "continuity_receipt.pacmi:main"
 continuity-verify = "continuity_receipt.verify:main"
 continuity-consumer = "continuity_receipt.consumer:main"
 continuity-receipt-verify = "continuity_receipt.verify:main"
 continuity-receipt-disclose = "continuity_receipt.disclose:main"
 continuity-receipt-anchor = "continuity_receipt.anchor:main"
 continuity-receipt-verify-receipt = "continuity_receipt.verification:main"
+continuity-receipt-check-pacmi = "continuity_receipt.pacmi:main"
 cpr-memory = "continuity_receipt.memory_resume:main"
 
 [build-system]
