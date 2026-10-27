@@ -1,6 +1,6 @@
 # Conformance table — normative rule → implementation → vectors
 
-**Status:** `continuity-receipt/0.5` (published 2026-09-30; tooling 0.5.1).
+**Status:** `continuity-receipt/0.5` (published 2026-09-30; Python tooling 0.5.2, Rust 0.5.1).
 This table is the audit surface: every normative rule maps to a check in both
 implementations and to vectors that exercise it. Sections A–C cover the
 envelope, cross-record, agreement, and companion rules shared by the published

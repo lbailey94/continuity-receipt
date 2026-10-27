@@ -6,7 +6,8 @@ existing receiver checkpoint is accepted. The checkpoint reference, receiver
 context, scope, PEM public key, and freshness limit are explicit local policy.
 No command refreshes trust during recall or resume.
 
-Install the checkout in an isolated environment with `python -m pip install
+Install the Python package with `python -m pip install continuity-receipt==0.5.2`
+or install this checkout in an isolated environment with `python -m pip install
 -e .`. The installed command is `cpr-memory`; the equivalent module command is
 `python -m continuity_receipt.memory_resume`. Every command requires
 `--data-root`, `--trust-db`, `--context`, `--scope`, and `--public-key` (an
