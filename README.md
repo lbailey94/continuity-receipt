@@ -116,7 +116,7 @@ python3 -m venv .venv-wheel
 # Or install the selected source, including its source-only CLIs.
 # Record git rev-parse HEAD before installing; source and PyPI differ.
 python3 -m venv .venv-source
-.venv-source/bin/python -m pip install -e .
+.venv-source/bin/python -m pip install -e . jsonschema
 .venv-source/bin/python -m continuity_receipt.verify vectors/02_happy_full.json
 
 # Run the conformance suite (vectors + schema + primitives) in the source env.
