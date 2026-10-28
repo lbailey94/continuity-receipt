@@ -101,31 +101,42 @@ tests/                     conformance suite (vectors, schema, primitives)
 ## Quickstart
 
 ```bash
-# from PyPI (0.5.1) — clone the repo for the vectors
-python3 -m venv .venv && . .venv/bin/activate
-pip install continuity-receipt==0.5.1
-continuity-verify vectors/02_happy_full.json            # TRUSTED
-continuity-consumer vectors/17_agreement_bound.json \
+# Run from a checkout for the vectors; use the published Python verifier.
+python3 -m venv .venv-wheel
+.venv-wheel/bin/python -m pip install continuity-receipt==0.5.2
+.venv-wheel/bin/continuity-verify vectors/02_happy_full.json            # TRUSTED
+.venv-wheel/bin/continuity-consumer vectors/17_agreement_bound.json \
   --policy examples/consumer-policy-0.4.json          # ACCEPT
-continuity-receipt-verify vectors/02_happy_full.json    # compat alias
-continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
-continuity-receipt-verify-receipt vectors/verification/01_valid.json \
+.venv-wheel/bin/continuity-receipt-verify vectors/02_happy_full.json    # compat alias
+.venv-wheel/bin/continuity-receipt-verify vectors/10b_anchor_missing.json --require-anchor
+.venv-wheel/bin/continuity-receipt-verify-receipt vectors/verification/01_valid.json \
   --bundle vectors/verification/bundle.json
-continuity-receipt-disclose --help
+.venv-wheel/bin/continuity-receipt-disclose --help
 
-# or run from a checkout
-pip install 'cryptography>=42'
-python3 -m continuity_receipt.verify vectors/02_happy_full.json
+# Or install the selected source, including its source-only CLIs.
+# Record git rev-parse HEAD before installing; source and PyPI differ.
+python3 -m venv .venv-source
+.venv-source/bin/python -m pip install -e . jsonschema
+.venv-source/bin/python -m continuity_receipt.verify vectors/02_happy_full.json
 
-# run the conformance suite (vectors + schema + primitives)
-python3 -m unittest discover -s tests -v
+# Run the conformance suite (vectors + schema + primitives) in the source env.
+.venv-source/bin/python -m unittest discover -s tests -v
 ```
 
-This checkout also contains an experimental local `cpr-memory` receiver for
+Python 0.5.2 includes an experimental local `cpr-memory` receiver for
 signed file snapshots, a separately retained checkpoint reference, and an
-explicitly named resume path. It is a source candidate, not a released feature;
+explicitly named resume path. It remains an experimental consumer feature;
 see [the receiver guide](docs/EXPERIMENTAL_MEMORY_RESUME.md) and
 [the local profile contract](docs/LOCAL_RECEIVER_PROFILE.md) for its limits.
+
+The PACMI evaluator (`cpr-check-pacmi` / `continuity-receipt-check-pacmi`)
+and the added PACMI/T10 fixtures on current main are **source-only**. The
+published 0.5.2 wheel does not contain that module or those console commands.
+Use the editable source install above in its separate environment, record its
+commit, and run `.venv-source/bin/cpr-check-pacmi --help`. Matching package
+version strings do not establish source/wheel parity. The historical,
+version-pinned [five-minute verifier exercise](VERIFY_IN_5_MIN.md) retains its
+original pins.
 
 ## ERC-8004 Validation (Base)
 
