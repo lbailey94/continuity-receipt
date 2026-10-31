@@ -511,7 +511,7 @@ class ReceiverStore:
                                accepted_checkpoint_digest=checkpoint_ref,
                                now=now, max_age_seconds=self.max_age_seconds)
 
-    def recall(self, *, now, sink=None) -> dict:
+    def recall(self, *, now, sink=None, semantic_predicate=None, off_host_witness=None) -> dict:
         conn = self._connect()
         if conn is None:
             return _outcome("NEEDS_EVIDENCE", "receiver_database_missing", files=None, reference=None)
@@ -527,6 +527,22 @@ class ReceiverStore:
             if not _GENERATION_RE.fullmatch(reference["generation_id"]):
                 conn.rollback()
                 return _outcome("REJECT", "generation_id_invalid", files=None, reference=reference)
+
+            if off_host_witness is not None:
+                witness_verdict = off_host_witness.verify(
+                    sequence=reference["sequence"],
+                    checkpoint_digest=reference["checkpoint_digest"],
+                    generation_id=reference["generation_id"],
+                )
+                if not witness_verdict.get("trusted", False):
+                    conn.rollback()
+                    return _outcome(
+                        "REJECT",
+                        witness_verdict.get("reason", "joint_rollback_detected"),
+                        files=None,
+                        reference=reference,
+                    )
+
             root_fd = _open_directory_path(self.data_root)
             directory_fds.append(root_fd)
             generations_fd = _open_child_dir(root_fd, "generations")
@@ -553,6 +569,30 @@ class ReceiverStore:
                 conn.rollback()
                 return {**_outcome(assessment.outcome, assessment.reason_codes[0],
                                    files=None, reference=reference), "assessment": assessment.as_dict()}
+
+            if semantic_predicate is not None:
+                try:
+                    pred_result = semantic_predicate(captured)
+                    pred_ok = pred_result[0] if isinstance(pred_result, tuple) else bool(pred_result)
+                    pred_reason = pred_result[1] if isinstance(pred_result, tuple) and len(pred_result) > 1 else "semantic_predicate_failed"
+                except Exception as exc:
+                    pred_ok = False
+                    pred_reason = f"semantic_predicate_failed:{exc}"
+
+                if not pred_ok:
+                    conn.rollback()
+                    shrunk = None
+                    try:
+                        from .trace_shrink import shrink_counterexample
+                        shrunk = shrink_counterexample(captured, semantic_predicate)
+                    except Exception:
+                        pass
+                    return {
+                        **_outcome("REJECT", pred_reason, files=None, reference=reference),
+                        "assessment": assessment.as_dict(),
+                        "shrunk_trace": shrunk,
+                    }
+
             if sink is not None:
                 sink(dict(captured))
             conn.commit()
