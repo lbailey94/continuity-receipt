@@ -119,6 +119,8 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--scope", required=True)
         command.add_argument("--public-key", required=True, help="PEM Ed25519 receiver/writer trust anchor")
         command.add_argument("--profile", help="select and pin a versioned adopter receiving-policy JSON")
+        command.add_argument("--predicate-file", help="JSON file with semantic task predicates")
+        command.add_argument("--witness-file", help="JSON file for external off-host witness tracking")
         command.add_argument("--max-age", type=int, default=3600)
         command.add_argument("--now", default=None, help="trusted operator test-time override; can backdate freshness (default: current UTC)")
         if name == "publish":
@@ -185,7 +187,16 @@ def main(argv: list[str] | None = None) -> int:
             result = store.publish(files, private_key=_load_private(args.key_pem),
                                    expected_checkpoint_digest=expected, now=now)
             _json(result)
-            return _outcome_code(result.get("outcome", "REJECT"))
+            code = _outcome_code(result.get("outcome", "REJECT"))
+            if code == 0 and getattr(args, "witness_file", None) and "reference" in result:
+                from . import strict_json
+                witness_data = {
+                    "sequence": result["reference"]["sequence"],
+                    "checkpoint_digest": result["reference"]["checkpoint_digest"],
+                    "generation_id": result["reference"]["generation_id"],
+                }
+                Path(args.witness_file).write_text(strict_json.dumps(witness_data) + "\n", encoding="utf-8")
+            return code
         if args.command in ("recall", "resume"):
             if args.command == "resume" and store.receiver_profile is not None and args.memory_path not in store.receiver_profile["memory_paths"]:
                 raise ValueError("receiver_profile_memory_path_mismatch")
@@ -202,7 +213,46 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(text)
                 sys.stdout.flush()
 
-            result = store.recall(now=now, sink=resume_sink if args.command == "resume" else None)
+            semantic_pred = None
+            if getattr(args, "predicate_file", None):
+                from . import strict_json
+                pred_spec = strict_json.loads(Path(args.predicate_file).read_text(encoding="utf-8"))
+                if isinstance(pred_spec, dict) and "predicate" in pred_spec:
+                    pred_spec = pred_spec["predicate"]
+                def semantic_pred(files):
+                    if "app/state.json" not in files:
+                        return False, "state_missing"
+                    state = strict_json.loads(files["app/state.json"].decode("utf-8"))
+                    if (state.get("schema"), state.get("release")) not in ((1, "A"), (2, "B")):
+                        return False, "application_schema_invalid"
+                    values = state if state["schema"] == 1 else state["state"]
+                    if "release" in pred_spec and state.get("release") != pred_spec["release"]:
+                        return False, "task_release_mismatch"
+                    for key in ("approved_counter", "work_order_destination", "authorized_action", "report_status", "task_payload"):
+                        if key in pred_spec and values.get(key) != pred_spec[key]:
+                            return False, f"task_state_mismatch:{key}"
+                    selected_key = pred_spec.get("selected_state_key", "task_payload")
+                    target_path = getattr(args, "memory_path", None)
+                    if target_path and target_path in files:
+                        if values.get(selected_key, "").encode("utf-8") != files[target_path]:
+                            return False, "selected_bytes_not_bound_to_checked_application_state"
+                    return True, "predicate_satisfied"
+
+            witness = None
+            if getattr(args, "witness_file", None):
+                from .witness import OffHostWitness
+                from . import strict_json
+                w_path = Path(args.witness_file)
+                if w_path.is_file():
+                    w_data = strict_json.loads(w_path.read_text(encoding="utf-8"))
+                    witness = OffHostWitness.from_dict(w_data)
+
+            result = store.recall(
+                now=now,
+                sink=resume_sink if args.command == "resume" else None,
+                semantic_predicate=semantic_pred,
+                off_host_witness=witness,
+            )
             outcome = result.get("outcome", "REJECT")
             files = result.get("files") if outcome == "ACCEPT" else None
             if args.command == "resume":
