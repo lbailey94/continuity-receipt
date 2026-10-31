@@ -189,13 +189,12 @@ def main(argv: list[str] | None = None) -> int:
             _json(result)
             code = _outcome_code(result.get("outcome", "REJECT"))
             if code == 0 and getattr(args, "witness_file", None) and "reference" in result:
-                from . import strict_json
                 witness_data = {
                     "sequence": result["reference"]["sequence"],
                     "checkpoint_digest": result["reference"]["checkpoint_digest"],
                     "generation_id": result["reference"]["generation_id"],
                 }
-                Path(args.witness_file).write_text(strict_json.dumps(witness_data) + "\n", encoding="utf-8")
+                Path(args.witness_file).write_text(json.dumps(witness_data, sort_keys=True) + "\n", encoding="utf-8")
             return code
         if args.command in ("recall", "resume"):
             if args.command == "resume" and store.receiver_profile is not None and args.memory_path not in store.receiver_profile["memory_paths"]:
