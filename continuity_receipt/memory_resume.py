@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import stat
 import sys
 from pathlib import Path
@@ -119,6 +120,8 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--scope", required=True)
         command.add_argument("--public-key", required=True, help="PEM Ed25519 receiver/writer trust anchor")
         command.add_argument("--profile", help="select and pin a versioned adopter receiving-policy JSON")
+        command.add_argument("--predicate-file", help="JSON file with semantic task predicates")
+        command.add_argument("--witness-file", help="JSON file for external off-host witness tracking")
         command.add_argument("--max-age", type=int, default=3600)
         command.add_argument("--now", default=None, help="trusted operator test-time override; can backdate freshness (default: current UTC)")
         if name == "publish":
@@ -182,31 +185,99 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "publish":
             files = capture_input_tree(args.input_root)
             expected = None if args.expected_reference == "none" else args.expected_reference
-            result = store.publish(files, private_key=_load_private(args.key_pem),
+            private_key = _load_private(args.key_pem)
+            if getattr(args, "witness_file", None):
+                from .witness_file import WitnessPublication
+                with WitnessPublication(args.witness_file) as pub:
+                    pub.ensure_not_ahead(store.current_reference())
+                    result = store.publish(files, private_key=private_key,
+                                           expected_checkpoint_digest=expected, now=now)
+                    code = _outcome_code(result.get("outcome", "REJECT"))
+                    if code == 0 and "reference" in result:
+                        pub.commit(result["reference"])
+                    _json(result)
+                    return code
+            result = store.publish(files, private_key=private_key,
                                    expected_checkpoint_digest=expected, now=now)
             _json(result)
             return _outcome_code(result.get("outcome", "REJECT"))
         if args.command in ("recall", "resume"):
             if args.command == "resume" and store.receiver_profile is not None and args.memory_path not in store.receiver_profile["memory_paths"]:
                 raise ValueError("receiver_profile_memory_path_mismatch")
-            def resume_sink(files):
-                rel = _path(args.memory_path)
-                selected = files.get(rel)
-                if selected is None:
-                    raise ValueError("memory_path_missing")
-                try:
-                    text = selected.decode("utf-8", errors="strict")
-                except UnicodeDecodeError as exc:
-                    raise ValueError("memory_text_invalid_utf8") from exc
-                # Release while the receiver still holds its publication-excluding read transaction.
-                sys.stdout.write(text)
-                sys.stdout.flush()
+            semantic_pred = None
+            if getattr(args, "predicate_file", None):
+                from . import strict_json
+                pred_spec = strict_json.loads(Path(args.predicate_file).read_text(encoding="utf-8"))
+                if isinstance(pred_spec, dict) and "predicate" in pred_spec:
+                    pred_spec = pred_spec["predicate"]
+                def semantic_pred(files):
+                    if "app/state.json" not in files:
+                        return False, "state_missing"
+                    state = strict_json.loads(files["app/state.json"].decode("utf-8"))
+                    if (state.get("schema"), state.get("release")) not in ((1, "A"), (2, "B")):
+                        return False, "application_schema_invalid"
+                    values = state if state["schema"] == 1 else state["state"]
+                    if "release" in pred_spec and state.get("release") != pred_spec["release"]:
+                        return False, "task_release_mismatch"
+                    for key in ("approved_counter", "work_order_destination", "authorized_action", "report_status", "task_payload"):
+                        if key in pred_spec and values.get(key) != pred_spec[key]:
+                            return False, f"task_state_mismatch:{key}"
+                    selected_key = pred_spec.get("selected_state_key", "task_payload")
+                    target_path = getattr(args, "memory_path", None)
+                    if target_path and target_path in files:
+                        if values.get(selected_key, "").encode("utf-8") != files[target_path]:
+                            return False, "selected_bytes_not_bound_to_checked_application_state"
+                    return True, "predicate_satisfied"
 
-            result = store.recall(now=now, sink=resume_sink if args.command == "resume" else None)
+            witness = None
+            if getattr(args, "witness_file", None):
+                from .witness_file import load_witness
+                witness = load_witness(args.witness_file)
+
+            if args.command == "resume":
+                from .receiver_store import ReceiverDecision
+                from .canon import canonical_bytes, sha256_prefixed
+                policy_inputs = {
+                    "algorithm": "cpr-memory-resume-policy-v1",
+                    "memory_path": _path(args.memory_path),
+                    "predicate": pred_spec if semantic_pred is not None else None,
+                    "receiver_profile_digest": (store.receiver_profile["digest"]
+                                                 if store.receiver_profile is not None else None),
+                }
+                policy_digest = sha256_prefixed(canonical_bytes(policy_inputs))
+                def resume_policy(files, reference):
+                    if semantic_pred is not None:
+                        verdict = semantic_pred(files)
+                        if isinstance(verdict, tuple):
+                            okay, reason = verdict
+                        else:
+                            okay, reason = bool(verdict), "semantic_predicate_failed"
+                        if not okay:
+                            return ReceiverDecision(False, str(reason), "cpr-memory-resume", "1", policy_digest)
+                    rel = _path(args.memory_path)
+                    selected = files.get(rel)
+                    if selected is None:
+                        return ReceiverDecision(False, "memory_path_missing", "cpr-memory-resume", "1", policy_digest)
+                    try:
+                        selected.decode("utf-8", errors="strict")
+                    except UnicodeDecodeError:
+                        return ReceiverDecision(False, "memory_text_invalid_utf8", "cpr-memory-resume", "1", policy_digest)
+                    return ReceiverDecision(True, "resume_authorized", "cpr-memory-resume", "1", policy_digest)
+                result = store.recall_with_decision(now=now, decision_policy=resume_policy,
+                                                    off_host_witness=witness)
+            else:
+                result = store.recall(now=now, semantic_predicate=semantic_pred,
+                                      off_host_witness=witness)
             outcome = result.get("outcome", "REJECT")
             files = result.get("files") if outcome == "ACCEPT" else None
             if args.command == "resume":
-                print(json.dumps({k: v for k, v in result.items() if k != "files"}, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+                report = {k: v for k, v in result.items() if k != "files"}
+                if isinstance(report.get("reference"), dict) or hasattr(report.get("reference"), "items"):
+                    report["reference"] = dict(report["reference"])
+                print(json.dumps(report, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+                if outcome == "ACCEPT":
+                    sys.stdout.write(result["files"][_path(args.memory_path)].decode("utf-8", errors="strict"))
+                    sys.stdout.flush()
             else:
                 if outcome == "ACCEPT" and isinstance(files, dict):
                     result = {**result, "files": [{"path": path, "size": len(data), "sha256": "sha256:" + __import__("hashlib").sha256(data).hexdigest()} for path, data in sorted(files.items())]}

@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -51,7 +52,7 @@ class MemoryResumeCaptureTests(unittest.TestCase):
             profile_path = os.path.join(root, "receiver-profile.json")
             profile = {
                 "kind": "cpr-experimental-local-receiver-profile", "version": 1,
-                "id": "test-local-note", "export": {"scope": "user:local", "inventory": ["notes/today.txt"], "optional": [], "memory_paths": ["notes/today.txt"]},
+                "id": "test-local-note", "export": {"scope": "user:local", "inventory": ["notes/today.txt", "notes/absent.txt"], "optional": ["notes/absent.txt"], "memory_paths": ["notes/today.txt", "notes/absent.txt"]},
                 "trust": {"context": "cli-test", "key_sha256": sha256_prefixed(raw_pubkey_bytes(private.public_key())),
                           "reference": "receiver-trust-db/current_reference; advanced only by explicit local publish", "clock": "system-utc"},
                 "authority": {"status": "operator-asserted", "basis": "outside this verifier"},
@@ -95,10 +96,17 @@ class MemoryResumeCaptureTests(unittest.TestCase):
             profile["id"] = "test-local-note"
             with open(profile_path, "w", encoding="utf-8") as stream:
                 json.dump(profile, stream)
+            witness_path = os.path.join(root, "published-witness.json")
             code, published, _ = invoke(["publish", "--key-pem", private_path,
-                                         "--expected-reference", "none", "--input-root", input_root])
+                                         "--expected-reference", "none", "--input-root", input_root,
+                                         "--witness-file", witness_path])
             self.assertEqual(code, 0)
             self.assertEqual(json.loads(published)["outcome"], "ACCEPT")
+            with open(witness_path, encoding="utf-8") as wf:
+                witness_json = json.load(wf)
+            self.assertEqual(witness_json,
+                             {"sequence": 1, "checkpoint_digest": json.loads(published)["reference"]["checkpoint_digest"],
+                              "generation_id": json.loads(published)["reference"]["generation_id"]})
             with open(os.path.join(input_root, "extra.txt"), "w", encoding="utf-8") as stream:
                 stream.write("outside declared inventory")
             reference = json.loads(published)["reference"]["checkpoint_digest"]
@@ -110,10 +118,50 @@ class MemoryResumeCaptureTests(unittest.TestCase):
             code, recalled, _ = invoke(["recall"])
             self.assertEqual(code, 0)
             self.assertEqual(json.loads(recalled)["files"][0]["path"], "notes/today.txt")
-            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt"])
-            self.assertEqual(code, 0)
+            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/absent.txt"])
+            self.assertEqual(code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn("memory_path_missing", stderr)
+            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt",
+                                          "--witness-file", witness_path])
+            self.assertEqual(code, 0, stderr)
             self.assertEqual(stdout, "resume this exact text\n")
             self.assertIn('"outcome": "ACCEPT"', stderr)
+            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt",
+                                          "--witness-file", os.path.join(root, "missing-witness.json")])
+            self.assertEqual(code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn("off_host_witness_missing", stderr)
+            empty_witness = os.path.join(root, "empty-witness.json")
+            with open(empty_witness, "w", encoding="utf-8") as stream:
+                json.dump({}, stream)
+            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt",
+                                          "--witness-file", empty_witness])
+            self.assertEqual(code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn("off_host_witness_invalid", stderr)
+            from continuity_receipt.receiver_store import ReceiverStore
+            import sqlite3
+            original_connect = ReceiverStore._connect
+            class CommitFailure:
+                def __init__(self, conn): self.conn = conn
+                def __getattr__(self, name): return getattr(self.conn, name)
+                def commit(self): raise sqlite3.OperationalError("injected commit failure")
+            with patch.object(ReceiverStore, "_connect", lambda self, **kw: CommitFailure(original_connect(self, **kw))):
+                code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt"])
+            self.assertEqual(code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn('"outcome": "REJECT"', stderr)
+            with open(os.path.join(input_root, "notes", "today.txt"), "wb") as stream:
+                stream.write(b"\xff")
+            current = json.loads(published)["reference"]["checkpoint_digest"]
+            code, published_bad_text, _ = invoke(["publish", "--key-pem", private_path,
+                "--expected-reference", current, "--input-root", input_root])
+            self.assertEqual(code, 0, published_bad_text)
+            code, stdout, stderr = invoke(["resume", "--memory-path", "notes/today.txt"])
+            self.assertEqual(code, 2)
+            self.assertEqual(stdout, "")
+            self.assertIn("memory_text_invalid_utf8", stderr)
             code, stdout, stderr = invoke(["resume", "--memory-path", "missing.txt"])
             self.assertEqual(code, 2)
             self.assertEqual(stdout, "")
