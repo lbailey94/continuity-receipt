@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from continuity_receipt.receiver_store import ReceiverStore  # noqa: E402
+from continuity_receipt.receiver_store import ReceiverDecision  # noqa: E402
 
 
 class ReceiverStoreTests(unittest.TestCase):
@@ -46,6 +48,65 @@ class ReceiverStoreTests(unittest.TestCase):
         self.assertEqual(result["files"], {"notes.txt": b"first", "sub/empty": b"", "sub/other": b"also"})
         self.assertEqual(released, [result["files"]])
         self.assertEqual(result["reference"], reference)
+
+    def test_decision_api_binds_immutable_capture_and_releases_only_after_commit(self):
+        first = self.publish({"notes.txt": b"checked bytes"})
+        seen = {}
+        generation_file = self.data / "generations" / first["reference"]["generation_id"] / "files" / "notes.txt"
+        def approve(files, reference):
+            seen["reference"] = reference
+            self.assertEqual(files["notes.txt"], b"checked bytes")
+            with self.assertRaises(TypeError):
+                files["notes.txt"] = b"substituted"
+            generation_file.write_bytes(b"mutated after capture")
+            return ReceiverDecision(True, "allowed", "test-policy", "1", "sha256:" + "a" * 64)
+        result = self.store.recall_with_decision(now=self.now, decision_policy=approve)
+        self.assertEqual(result["outcome"], "ACCEPT")
+        self.assertEqual(result["files"]["notes.txt"], b"checked bytes")
+        self.assertEqual(result["policy"], {"id": "test-policy", "version": "1", "digest": "sha256:" + "a" * 64})
+        from continuity_receipt.canon import canonical_bytes, sha256_prefixed
+        expected_files_digest = sha256_prefixed(canonical_bytes({
+            "notes.txt": sha256_prefixed(b"checked bytes")
+        }))
+        self.assertEqual(result["decision"]["approved_output_digest"], expected_files_digest)
+        self.assertEqual(result["decision"]["reference"], first["reference"])
+        self.assertEqual(result["decision"]["reference"]["manifest_digest"], first["reference"]["manifest_digest"])
+        self.assertEqual(dict(seen["reference"]), first["reference"])
+
+    def test_decision_rejection_exception_and_commit_failure_return_no_payload(self):
+        self.publish({"notes.txt": b"secret"})
+        rejected = self.store.recall_with_decision(
+            now=self.now, decision_policy=lambda files, ref: ReceiverDecision(False, "forbidden", "p", "1"))
+        self.assertEqual(rejected["outcome"], "REJECT")
+        self.assertIsNone(rejected["files"])
+        failed = self.store.recall_with_decision(now=self.now,
+            decision_policy=lambda files, ref: (_ for _ in ()).throw(RuntimeError("policy boom")))
+        self.assertEqual(failed["outcome"], "REJECT")
+        self.assertEqual(failed["reason_codes"], ["receiver_policy_failed:RuntimeError"])
+        self.assertIsNone(failed["files"])
+        for malformed in (object(), {"approved": True}, ReceiverDecision(False)):
+            bad = self.store.recall_with_decision(now=self.now,
+                decision_policy=lambda files, ref, value=malformed: value)
+            self.assertEqual(bad["outcome"], "REJECT")
+            self.assertIsNone(bad["files"])
+        with self.assertRaisesRegex(TypeError, "receiver_decision_shape_invalid"):
+            ReceiverDecision(1, "allowed", "p", "1", "sha256:" + "d" * 64)
+        ambiguous = self.store.recall_with_decision(now=self.now,
+            decision_policy=lambda files, ref: ReceiverDecision(True, "allowed", "", "", "sha256:" + "d" * 64))
+        self.assertEqual(ambiguous["reason_codes"], ["receiver_policy_binding_missing"])
+        self.assertIsNone(ambiguous["files"])
+
+        original_connect = self.store._connect
+        class CommitFailure:
+            def __init__(self, conn): self.conn = conn
+            def __getattr__(self, name): return getattr(self.conn, name)
+            def commit(self): raise sqlite3.OperationalError("injected commit failure")
+        import sqlite3
+        with patch.object(self.store, "_connect", side_effect=lambda: CommitFailure(original_connect())):
+            failed_commit = self.store.recall_with_decision(now=self.now,
+                decision_policy=lambda files, ref: ReceiverDecision(True, "allowed", "p", "1", "sha256:" + "b" * 64))
+        self.assertEqual(failed_commit["outcome"], "REJECT")
+        self.assertIsNone(failed_commit["files"])
 
     def test_reads_never_initialize_missing_database_or_release_content(self):
         self.tmp.cleanup()

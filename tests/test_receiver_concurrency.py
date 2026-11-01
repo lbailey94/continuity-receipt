@@ -5,6 +5,7 @@ import multiprocessing
 import sqlite3
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from continuity_receipt.receiver_store import ReceiverStore
+from continuity_receipt.receiver_store import ReceiverDecision, ReceiverStore
 
 NOW = "2026-10-23T12:00:00Z"
 KEY_BYTES = bytes(range(32))
@@ -156,6 +157,46 @@ class ReceiverConcurrencyTests(unittest.TestCase):
         self.assertEqual(current["outcome"], "ACCEPT", current)
         self.assertEqual(current["reference"], published["reference"])
         self.assertEqual(current["files"], {"notes.txt": b"generation two"})
+
+    def test_decision_commit_is_cas_point_for_concurrent_publisher(self):
+        first = self.store.publish({"notes.txt": b"generation one"},
+                                   private_key=Ed25519PrivateKey.from_private_bytes(KEY_BYTES),
+                                   expected_checkpoint_digest=None, now=NOW)
+        entered, release, writer_started, writer_done = (threading.Event(), threading.Event(),
+                                                          threading.Event(), threading.Event())
+        outcome = {}
+        def policy(files, reference):
+            outcome["observed_reference"] = dict(reference)
+            entered.set()
+            if not release.wait(timeout=10):
+                raise TimeoutError("decision release timed out")
+            return ReceiverDecision(True, "allowed", "concurrency-test", "1", "sha256:" + "c" * 64)
+        def reader():
+            outcome["decision"] = self.store.recall_with_decision(now=NOW, decision_policy=policy)
+        def writer():
+            writer_started.set()
+            outcome["publish"] = self.store.publish({"notes.txt": b"generation two"},
+                private_key=Ed25519PrivateKey.from_private_bytes(KEY_BYTES),
+                expected_checkpoint_digest=first["reference"]["checkpoint_digest"], now=NOW)
+            writer_done.set()
+        reader_thread = threading.Thread(target=reader)
+        reader_thread.start()
+        self.assertTrue(entered.wait(timeout=5), "policy did not reach held decision point")
+        writer_thread = threading.Thread(target=writer)
+        writer_thread.start()
+        self.assertTrue(writer_started.wait(timeout=5))
+        self.assertFalse(writer_done.wait(timeout=0.25), "publisher crossed uncommitted decision")
+        release.set()
+        reader_thread.join(timeout=5)
+        writer_thread.join(timeout=5)
+        self.assertFalse(reader_thread.is_alive())
+        self.assertFalse(writer_thread.is_alive())
+        self.assertEqual(outcome["decision"]["outcome"], "ACCEPT")
+        self.assertEqual(outcome["decision"]["files"]["notes.txt"], b"generation one")
+        self.assertEqual(dict(outcome["decision"]["reference"]), outcome["observed_reference"])
+        self.assertEqual(outcome["decision"]["reference"], first["reference"])
+        self.assertEqual(outcome["publish"]["outcome"], "ACCEPT")
+        self.assertEqual(self.store.current_reference(), outcome["publish"]["reference"])
 
     def test_stale_writer_cannot_restore_erased_content_or_advance_reference(self):
         first = self.store.publish({"memory.txt": b"erase this private text"},

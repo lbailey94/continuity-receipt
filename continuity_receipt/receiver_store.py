@@ -12,7 +12,9 @@ import re
 import secrets
 import sqlite3
 import stat
+from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
@@ -31,6 +33,31 @@ _MAX_MANIFEST_BYTES = 256 * 1024
 
 class StoreError(ValueError):
     """Configuration or local storage is unsafe or inconsistent."""
+
+
+@dataclass(frozen=True)
+class ReceiverDecision:
+    """Trusted policy verdict over captured receiver inputs."""
+    approved: bool
+    reason: str = "policy_rejected"
+    policy_id: str = ""
+    policy_version: str = ""
+    policy_digest: str = ""
+
+    def __post_init__(self):
+        if type(self.approved) is not bool or any(type(value) is not str for value in
+                                                  (self.reason, self.policy_id, self.policy_version, self.policy_digest)):
+            raise TypeError("receiver_decision_shape_invalid")
+        if self.policy_digest and not re.fullmatch(r"sha256:[0-9a-f]{64}", self.policy_digest):
+            raise TypeError("receiver_policy_digest_invalid")
+
+
+def _immutable_bytes(files):
+    return MappingProxyType({str(path): bytes(data) for path, data in files.items()})
+
+
+def _immutable_reference(reference):
+    return MappingProxyType(dict(reference))
 
 
 def _absolute(path) -> Path:
@@ -512,6 +539,23 @@ class ReceiverStore:
                                now=now, max_age_seconds=self.max_age_seconds)
 
     def recall(self, *, now, sink=None, semantic_predicate=None, off_host_witness=None) -> dict:
+        """Legacy API. A sink runs before commit and may leave irreversible effects."""
+        return self._recall(now=now, sink=sink, semantic_predicate=semantic_predicate,
+                            off_host_witness=off_host_witness, decision_policy=None)
+
+    def recall_with_decision(self, *, now, decision_policy, off_host_witness=None) -> dict:
+        """Return approved captured bytes only after the local decision commits.
+
+        The callback is trusted Python, not a sandbox, and must not perform delivery.
+        Currentness linearizes at successful SQLite commit, not at later use.
+        """
+        if not callable(decision_policy):
+            raise TypeError("decision_policy_must_be_callable")
+        return self._recall(now=now, sink=None, semantic_predicate=None,
+                            off_host_witness=off_host_witness,
+                            decision_policy=decision_policy)
+
+    def _recall(self, *, now, sink, semantic_predicate, off_host_witness, decision_policy) -> dict:
         conn = self._connect()
         if conn is None:
             return _outcome("NEEDS_EVIDENCE", "receiver_database_missing", files=None, reference=None)
@@ -593,11 +637,48 @@ class ReceiverStore:
                         "shrunk_trace": shrunk,
                     }
 
+            decision = None
+            if decision_policy is not None:
+                try:
+                    decision = decision_policy(_immutable_bytes(captured), _immutable_reference(reference))
+                    if type(decision) is not ReceiverDecision:
+                        raise TypeError("receiver_policy_must_return_ReceiverDecision")
+                except Exception as exc:
+                    conn.rollback()
+                    return _outcome("REJECT", f"receiver_policy_failed:{type(exc).__name__}",
+                                    files=None, reference=reference)
+                if decision.approved and not all((decision.policy_id, decision.policy_version, decision.policy_digest)):
+                    conn.rollback()
+                    return _outcome("REJECT", "receiver_policy_binding_missing", files=None,
+                                    reference=reference)
+                if not decision.approved:
+                    conn.rollback()
+                    return {**_outcome("REJECT", decision.reason or "policy_rejected",
+                                       files=None, reference=reference),
+                            "policy": {"id": decision.policy_id, "version": decision.policy_version,
+                                       "digest": decision.policy_digest}}
+
             if sink is not None:
                 sink(dict(captured))
             conn.commit()
-            return {**_outcome("ACCEPT", "snapshot_current", files=captured,
-                               reference=reference), "assessment": assessment.as_dict()}
+            result = {**_outcome("ACCEPT", "snapshot_current", files=captured,
+                                 reference=reference), "assessment": assessment.as_dict()}
+            if decision is not None:
+                result["files"] = _immutable_bytes(captured)
+                result["reference"] = _immutable_reference(reference)
+                files_digest = sha256_prefixed(canonical_bytes({
+                    path: sha256_prefixed(data) for path, data in sorted(captured.items())
+                }))
+                result["policy"] = {"id": decision.policy_id, "version": decision.policy_version,
+                                    "digest": decision.policy_digest}
+                result["decision"] = {
+                    "context": self.context, "scope": self.scope,
+                    "reference": dict(reference), "approved_output_digest": files_digest,
+                    "approved_output_digest_algorithm": "sha256-over-cpr-canonical-bytes-v0-file-map-v1",
+                    "policy_digest_algorithm": "sha256-over-cpr-canonical-bytes-v0",
+                    "policy": dict(result["policy"]),
+                }
+            return result
         except (OSError, sqlite3.Error, StoreError, ValueError, TypeError, UnicodeError, OverflowError, RecursionError) as exc:
             if conn.in_transaction:
                 conn.rollback()
