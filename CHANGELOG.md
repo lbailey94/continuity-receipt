@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — experimental witness custody follow-up
+
+The local receiver CLI exposes a separately retained expected witness checkpoint
+and a required-witness mode. Explicitly empty custody/policy options refuse
+instead of selecting an unguarded path. Resume decision policy version 2 binds
+the witness requirement, pin and loaded reference.
+
+Publication emits one final result after cleanup, with truthful local-commit and
+witness-completion fields when a later file operation fails. Witness cleanup
+attempts all descriptor closes and preserves the primary error. Regression
+coverage includes native restart/rollback checks, publication faults, pinned
+reference mismatch and cooperating publisher order. These are local candidate
+changes; bundle wire rules and published conformance fixtures are unchanged.
+See `docs/EXPERIMENTAL_WITNESS_CUSTODY.md`.
+
 ## 0.5.2 — Python-only local receiver patch (2026-10-27)
 
 The Python package adds the experimental checkpointed local memory receiver

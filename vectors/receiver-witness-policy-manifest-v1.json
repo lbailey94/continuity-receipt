@@ -1,0 +1,8 @@
+{
+  "kind": "cpr-experimental-local-witness-policy-manifest",
+  "version": 1,
+  "scope": "Implementation-only; not a published CPR bundle conformance manifest",
+  "file": "receiver-witness-policy-v1.json",
+  "sha256": "bc5ae893b1fa595a47146c0c4a82dc5cf6031ae64b1f3d03d93d85d344524616",
+  "cases": 9
+}

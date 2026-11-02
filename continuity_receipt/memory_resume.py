@@ -122,6 +122,9 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--profile", help="select and pin a versioned adopter receiving-policy JSON")
         command.add_argument("--predicate-file", help="JSON file with semantic task predicates")
         command.add_argument("--witness-file", help="JSON file for external off-host witness tracking")
+        if name in ("recall", "resume"):
+            command.add_argument("--expected-witness-checkpoint", help="checkpoint digest retained separately by the caller; must match the supplied witness")
+            command.add_argument("--require-witness", action="store_true", help="require both a witness file and a separately supplied expected checkpoint")
         command.add_argument("--max-age", type=int, default=3600)
         command.add_argument("--now", default=None, help="trusted operator test-time override; can backdate freshness (default: current UTC)")
         if name == "publish":
@@ -161,10 +164,33 @@ def _outcome_code(value: str) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.now is not None and args.profile:
-        _json({"outcome": "REJECT", "reason_codes": ["receiver_profile_clock_override_forbidden"]})
+        payload = {"outcome": "REJECT", "reason_codes": ["receiver_profile_clock_override_forbidden"]}
+        if args.command == "resume":
+            print(json.dumps(payload, sort_keys=True), file=sys.stderr)
+        else:
+            _json(payload)
         return 2
     now = args.now or utc_now_rfc3339()
+    publication_started = False
+    publication_returned = False
+    committed_reference = None
+    witness_state = "NOT_ATTEMPTED"
     try:
+        for option, reason in (("witness_file", "off_host_witness_path_invalid"),
+                               ("predicate_file", "semantic_predicate_path_invalid"),
+                               ("profile", "receiver_profile_path_invalid")):
+            value = getattr(args, option, None)
+            if value is not None and not value:
+                raise ValueError(reason)
+        if args.command in ("recall", "resume"):
+            if args.expected_witness_checkpoint is not None and not args.expected_witness_checkpoint:
+                raise ValueError("off_host_witness_expected_reference_invalid")
+            if args.require_witness and args.witness_file is None:
+                raise ValueError("off_host_witness_required")
+            if args.require_witness and args.expected_witness_checkpoint is None:
+                raise ValueError("off_host_witness_expected_reference_required")
+            if args.expected_witness_checkpoint is not None and args.witness_file is None:
+                raise ValueError("off_host_witness_file_required")
         store = _store(args)
         if args.command == "init":
             result = store.initialize()
@@ -186,26 +212,39 @@ def main(argv: list[str] | None = None) -> int:
             files = capture_input_tree(args.input_root)
             expected = None if args.expected_reference == "none" else args.expected_reference
             private_key = _load_private(args.key_pem)
-            if getattr(args, "witness_file", None):
+            if args.witness_file is not None:
                 from .witness_file import WitnessPublication
                 with WitnessPublication(args.witness_file) as pub:
                     pub.ensure_not_ahead(store.current_reference())
+                    publication_started = True
                     result = store.publish(files, private_key=private_key,
                                            expected_checkpoint_digest=expected, now=now)
+                    publication_returned = True
                     code = _outcome_code(result.get("outcome", "REJECT"))
                     if code == 0 and "reference" in result:
+                        committed_reference = result["reference"]
+                        witness_state = "INCOMPLETE"
                         pub.commit(result["reference"])
-                    _json(result)
-                    return code
+                        witness_state = "COMPLETE"
+                    result = {**result, "local_committed": committed_reference is not None,
+                              "witness_publication": {"outcome": witness_state}}
+                # A context cleanup error must not follow an emitted ACCEPT.
+                _json(result)
+                return code
+            publication_started = True
             result = store.publish(files, private_key=private_key,
                                    expected_checkpoint_digest=expected, now=now)
+            publication_returned = True
+            if result.get("outcome") == "ACCEPT":
+                committed_reference = result.get("reference")
+            result = {**result, "local_committed": committed_reference is not None}
             _json(result)
             return _outcome_code(result.get("outcome", "REJECT"))
         if args.command in ("recall", "resume"):
             if args.command == "resume" and store.receiver_profile is not None and args.memory_path not in store.receiver_profile["memory_paths"]:
                 raise ValueError("receiver_profile_memory_path_mismatch")
             semantic_pred = None
-            if getattr(args, "predicate_file", None):
+            if args.predicate_file is not None:
                 from . import strict_json
                 pred_spec = strict_json.loads(Path(args.predicate_file).read_text(encoding="utf-8"))
                 if isinstance(pred_spec, dict) and "predicate" in pred_spec:
@@ -230,19 +269,25 @@ def main(argv: list[str] | None = None) -> int:
                     return True, "predicate_satisfied"
 
             witness = None
-            if getattr(args, "witness_file", None):
+            if args.witness_file is not None:
                 from .witness_file import load_witness
-                witness = load_witness(args.witness_file)
+                witness = load_witness(args.witness_file,
+                                       expected_checkpoint_digest=args.expected_witness_checkpoint)
 
             if args.command == "resume":
                 from .receiver_store import ReceiverDecision
                 from .canon import canonical_bytes, sha256_prefixed
                 policy_inputs = {
-                    "algorithm": "cpr-memory-resume-policy-v1",
+                    "algorithm": "cpr-memory-resume-policy-v2",
                     "memory_path": _path(args.memory_path),
                     "predicate": pred_spec if semantic_pred is not None else None,
                     "receiver_profile_digest": (store.receiver_profile["digest"]
                                                  if store.receiver_profile is not None else None),
+                    "witness": {"required": args.require_witness,
+                                "expected_checkpoint_digest": args.expected_witness_checkpoint,
+                                "reference": {"sequence": witness.min_sequence,
+                                              "checkpoint_digest": witness.latest_checkpoint,
+                                              "generation_id": witness.generation_id} if witness else None},
                 }
                 policy_digest = sha256_prefixed(canonical_bytes(policy_inputs))
                 def resume_policy(files, reference):
@@ -253,16 +298,16 @@ def main(argv: list[str] | None = None) -> int:
                         else:
                             okay, reason = bool(verdict), "semantic_predicate_failed"
                         if not okay:
-                            return ReceiverDecision(False, str(reason), "cpr-memory-resume", "1", policy_digest)
+                            return ReceiverDecision(False, str(reason), "cpr-memory-resume", "2", policy_digest)
                     rel = _path(args.memory_path)
                     selected = files.get(rel)
                     if selected is None:
-                        return ReceiverDecision(False, "memory_path_missing", "cpr-memory-resume", "1", policy_digest)
+                        return ReceiverDecision(False, "memory_path_missing", "cpr-memory-resume", "2", policy_digest)
                     try:
                         selected.decode("utf-8", errors="strict")
                     except UnicodeDecodeError:
-                        return ReceiverDecision(False, "memory_text_invalid_utf8", "cpr-memory-resume", "1", policy_digest)
-                    return ReceiverDecision(True, "resume_authorized", "cpr-memory-resume", "1", policy_digest)
+                        return ReceiverDecision(False, "memory_text_invalid_utf8", "cpr-memory-resume", "2", policy_digest)
+                    return ReceiverDecision(True, "resume_authorized", "cpr-memory-resume", "2", policy_digest)
                 result = store.recall_with_decision(now=now, decision_policy=resume_policy,
                                                     off_host_witness=witness)
             else:
@@ -285,6 +330,16 @@ def main(argv: list[str] | None = None) -> int:
             return _outcome_code(outcome)
     except Exception as exc:
         payload = {"outcome": "REJECT", "reason_codes": [getattr(exc, "reason", None) or str(exc) or type(exc).__name__]}
+        if args.command == "publish":
+            payload["local_committed"] = (True if committed_reference is not None else
+                                          None if publication_started and not publication_returned else False)
+            if committed_reference is not None:
+                payload["reference"] = committed_reference
+            if args.witness_file is not None:
+                payload["witness_publication"] = {"outcome": witness_state,
+                                                  "reason_codes": list(payload["reason_codes"])}
+            if payload["local_committed"] is None:
+                payload["local_commit_status"] = "UNKNOWN"
         if args.command == "resume":
             print(json.dumps(payload, sort_keys=True), file=sys.stderr)
         else:

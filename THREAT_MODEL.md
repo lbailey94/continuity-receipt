@@ -23,6 +23,24 @@ A receipt is evidence about what a governed system recorded and signed — not a
 | 13 | **Metadata correlation** (receipts leak who worked with whom) | Disclosed | Identifiers are DIDs; required fields avoid names/emails, but issuer/counterparty/timing correlation is possible. Selective disclosure and privacy profiles are future work. |
 | 14 | **Agreement-binding abuse** (wrong offeree, wrong signer, replay/chronology, unbounded stages) | Handled (0.4) | The accept names its `offeree` and must be signed by it; accepts must follow their offer; bound stages carry `agreement_ref`, checked for resolution, chronology, and issuer; offeree stages that skip the ref and accepts nothing references are PROVISIONAL. Adversarial vectors `17b`–`17j`. |
 
+## Experimental local witness and publication boundary
+
+The local receiver's supplied witness is a sequence floor, not discovery of
+globally current state. A valid historical witness can match jointly restored
+old data and trust. The CLI's required-witness mode also requires a checkpoint
+pin retained separately by the caller; missing, malformed or explicitly empty
+configured evidence refuses. Observation time and file mtime are not currentness
+proofs. The resume policy digest binds the witness inputs and requirement.
+
+Local SQLite publication and witness-file replacement are separate durable
+steps. A later witness failure can leave a committed local reference. The CLI
+returns a single final nonzero result with that reference and incomplete witness
+status; uncertain store outcomes remain explicitly unknown. Cooperating target
+locks prevent witness regression among participants, while noncooperating
+writers, full trust-boundary rollback, independent custody and refresh remain
+outside these local checks. See `docs/EXPERIMENTAL_WITNESS_CUSTODY.md` for the
+implementation-only contract and retained negative control.
+
 ## Non-goals (restated)
 
 No custody of funds, no payment protocol, no arbitration, no reputation scoring, no storage protocol. Receipts ground those layers; they do not replace them.
