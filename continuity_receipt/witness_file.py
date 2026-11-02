@@ -127,8 +127,11 @@ class WitnessPublication:
             os.fsync(self.temp_fd)
             os.fsync(self.parent_fd)
             return self
-        except BaseException:
-            self._close()
+        except BaseException as primary:
+            try:
+                self._close()
+            except Exception as cleanup:
+                primary.add_note(f"witness cleanup also failed: {cleanup}")
             raise
 
     def _existing(self):
@@ -179,22 +182,38 @@ class WitnessPublication:
         os.fsync(self.parent_fd)
 
     def _close(self):
+        errors = []
         if self.temp_fd is not None:
-            os.close(self.temp_fd)
+            descriptor = self.temp_fd
             self.temp_fd = None
+            try:
+                os.close(descriptor)
+            except OSError as exc:
+                errors.append(exc)
         if self.temp_name is not None and self.parent_fd is not None:
             try:
                 os.unlink(self.temp_name, dir_fd=self.parent_fd)
             except FileNotFoundError:
                 pass
+            except OSError as exc:
+                errors.append(exc)
             self.temp_name = None
-        if self.lock_fd is not None:
-            os.close(self.lock_fd)
-            self.lock_fd = None
-        if self.parent_fd is not None:
-            os.close(self.parent_fd)
-            self.parent_fd = None
+        for name in ("lock_fd", "parent_fd"):
+            descriptor = getattr(self, name)
+            setattr(self, name, None)
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError as exc:
+                    errors.append(exc)
+        if errors:
+            raise errors[0]
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._close()
+        try:
+            self._close()
+        except Exception as cleanup:
+            if exc_value is None:
+                raise
+            exc_value.add_note(f"witness cleanup also failed: {cleanup}")
         return False

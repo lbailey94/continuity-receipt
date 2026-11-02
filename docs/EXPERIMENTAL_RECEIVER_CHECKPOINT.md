@@ -1,5 +1,10 @@
 # Experimental receiver checkpoint gate
 
+For the file receiver CLI's supplied witness schema, separately retained pins,
+required-witness mode and publication-failure reporting, see
+[Supplied witness custody](EXPERIMENTAL_WITNESS_CUSTODY.md). Those implementation
+checks do not change the bundle/checkpoint import contract described below.
+
 This separate versioned prototype imports CPR 0.5 receipt context only after
 checking the production CPR verifier result and a signed checkpoint against
 receiver-retained trust inputs. It does not change CPR syntax or the existing
