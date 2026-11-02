@@ -112,7 +112,7 @@ def _load_private(path: str) -> Ed25519PrivateKey:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cpr-memory", description="Local experimental checkpointed memory snapshot receiver")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "publish", "recall", "resume", "status"):
+    for name in ("init", "publish", "recall", "resume", "status", "witness-reconcile"):
         command = sub.add_parser(name)
         command.add_argument("--data-root", required=True)
         command.add_argument("--trust-db", required=True)
@@ -120,8 +120,10 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--scope", required=True)
         command.add_argument("--public-key", required=True, help="PEM Ed25519 receiver/writer trust anchor")
         command.add_argument("--profile", help="select and pin a versioned adopter receiving-policy JSON")
-        command.add_argument("--predicate-file", help="JSON file with semantic task predicates")
-        command.add_argument("--witness-file", help="JSON file for external off-host witness tracking")
+        if name != "witness-reconcile":
+            command.add_argument("--predicate-file", help="JSON file with semantic task predicates")
+        command.add_argument("--witness-file", required=name == "witness-reconcile",
+                             help="JSON file for external off-host witness tracking")
         if name in ("recall", "resume"):
             command.add_argument("--expected-witness-checkpoint", help="checkpoint digest retained separately by the caller; must match the supplied witness")
             command.add_argument("--require-witness", action="store_true", help="require both a witness file and a separately supplied expected checkpoint")
@@ -131,6 +133,9 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument("--key-pem", required=True, help="PEM Ed25519 private signing key")
             command.add_argument("--expected-reference", required=True, help="none for first publish, otherwise current checkpoint digest")
             command.add_argument("--input-root", required=True, help="closed tree of regular files to snapshot")
+        if name == "witness-reconcile":
+            command.add_argument("--expected-reference", required=True,
+                                 help="checkpoint digest retained independently from the partial publication; no new local publication")
         if name == "resume":
             command.add_argument("--memory-path", required=True, help="relative file path to emit after full acceptance")
     return parser
@@ -165,6 +170,9 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.now is not None and args.profile:
         payload = {"outcome": "REJECT", "reason_codes": ["receiver_profile_clock_override_forbidden"]}
+        if args.command == "witness-reconcile":
+            payload.update(operation="witness-reconcile", local_publication_performed=False,
+                           witness_publication={"outcome": "NOT_ATTEMPTED"})
         if args.command == "resume":
             print(json.dumps(payload, sort_keys=True), file=sys.stderr)
         else:
@@ -174,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     publication_started = False
     publication_returned = False
     committed_reference = None
+    verified_reference = None
+    reconciliation_policy = None
     witness_state = "NOT_ATTEMPTED"
     try:
         for option, reason in (("witness_file", "off_host_witness_path_invalid"),
@@ -191,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("off_host_witness_expected_reference_required")
             if args.expected_witness_checkpoint is not None and args.witness_file is None:
                 raise ValueError("off_host_witness_file_required")
+        if args.command == "witness-reconcile" and not re.fullmatch(r"sha256:[0-9a-f]{64}", args.expected_reference):
+            raise ValueError("witness_reconcile_expected_reference_invalid")
         store = _store(args)
         if args.command == "init":
             result = store.initialize()
@@ -208,6 +220,49 @@ def main(argv: list[str] | None = None) -> int:
                                         "inventory": list(store.receiver_profile["inventory"])}
             _json(result)
             return 0
+        if args.command == "witness-reconcile":
+            from .canon import canonical_bytes, sha256_prefixed
+            from .keys import raw_pubkey_bytes
+            from .receiver_store import ReceiverDecision
+            from .witness_file import WitnessPublication
+            policy_digest = sha256_prefixed(canonical_bytes({
+                "algorithm": "cpr-memory-witness-reconcile-policy-v1",
+                "expected_checkpoint_digest": args.expected_reference,
+                "context": store.context, "scope": store.scope,
+                "trusted_key_digest": sha256_prefixed(raw_pubkey_bytes(store.trusted_public_key)),
+                "max_age_seconds": store.max_age_seconds,
+                "receiver_profile_digest": (store.receiver_profile["digest"]
+                                             if store.receiver_profile is not None else None),
+            }))
+            reconciliation_policy = {"id": "cpr-memory-witness-reconcile", "version": "1",
+                                     "digest": policy_digest}
+
+            def reconcile_policy(files, reference):
+                # This trusted callback only decides; no files are delivered.
+                matches = reference["checkpoint_digest"] == args.expected_reference
+                return ReceiverDecision(matches, "witness_reconcile_authorized" if matches else
+                                        "witness_reconcile_expected_reference_mismatch",
+                                        "cpr-memory-witness-reconcile", "1", policy_digest)
+
+            with WitnessPublication(args.witness_file) as pub:
+                checked = store.recall_with_decision(now=now, decision_policy=reconcile_policy)
+                outcome = checked.get("outcome", "REJECT")
+                if outcome == "ACCEPT":
+                    verified_reference = dict(checked["reference"])
+                    pub.ensure_not_ahead(verified_reference)
+                    witness_state = "INCOMPLETE"
+                    pub.commit(verified_reference)
+                    witness_state = "COMPLETE"
+                result = {"operation": "witness-reconcile", "outcome": outcome,
+                          "reason_codes": checked.get("reason_codes", []),
+                          "local_publication_performed": False,
+                          "policy": reconciliation_policy,
+                          "witness_publication": {"outcome": witness_state}}
+                if verified_reference is not None:
+                    result["verified_reference"] = verified_reference
+            # Emit no payload, and never emit ACCEPT before lock/file cleanup.
+            _json(result)
+            return _outcome_code(outcome)
         if args.command == "publish":
             files = capture_input_tree(args.input_root)
             expected = None if args.expected_reference == "none" else args.expected_reference
@@ -330,6 +385,14 @@ def main(argv: list[str] | None = None) -> int:
             return _outcome_code(outcome)
     except Exception as exc:
         payload = {"outcome": "REJECT", "reason_codes": [getattr(exc, "reason", None) or str(exc) or type(exc).__name__]}
+        if args.command == "witness-reconcile":
+            payload.update(operation="witness-reconcile", local_publication_performed=False,
+                           witness_publication={"outcome": witness_state,
+                                                "reason_codes": list(payload["reason_codes"])})
+            if verified_reference is not None:
+                payload["verified_reference"] = verified_reference
+            if reconciliation_policy is not None:
+                payload["policy"] = reconciliation_policy
         if args.command == "publish":
             payload["local_committed"] = (True if committed_reference is not None else
                                           None if publication_started and not publication_returned else False)
