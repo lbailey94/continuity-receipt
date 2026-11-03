@@ -78,7 +78,7 @@ def required_fields(record_type: str, spec: str | None = None) -> tuple:
     return REQUIRED_FIELDS.get(record_type, ())
 
 # RFC 3339 UTC; fractional seconds optional (0.2 allows millisecond precision).
-_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$")
+_TIMESTAMP_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?Z")
 
 
 def uuid7() -> uuid.UUID:
@@ -102,7 +102,18 @@ def utc_now_rfc3339(ms: bool = False) -> str:
 
 
 def validate_timestamp(value) -> bool:
-    return isinstance(value, str) and bool(_TIMESTAMP_RE.match(value))
+    """Check both the complete wire spelling and the calendar/time ranges.
+
+    The reference profile uses years 0001–9999 and seconds 00–59. Leap-second
+    notation is unsupported; it must fail validation before date arithmetic.
+    """
+    if not isinstance(value, str) or not _TIMESTAMP_RE.fullmatch(value):
+        return False
+    try:
+        parse_timestamp(value)
+    except ValueError:
+        return False
+    return True
 
 
 def parse_timestamp(value: str) -> datetime:

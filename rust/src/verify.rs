@@ -2112,6 +2112,36 @@ fn is_rfc3339_utc(text: &str) -> bool {
     if bytes[16] != b':' || !(is_digit(17) && is_digit(18)) {
         return false;
     }
+    let number = |start: usize, end: usize| -> u32 {
+        bytes[start..end]
+            .iter()
+            .fold(0, |value, byte| value * 10 + u32::from(byte - b'0'))
+    };
+    let year = number(0, 4);
+    let month = number(5, 7);
+    let day = number(8, 10);
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days = match month {
+        2 => {
+            if leap {
+                29
+            } else {
+                28
+            }
+        }
+        4 | 6 | 9 | 11 => 30,
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        _ => return false,
+    };
+    if year == 0
+        || day == 0
+        || day > days
+        || number(11, 13) > 23
+        || number(14, 16) > 59
+        || number(17, 19) > 59
+    {
+        return false;
+    }
     if bytes.len() == 20 {
         return bytes[19] == b'Z';
     }
@@ -2175,5 +2205,42 @@ pub(crate) fn isoformat(timestamp: &Timestamp) -> String {
         format!("{base}+00:00")
     } else {
         format!("{base}.{:06}+00:00", timestamp.millis * 1000)
+    }
+}
+
+#[cfg(test)]
+mod timestamp_tests {
+    use super::{parse_timestamp, validate_timestamp};
+    use serde_json::Value;
+
+    #[test]
+    fn calendar_and_wire_spelling() {
+        let cases: Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/timestamp-boundaries.json"
+        ))
+        .unwrap();
+        for value in cases["valid"].as_array().unwrap() {
+            assert!(validate_timestamp(Some(value)), "{value:?}");
+            assert!(
+                parse_timestamp(value.as_str().unwrap()).is_some(),
+                "{value:?}"
+            );
+        }
+        for value in cases["invalid"].as_array().unwrap() {
+            assert!(!validate_timestamp(Some(value)), "{value:?}");
+            assert!(
+                parse_timestamp(value.as_str().unwrap()).is_none(),
+                "{value:?}"
+            );
+        }
+        for value in [
+            serde_json::json!(null),
+            serde_json::json!(true),
+            serde_json::json!(2026),
+            serde_json::json!({}),
+            serde_json::json!([]),
+        ] {
+            assert!(!validate_timestamp(Some(&value)));
+        }
     }
 }

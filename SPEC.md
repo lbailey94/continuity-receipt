@@ -139,6 +139,11 @@ Rules:
 - Timestamps are RFC 3339 UTC: second precision in 0.1; optional millisecond
   precision (1–3 fractional digits) in 0.2. Ordering within a chain is by
   `seq`, never by timestamp; verifiers must not fail on clock skew alone.
+  The reference verifier profile requires complete ASCII spelling, a valid
+  Gregorian date in years 0001–9999, hours 00–23, minutes 00–59, and seconds
+  00–59. Leap-second notation and year 0000 are unsupported by this profile;
+  they are rejected before chronology or revocation comparisons. These are
+  reference-profile limits, not the full RFC 3339 range.
 - Money is integer minor units + ISO-4217-like currency code, never floats.
 - Identifiers: `receipt_id` and `task_id` are UUID URNs (schema-enforced);
   `issuer.id` and `sig.key` are `did:key` URIs the verifier resolves for

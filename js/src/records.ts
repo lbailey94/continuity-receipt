@@ -103,20 +103,25 @@ export function validateBody(recordType: string, body: unknown, spec?: unknown):
   }
 }
 
-const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
-
 export function validateTimestamp(value: unknown): value is string {
-  return typeof value === "string" && TIMESTAMP_RE.test(value);
+  return typeof value === "string" && parseTimestamp(value) !== null;
 }
 
 /** Epoch milliseconds for a validated RFC 3339 UTC timestamp; null if invalid. */
 export function parseTimestamp(value: string): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?Z$/.exec(value);
-  if (match === null) return null;
+  // `$` also matches before a final newline in JavaScript. Require every byte.
+  if (match === null || match[0] !== value) return null;
   const [, yearText, monthText, dayText, hourText, minuteText, secondText, fraction] = match;
+  const year = Number(yearText), month = Number(monthText), day = Number(dayText);
+  const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
+  if (year < 1 || hour > 23 || minute > 59 || second > 59) return null;
   const date = new Date(0);
-  date.setUTCFullYear(Number(yearText), Number(monthText) - 1, Number(dayText));
-  date.setUTCHours(Number(hourText), Number(minuteText), Number(secondText), 0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, 0);
+  // Date setters normalize overflow (e.g. February 30) rather than rejecting it.
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
+      date.getUTCDate() !== day) return null;
   const millis = fraction === undefined ? 0 : Number(fraction.padEnd(3, "0"));
   const time = date.getTime() + millis;
   return Number.isNaN(time) ? null : time;

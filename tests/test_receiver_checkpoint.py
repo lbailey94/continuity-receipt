@@ -161,7 +161,8 @@ class ReceiverCheckpointTests(unittest.TestCase):
             trusted_public_key=self.pub, expected_context=self.context,
             accepted_checkpoint_digest=self.ref, now=self.now, max_age_seconds=3600,
         )
-        self.assertEqual(result.reason_codes, ["core_invalid_input"])
+        self.assertEqual(result.outcome, "REJECT")
+        self.assertEqual(result.reason_codes, ["core_not_trusted"])
         self.assertEqual(got, [])
 
     def test_rejects_signed_bad_checkpoint_types_and_signature_aliases(self):
