@@ -13,14 +13,14 @@
 **Spec version:** `continuity-receipt/0.5` (CPR core) — published 2026-09-30. Versions `0.1`–`0.5`
 are fully supported. Open development items are listed in [`SPEC.md`](SPEC.md) §11.  
 **License:** Apache-2.0 (specification text, code, and vectors).  
-**Standards Alignment:** CPR is designed for offline verifiable provenance, aligning with IETF SCITT (RFC 9943) receipt verification patterns and W3C Agent Identity & Memory interoperability principles.
+**Standards context:** The linked individual SCITT-related draft and receipt examples are design references; this repository does not establish IETF/W3C adoption, independent conformance or SCITT registration.
 
 **Version matrix** — the spec and reference implementations version independently:
 
-| Artifact | Current | Published install |
+| Artifact | Published observed version | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
-| Python reference + CLIs | **0.5.4** | `pip install continuity-receipt` |
+| Python reference + CLIs | **0.5.2** | `pip install continuity-receipt==0.5.2` |
 | Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
 | JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt@0.1.1` |
 
