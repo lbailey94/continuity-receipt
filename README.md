@@ -20,14 +20,15 @@ are fully supported. Open development items are listed in [`SPEC.md`](SPEC.md) Â
 | Artifact | Published observed version | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | â€” |
-| Python reference + CLIs | **0.5.2** | `pip install continuity-receipt==0.5.2` |
-| Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
-| JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt@0.1.1` |
+| Python reference + CLIs | **0.5.4** | `pip install continuity-receipt==0.5.4` |
+| Rust verifier + CLIs | **0.5.2** | `cargo install continuity-receipt --version 0.5.2` |
+| JavaScript / TypeScript verifier | **0.1.2** | `npm install continuity-receipt@0.1.2` |
 
-The published installation pins above remain separate from source candidates.
-This source prepares Python 0.5.4, Rust 0.5.2 and JavaScript 0.1.2 for artifact
-review; those candidate versions are not a registry publication claim.
-These are independent registry package pins, separate from a source commit.
+These package versions were published and their registry digests checked on
+2026-11-04 after the artifact qualification in [PR #21](https://github.com/lbailey94/continuity-receipt/pull/21).
+The language packages version independently; a source tag is not a registry
+publication. See [artifact qualification](RELEASE_CANDIDATE.md) for exact hashes
+and the limits of the installed receiver/witness exercise.
 Python includes the experimental local memory receiver; Rust and
 JavaScript do not implement that receiver.
 
