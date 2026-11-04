@@ -125,7 +125,7 @@
   },
   "experimental_memory_receiver": {
     "status": "local candidate",
-    "document": "docs/EXPERIMENTAL_MEMORY_RESUME.md",
+    "document": "SPEC.md",
     "spec": "continuity-receipt/0.5",
     "state_kind": "file-snapshot-v1",
     "checkpoint_version": 1,

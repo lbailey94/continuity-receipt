@@ -13,7 +13,6 @@ attempts all descriptor closes and preserves the primary error. Regression
 coverage includes native restart/rollback checks, publication faults, pinned
 reference mismatch and cooperating publisher order. These are local candidate
 changes; bundle wire rules and published conformance fixtures are unchanged.
-See `docs/EXPERIMENTAL_WITNESS_CUSTODY.md`.
 
 ## 0.5.2 — Python-only local receiver patch (2026-10-27)
 

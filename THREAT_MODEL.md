@@ -38,8 +38,7 @@ returns a single final nonzero result with that reference and incomplete witness
 status; uncertain store outcomes remain explicitly unknown. Cooperating target
 locks prevent witness regression among participants, while noncooperating
 writers, full trust-boundary rollback, independent custody and refresh remain
-outside these local checks. See `docs/EXPERIMENTAL_WITNESS_CUSTODY.md` for the
-implementation-only contract and retained negative control.
+outside these local checks.
 
 ## Non-goals (restated)
 

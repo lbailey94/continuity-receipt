@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:whitemagic:schema:registry-manifest:v0",
   "title": "Continuity scheme registry manifest v0",
-  "description": "Content-free, operator-attested manifest of receipt schemes, transitions, and aggregate counters. See docs/DESIGN_NOTE_SCHEME_REGISTRY_2026-10-08.md.",
+  "description": "Content-free, operator-attested manifest of receipt schemes, transitions, and aggregate counters.",
   "type": "object",
   "additionalProperties": false,
   "required": ["registry", "operator", "schema", "updated", "scope", "schemes", "transitions", "counters", "federation"],
