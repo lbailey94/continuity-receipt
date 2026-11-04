@@ -130,7 +130,16 @@ jobs:
       - name: Install verifier dependency
         run: pip install 'cryptography>=42'
       - name: Rust conformance suite
-        run: cargo test --manifest-path rust/Cargo.toml
+        run: |
+          diff -qr vectors rust/fixtures/vectors
+          diff -q tests/fixtures/timestamp-boundaries.json rust/fixtures/test-inputs/timestamp-boundaries.json
+          diff -q tests/fixtures/signed-timestamp-boundaries.json rust/fixtures/test-inputs/signed-timestamp-boundaries.json
+          cargo test --manifest-path rust/Cargo.toml
+      - name: Test the extracted standalone crate
+        run: |
+          cargo package --manifest-path rust/Cargo.toml --locked
+          cpr_package_version=$(cargo metadata --manifest-path rust/Cargo.toml --no-deps --format-version 1 | jq -r '.packages[0].version')
+          cargo test --manifest-path "rust/target/package/continuity-receipt-$cpr_package_version/Cargo.toml" --locked
       - name: Differential check (Python vs Rust over all vectors)
         run: |
           cargo build --manifest-path rust/Cargo.toml

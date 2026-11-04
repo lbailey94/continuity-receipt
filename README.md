@@ -24,7 +24,9 @@ are fully supported. Open development items are listed in [`SPEC.md`](SPEC.md) Â
 | Rust verifier + CLIs | **0.5.1** | `cargo install continuity-receipt --version 0.5.1` |
 | JavaScript / TypeScript verifier | **0.1.1** | `npm install continuity-receipt@0.1.1` |
 
-The Python package is 0.5.4; Rust is 0.5.1 and JavaScript is 0.1.1.
+The published installation pins above remain separate from source candidates.
+This source prepares Python 0.5.4, Rust 0.5.2 and JavaScript 0.1.2 for artifact
+review; those candidate versions are not a registry publication claim.
 These are independent registry package pins, separate from a source commit.
 Python includes the experimental local memory receiver; Rust and
 JavaScript do not implement that receiver.

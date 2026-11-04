@@ -1,0 +1,170 @@
+{
+  "spec": "continuity-receipt/0.6",
+  "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+  "receipts": [
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:06278b11-6217-5ccb-84ad-bcc1727d9e8a",
+      "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+      "issued_at": "2026-09-28T18:00:00Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "session.pass.created",
+      "seq": 0,
+      "prev": null,
+      "body": {
+        "gate_id": "local:authority-test",
+        "mandala_class": "local",
+        "quotas": {
+          "cpu_ms": 0,
+          "mem_mb": 0,
+          "disk_mb": 0,
+          "wall_ms": 0
+        },
+        "expires_at": "2026-09-29T18:00:00Z",
+        "policy_version": "authority-policy/1",
+        "mandate_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "agent_id": "local-agent"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "qvX80DkwaqohRoygTMPzSRUGWGjDPixvhLfcHrLco9gdmmxX52s4qVxKJYGdAciIE76B2JVRW1Zps5-Sbb55Bw"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:a7638b20-f21f-5430-9152-adbd95c6bfc5",
+      "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+      "issued_at": "2026-09-28T18:00:01Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "authority.grant",
+      "seq": 1,
+      "prev": "sha256:446e206602422f467339e6b3528e0c58322835cef200bcde94fe745aa5d29d1f",
+      "body": {
+        "grant_id": "urn:uuid:00000000-0000-7000-8000-000000000024",
+        "principal": {
+          "id": "did:web:lab.example",
+          "assurance": "self_asserted"
+        },
+        "agent": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "scope": [
+          "memory.read",
+          "receipts.emit"
+        ],
+        "granted_at": "2026-09-28T18:00:01Z",
+        "review_policy": "none",
+        "constraints": {
+          "memory.read": {
+            "max_rows": 100
+          }
+        },
+        "policy_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "gate_ref": "urn:local:gate-pass:0001",
+        "expires_at": "2026-09-29T18:00:00Z"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "xe2Trvc5kaijUXZ0fN4-5-3739iHtQNwFkLKL9ZCgvGG2XrpiWcX2mgopbVy6aebqhZZeG8RNpms7_NVYvMMDQ"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:3a6d1d3b-5769-57ba-a6d0-6472fd0a2625",
+      "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+      "issued_at": "2026-09-28T18:00:02Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.decision",
+      "seq": 2,
+      "prev": "sha256:8ade308a55567eabdc63a695757cb3ed46979396b7a7f15ae7781fc0b3769c3e",
+      "body": {
+        "action": "authority.test",
+        "action_args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "model": {
+          "provider": "local",
+          "id": "none"
+        },
+        "input_provenance": {
+          "policy_id": "authority-policy/1",
+          "allowed_sources": [
+            "local"
+          ],
+          "observed_sources_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "decision": "allow",
+        "policy_version": "authority-policy/1"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "6tcFiTX2ZfsN83g_OeiR-aWebUWIrE3kXKlP8ZrI4k4xRWkRYL7c6NduUVuM5dSWaqBqLhT_KDvMbjaOGFxFAA"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:f4b686ed-a689-5c09-ae5d-e34d086b92f5",
+      "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+      "issued_at": "2026-09-28T18:00:03Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.execution",
+      "seq": 3,
+      "prev": "sha256:4f52c2a55e1c94734b1f9981fc7933016e82b4a135f3fd29022849f47f14f247",
+      "body": {
+        "tool_calls": [
+          {
+            "name": "read",
+            "args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "result_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "egress": [],
+        "resources": {
+          "cpu_ms": 0,
+          "mem_peak_mb": 0,
+          "disk_peak_mb": 0
+        },
+        "sandbox_class": "none"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "7VJQO5g_DZCd9swGzYzUosttNOyqUaTsfvPO1RAlZq64wqPXeOMBhbmu2p1gboUGSXBi2tFRHqYUQzC9LOjtDg"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.6",
+      "receipt_id": "urn:uuid:0a5924cf-c1eb-5172-83e8-1784adc3bcf6",
+      "task_id": "urn:uuid:ef4ce5ea-d8ad-5bfc-9e97-5fbdb502a9ca",
+      "issued_at": "2026-09-28T18:00:04Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn"
+      },
+      "type": "task.termination",
+      "seq": 4,
+      "prev": "sha256:4e0363844c8d5dfa2fd54fce0084907661f476f15af65caaf0fd521058c61765",
+      "body": {
+        "reason": "completed",
+        "limits_at_stop": {},
+        "remaining": {}
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkuqMZLixA4GjUm4UygkW2UE77ci96txxxQPeSwWHsZxkn",
+        "value": "SGOoV2RfmfNVMZfWiF_C7P3yF75GwwLSvT0XA3GS-WN4ilhjjkfzKZY-2o3j5U04v8y89VMPpYp87TzWeCpKBQ"
+      }
+    }
+  ]
+}

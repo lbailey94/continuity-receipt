@@ -364,7 +364,7 @@ mod tests {
 
     fn vector(name: &str) -> Value {
         let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../vectors")
+            .join("fixtures/vectors")
             .join(name);
         let text = std::fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));

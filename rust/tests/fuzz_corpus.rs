@@ -39,9 +39,7 @@ impl Rng {
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("rust crate sits inside the repository")
-        .to_path_buf()
+        .join("fixtures")
 }
 
 fn vector_bundles() -> Vec<Value> {

@@ -1,0 +1,166 @@
+{
+  "spec": "continuity-receipt/0.5",
+  "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+  "receipts": [
+    {
+      "spec": "continuity-receipt/0.5",
+      "receipt_id": "urn:uuid:dad4440e-90b7-5234-8294-4b40c5b3be59",
+      "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+      "issued_at": "2026-09-24T18:00:00Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB"
+      },
+      "type": "session.pass.created",
+      "seq": 0,
+      "prev": null,
+      "body": {
+        "gate_id": "local:test-store",
+        "mandala_class": "local",
+        "quotas": {
+          "cpu_ms": 0,
+          "mem_mb": 0,
+          "disk_mb": 0,
+          "wall_ms": 0
+        },
+        "expires_at": "2026-09-25T18:00:00Z",
+        "policy_version": "local-policy/1",
+        "mandate_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "agent_id": "local-agent"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB",
+        "value": "SKrpJQbYpIBfTI0yVsFYOEg2vkynsw7uO71q9LKEXqVpNTZcdU7h9GQcFF61qG0UB82fWZo3skFUG56iU8TcAg"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.5",
+      "receipt_id": "urn:uuid:44b17de1-5896-5c74-952d-a31eed2a475f",
+      "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+      "issued_at": "2026-09-24T18:00:01Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB"
+      },
+      "type": "task.decision",
+      "seq": 1,
+      "prev": "sha256:3390ffc4429d4889f616666f57877d6cd44980221d51d818fb3f61f2844f7ad4",
+      "body": {
+        "action": "local.snapshot",
+        "action_args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "model": {
+          "provider": "local",
+          "id": "none"
+        },
+        "input_provenance": {
+          "policy_id": "local-policy/1",
+          "allowed_sources": [
+            "local"
+          ],
+          "observed_sources_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "decision": "allow",
+        "policy_version": "local-policy/1"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB",
+        "value": "NSDH83z_ZwiWyxg4Rj3y8BvmziAS7INuV0AuAReTKF3Mk45JEdXNCqZaUnx4-sXszfxlBB7QVYdOFLi_7u3IBg"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.5",
+      "receipt_id": "urn:uuid:47ce90ce-9ccf-5ee3-bd9d-0f96e2b31818",
+      "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+      "issued_at": "2026-09-24T18:00:02Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB"
+      },
+      "type": "task.execution",
+      "seq": 2,
+      "prev": "sha256:30c186149edae2fd716906d0c6240ed66c97b4a0977ff90933e458a7af1a6e7f",
+      "body": {
+        "tool_calls": [
+          {
+            "name": "snapshot",
+            "args_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "result_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "egress": [],
+        "resources": {
+          "cpu_ms": 0,
+          "mem_peak_mb": 0,
+          "disk_peak_mb": 0
+        },
+        "sandbox_class": "bwrap",
+        "runner_profile": {
+          "profile_id": "urn:mandala:runner-profile:bwrap-v1",
+          "executable_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "invocation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "runtime_claim": "unverified"
+        }
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB",
+        "value": "Yfx40PMhaW1ukA-wYsn3WHCwyR8ya1V7wpOTdSClv5lNy2VarkZjYZk69E1ntjAtePPn8myGuoW5OjOwRkh5DA"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.5",
+      "receipt_id": "urn:uuid:51f231f7-482f-5352-be08-0b797f907271",
+      "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+      "issued_at": "2026-09-24T18:00:03Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB"
+      },
+      "type": "state.commitment",
+      "seq": 3,
+      "prev": "sha256:6f902b91c413a58db29e0931181b54417c9fab02924272937e024e7762b3f902",
+      "body": {
+        "state_kind": "chain-head",
+        "scope": "local:test-store",
+        "count": 3,
+        "head_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "merkle_root": "merkle-sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB",
+        "value": "mIHg7s1PLQpq0n-T2aJ1ocfPSEVd-vgNNon2E_rFRdK5p37u28Zi-D11Yo8xFNGYDUtswQpSNHS-O4qomBS0BQ"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.5",
+      "receipt_id": "urn:uuid:2da7e3b4-fe3b-5646-a426-e8ccce7a44bf",
+      "task_id": "urn:uuid:9b8c6e17-585a-5020-b63c-e083c27c99fb",
+      "issued_at": "2026-09-24T18:00:04Z",
+      "issuer": {
+        "kind": "agent",
+        "id": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB"
+      },
+      "type": "task.termination",
+      "seq": 4,
+      "prev": "sha256:88d37978292cea1f5df6ed298c465c0f06cf09e436948b208c8666d8c157fed2",
+      "body": {
+        "reason": "completed",
+        "limits_at_stop": {
+          "cpu_ms": 0,
+          "wall_ms": 0,
+          "spend_minor": 0,
+          "currency": "USD"
+        },
+        "remaining": {}
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkkHTAiYj1EcwXDBkhkRaxMGy6Ford2VHGUSACAo4Z1ANB",
+        "value": "ot788JqP7E6GPh_ZrydduDhTHRMjWJsr5bEEskVgQxSy9r5PkqRGSlwenmN45QB850mQql1ewyv_kfryiAMyCw"
+      }
+    }
+  ]
+}

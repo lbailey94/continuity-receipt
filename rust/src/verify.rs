@@ -2216,7 +2216,7 @@ mod timestamp_tests {
     #[test]
     fn calendar_and_wire_spelling() {
         let cases: Value = serde_json::from_str(include_str!(
-            "../../tests/fixtures/timestamp-boundaries.json"
+            "../fixtures/test-inputs/timestamp-boundaries.json"
         ))
         .unwrap();
         for value in cases["valid"].as_array().unwrap() {

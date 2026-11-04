@@ -1,0 +1,228 @@
+{
+  "spec": "continuity-receipt/0.2",
+  "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+  "receipts": [
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-7c31-a81a-fc6610f39f08",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "session.pass.created",
+      "seq": 0,
+      "prev": null,
+      "body": {
+        "gate_id": "gate-lite-1",
+        "mandala_class": "gate-lite",
+        "quotas": {
+          "cpu_ms": 300000,
+          "mem_mb": 1024,
+          "disk_mb": 512,
+          "wall_ms": 300000
+        },
+        "expires_at": "2026-09-18T00:00:00Z",
+        "policy_version": "2026-09-17.1",
+        "mandate_ref": "sha256:2b830c309eb818bbfc952afb491e7229a31b05344ae25a96818afc19bfe3b01b",
+        "agent_id": "did:key:z6MkqrXa4NxUxGiEsgvPc2pdoP7dArk58nA4YBguVR7igyPS",
+        "spend_cap": {
+          "minor": 1000,
+          "currency": "USD"
+        }
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "aj-1kEDlJTt-pe_xjji2od5BpU2A6LYqAzhI61G9albL3QIDRJPcE_lgkiB0zmnMjEEh2T3fZ8kSYlNJrlnaBQ"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-7c97-bc79-da585bfc4f68",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "task.decision",
+      "seq": 1,
+      "prev": "sha256:fc8c48f3c5c77f61476fe7a4dd5b78f7b8f5e27c4c478e654fd044f7191f88e5",
+      "body": {
+        "action": "memory.search",
+        "action_args_hash": "sha256:fb916f19b7c02f8f792ca53936138717130a49f9d78d10771f3b9fdec1527e1c",
+        "model": {
+          "provider": "local",
+          "id": "wm-recall"
+        },
+        "input_provenance": {
+          "policy_id": "egress.default",
+          "allowed_sources": [
+            "gate"
+          ],
+          "observed_sources_hash": "sha256:32728104f48b39191bbebf63918ab59d820056b90a568dd56bb2b90944109cf0"
+        },
+        "decision": "allow",
+        "policy_version": "2026-09-17.1"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "UfXcN5HbpZX2lBDCtyuILRPv_DxtF0yo9onwEE7RdwND-z7QQP_RY-9pmNdecyCGJcgGcHHWxFia2q7_1pM5Ag"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-73b8-8cb4-ceeed78f732c",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "task.execution",
+      "seq": 2,
+      "prev": "sha256:1d738d77ea19fe99f8edcb96dd671d3fc09a4f8949cf58e557bb3db01208e5db",
+      "body": {
+        "tool_calls": [
+          {
+            "name": "memory.search",
+            "args_hash": "sha256:fb916f19b7c02f8f792ca53936138717130a49f9d78d10771f3b9fdec1527e1c",
+            "result_hash": "sha256:25a5c9e5bc675aa25f13ab52ec21253f6eab8ba1508dac54044540f1e0063500"
+          }
+        ],
+        "egress": [
+          {
+            "destination": "none",
+            "bytes": 0,
+            "allowed": true
+          }
+        ],
+        "resources": {
+          "cpu_ms": 1200,
+          "mem_peak_mb": 48,
+          "disk_peak_mb": 8
+        },
+        "sandbox_class": "bwrap-landlock"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "ZP6wbFxfKFZXX6I9kLBGKyxO4iw0MtQewiO23uFXQ-jDq-maMGhP_a0AAP6YgmahM_gESaCTFt-zcuwLOSvnCA"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-7a2a-b960-c29a0f05967d",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "authority.succession",
+      "seq": 3,
+      "prev": "sha256:4709e06e56b4441c055294477e0bfedb07b4712e8886bda4f0a6de79a5bad61a",
+      "body": {
+        "from_authority": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "to_authority": "did:key:z6MktCNpvAW5A9M7V9CfLbuhZpkQnC5DjWfpfBDnCQ6QH6so",
+        "effective_at": "2026-09-18T00:00:00Z",
+        "reason": "handoff"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "a1fB0SWwjxv5e6Uy65QtrN3sJMKtKTIaZ2gkOK6F9l23SSptpMXrQvmjYFMnyxrqeKMyBrQ1FtnRYIqRpZMgDQ"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-71dc-acc4-8677f68faab0",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "delivery.attestation",
+      "seq": 4,
+      "prev": "sha256:6f1bc7b8ac6b702d6184807393c4c6e15ca66dcc53ed967de523f712ff2837c3",
+      "body": {
+        "request_hash": "sha256:6ddc164a1c28db19cbbd4f7214a80364f3cb3524502c1cc2bf710ea9f54b8c7f",
+        "response_hash": "sha256:c4906c63923551d89501bd7d8e9179c854525eef0ae69cc11512c7f07fd534aa",
+        "counterparty": {
+          "id": "did:key:z6MkiqMhLhuq26ofXDsP6WeDPTm74a27qdqjKSmNvEmnJjSb"
+        },
+        "spec_ref": "continuity-receipt/0.2"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "lS2isQg1cJ3I7wFQ-TdTi7skqJjgNNuER01xYlXOC_OSN9segRQrGI9THVi4oGITMwAmO-sBTVMV1YN8Tg5dBw"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-7155-94fb-4761dd0fa72d",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "settlement",
+      "seq": 5,
+      "prev": "sha256:a0ef80e69157fb4070078edf996e0c183d43f9aa018d0d93d9a2f34efc89f080",
+      "body": {
+        "rail": "invoice",
+        "rail_ref": "inv-0001",
+        "amount": {
+          "minor": 200,
+          "currency": "USD"
+        },
+        "gated_on_delivery": true,
+        "settled_at": "2026-09-17T21:10:00Z"
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "RaOzmt_amEk2ZWcAad9NvPCOfqme7MaeGUWvqZdNZyGLRMeGC6WXQrv1X6r-Ot0dhPFxYsadBCz90dpsj2g5CQ"
+      }
+    },
+    {
+      "spec": "continuity-receipt/0.2",
+      "receipt_id": "urn:uuid:01a0cffe-317d-73e0-b702-6e5e638e4a28",
+      "task_id": "urn:uuid:01a0cffe-317d-750f-ad88-24af4c3d1535",
+      "issued_at": "2026-09-23T20:38:57Z",
+      "issuer": {
+        "kind": "gate",
+        "id": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1"
+      },
+      "type": "task.termination",
+      "seq": 6,
+      "prev": "sha256:8325b40cf229180906d454b224bad9831fda27b2cbb4a0bf5aa2e79a874c5cf9",
+      "body": {
+        "reason": "completed",
+        "limits_at_stop": {
+          "cpu_ms": 300000,
+          "wall_ms": 300000,
+          "spend_minor": 1000,
+          "currency": "USD"
+        },
+        "remaining": {
+          "cpu_ms": 298800,
+          "wall_ms": 299000,
+          "spend_minor": 800,
+          "currency": "USD"
+        }
+      },
+      "sig": {
+        "alg": "ed25519",
+        "key": "did:key:z6MkwSG2hFkD41K85fvQFtNGCZXYFUwEZDqrzahZvWHt5hm1",
+        "value": "HoX9vQrQbPQZluFaihx4baUZEk2-dTzYVDaqSPhsE8ul08SVPnpPraWm55BPDdNO8Yal41LXIzuUSWtxytFJBw"
+      }
+    }
+  ]
+}

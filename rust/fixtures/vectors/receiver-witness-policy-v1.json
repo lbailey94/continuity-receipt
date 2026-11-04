@@ -1,0 +1,16 @@
+{
+  "kind": "cpr-experimental-local-witness-policy-fixtures",
+  "version": 1,
+  "scope": "Implementation-only witness validation; not a CPR bundle verdict corpus or currentness discovery protocol",
+  "cases": [
+    {"id":"valid-floor","witness":{"sequence":1,"checkpoint_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"expected":"ACCEPT"},
+    {"id":"valid-pinned","witness":{"sequence":2,"checkpoint_digest":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},"expected_pin":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","expected":"ACCEPT"},
+    {"id":"empty-object","witness":{},"expected":"REJECT"},
+    {"id":"wrong-field","witness":{"min_sequence":2,"checkpoint_digest":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},"expected":"REJECT"},
+    {"id":"boolean-sequence","witness":{"sequence":true,"checkpoint_digest":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},"expected":"REJECT"},
+    {"id":"timestamp-is-not-currency","witness":{"sequence":1,"checkpoint_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","observed_at":"2026-11-01T13:15:00Z"},"expected":"REJECT"},
+    {"id":"authentic-old-reference-versus-new-pin","witness":{"sequence":1,"checkpoint_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"expected_pin":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","expected":"REJECT"},
+    {"id":"explicit-empty-pin","witness":{"sequence":1,"checkpoint_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"expected_pin":"","expected":"REJECT"},
+    {"id":"unknown-schema","witness":{"sequence":1,"checkpoint_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","version":2},"expected":"REJECT"}
+  ]
+}
