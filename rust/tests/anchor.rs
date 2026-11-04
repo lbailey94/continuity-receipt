@@ -66,9 +66,7 @@ fn header_for(merkle: &[u8], time: u32) -> Vec<u8> {
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("rust crate sits inside the repository")
-        .to_path_buf()
+        .join("fixtures")
 }
 
 fn fixture(name: &str) -> Vec<u8> {

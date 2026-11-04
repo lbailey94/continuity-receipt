@@ -11,9 +11,7 @@ use serde_json::Value;
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("rust crate sits inside the repository")
-        .to_path_buf()
+        .join("fixtures")
 }
 
 fn read_json(path: &PathBuf) -> Value {

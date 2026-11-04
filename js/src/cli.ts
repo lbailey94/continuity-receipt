@@ -7,6 +7,7 @@
  */
 
 import { parseStrictJson, StrictJsonError, StrictJsonNestingError } from "./strict_json.js";
+import { readFileSync } from "node:fs";
 import {
   MAX_BUNDLE_BYTES,
   RevocationError,
@@ -41,7 +42,8 @@ function parseArgs(argv: string[]): CliOptions | null {
       return null;
     }
     if (arg === "--version") {
-      process.stdout.write("0.1.0\n");
+      const metadata = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+      process.stdout.write(String(metadata.version) + "\n");
       return null;
     }
     if (arg === "--require-anchor") {

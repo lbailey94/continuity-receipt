@@ -1,6 +1,6 @@
 {
   "name": "continuity-receipt",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Offline verifier for Causal Provenance Receipts (CPR, continuity-receipt spec 0.1-0.6), with verdict parity against the Python and Rust reference implementations.",
   "license": "Apache-2.0",
   "repository": {

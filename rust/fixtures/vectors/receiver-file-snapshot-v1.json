@@ -1,0 +1,52 @@
+{
+  "suite": "cpr-python-local-file-snapshot-v1",
+  "scope": "experimental local receiver implementation; not a CPR wire specification",
+  "vectors": [
+    {
+      "id": "canonical-sorted-utf8-paths",
+      "files": [
+        {
+          "path": "z.txt",
+          "bytes_hex": "7a0a"
+        },
+        {
+          "path": "é/note.txt",
+          "bytes_hex": "636166c3a90a"
+        },
+        {
+          "path": "a.txt",
+          "bytes_hex": "610a"
+        }
+      ],
+      "expected_outcome": "ACCEPT",
+      "expected_manifest_utf8": "{\"files\":[{\"path\":\"a.txt\",\"sha256\":\"sha256:87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\",\"size\":2},{\"path\":\"z.txt\",\"sha256\":\"sha256:c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab\",\"size\":2},{\"path\":\"é/note.txt\",\"sha256\":\"sha256:7b49b9e063bd91a4f9252b413261f5557b9c570aa61516989499f64a62dbcdd6\",\"size\":6}]}",
+      "expected_manifest_sha256": "a11721c5f00de7c63b399a67634354d21dde5f8cbdcfb7ca5512dc833b9f70f5"
+    },
+    {
+      "id": "duplicate-nfc-normalized-path",
+      "files": [
+        {
+          "path": "é.txt",
+          "bytes_hex": "31"
+        },
+        {
+          "path": "é.txt",
+          "bytes_hex": "32"
+        }
+      ],
+      "expected_outcome": "REJECT",
+      "expected_reason": "snapshot_duplicate_path"
+    },
+    {
+      "id": "parent-traversal-refused",
+      "files": [
+        {
+          "path": "../outside.txt",
+          "bytes_hex": "78"
+        }
+      ],
+      "expected_outcome": "REJECT",
+      "expected_reason": "snapshot_path_invalid"
+    }
+  ]
+}

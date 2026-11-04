@@ -1,0 +1,163 @@
+{
+  "spec": "continuity-receipt/0.6",
+  "vectors": [
+    {
+      "file": "24_authority_grant.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 authority grant referenced by decision and execution",
+      "schema_valid": true
+    },
+    {
+      "file": "24b_missing_authority.json",
+      "expected_verdict": "INSUFFICIENT_EVIDENCE",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 keeps a missing authority reference insufficient, not fatal",
+      "schema_valid": true
+    },
+    {
+      "file": "24c_authority_before_grant.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_before_grant",
+      "require_anchor": false,
+      "note": "0.6 refuses a bound receipt issued before its authority grant",
+      "schema_valid": true
+    },
+    {
+      "file": "24d_authority_expired.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_expired",
+      "require_anchor": false,
+      "note": "0.6 refuses a bound receipt issued after the authority window",
+      "schema_valid": true
+    },
+    {
+      "file": "24e_authority_agent_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "authority_agent_mismatch",
+      "require_anchor": false,
+      "note": "0.6 requires the grant's agent to sign the bound receipt",
+      "schema_valid": true
+    },
+    {
+      "file": "24f_authority_unreferenced.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 marks a grant nothing references provisional, not trusted",
+      "schema_valid": true
+    },
+    {
+      "file": "24g_legacy_authority_type.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "unknown_type",
+      "require_anchor": false,
+      "note": "0.5 records cannot use the new authority.grant type",
+      "schema_valid": false
+    },
+    {
+      "file": "24h_bad_review_policy.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an unknown review_policy value",
+      "schema_valid": false
+    },
+    {
+      "file": "24i_bad_principal_assurance.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an unknown principal assurance value",
+      "schema_valid": false
+    },
+    {
+      "file": "24j_empty_scope.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "malformed",
+      "require_anchor": false,
+      "note": "0.6 refuses an empty authority scope list",
+      "schema_valid": false
+    },
+    {
+      "file": "25a_head_valid.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 chain_head matching the final receipt verifies",
+      "schema_valid": true
+    },
+    {
+      "file": "25b_head_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_mismatch",
+      "require_anchor": false,
+      "note": "0.6 chain_head digest mismatch is refused",
+      "schema_valid": true
+    },
+    {
+      "file": "25c_head_seq_mismatch.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_mismatch",
+      "require_anchor": false,
+      "note": "0.6 chain_head seq must match the final receipt",
+      "schema_valid": true
+    },
+    {
+      "file": "25d_head_anchor_missing.json",
+      "expected_verdict": "PROVISIONAL",
+      "expected_code": null,
+      "require_anchor": true,
+      "note": "require_anchor: head present without an anchor disclosure",
+      "schema_valid": true
+    },
+    {
+      "file": "25e_head_anchor_invalid.json",
+      "expected_verdict": "UNTRUSTED",
+      "expected_code": "head_anchor_invalid",
+      "require_anchor": false,
+      "note": "0.6 chain_head refuses an unknown anchor type",
+      "schema_valid": false
+    },
+    {
+      "file": "25f_head_anchor_valid.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "note": "0.6 chain_head with an anchored disclosure verifies",
+      "schema_valid": true
+    },
+    {
+      "file": "26_pacmi_erasure_resurrection.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "CONFORMANT",
+      "pacmi_score": "10/10",
+      "note": "0.6 PACMI at-rest conformance: off-store anchor + erasure-aware commitment (T01-T10 conformant)",
+      "schema_valid": true
+    },
+    {
+      "file": "26b_pacmi_high_water_counterfactual.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "PARTIAL",
+      "pacmi_score": "9/10",
+      "note": "0.6 PACMI counterfactual: off-store anchor + high-water only commitment (T10 vulnerable, 9/10)",
+      "schema_valid": true
+    },
+    {
+      "file": "26c_pacmi_in_store_no_anchor.json",
+      "expected_verdict": "TRUSTED",
+      "expected_code": null,
+      "require_anchor": false,
+      "pacmi_verdict": "PARTIAL",
+      "pacmi_score": "8/10",
+      "note": "0.6 PACMI in-store baseline: no off-store anchor (T09/T10 vulnerable, 8/10)",
+      "schema_valid": true
+    }
+  ]
+}

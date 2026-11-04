@@ -9,7 +9,7 @@ use serde_json::Value;
 #[test]
 fn signed_impossible_dates_fail_closed() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../tests/fixtures/signed-timestamp-boundaries.json");
+        .join("fixtures/test-inputs/signed-timestamp-boundaries.json");
     let signed: Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
     assert_eq!(
         verify_bundle(&signed["valid_bundle"], false).verdict(),
