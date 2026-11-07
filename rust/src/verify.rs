@@ -1879,13 +1879,14 @@ fn build_summary(receipts: &[Value], type_by_seq: &BTreeMap<usize, String>) -> M
     );
     let mut issuers: BTreeSet<String> = BTreeSet::new();
     for record in receipts.iter().filter_map(Value::as_object) {
-        let id = record
+        if let Some(id) = record
             .get("issuer")
             .and_then(Value::as_object)
             .and_then(|issuer| issuer.get("id"))
             .and_then(Value::as_str)
-            .unwrap_or("");
-        issuers.insert(id.to_string());
+        {
+            issuers.insert(id.to_string());
+        }
     }
     summary.insert(
         "issuers".to_string(),

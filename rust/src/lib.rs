@@ -1,4 +1,4 @@
-//! Independent Rust verifier for Continuity Receipt bundles (0.1–0.3) and
+//! Independent Rust verifier for Continuity Receipt bundles (0.1–0.6) and
 //! verification receipts (companion v1).
 //!
 //! This is a second implementation of `continuity_receipt/verify.py` and

@@ -40,7 +40,11 @@ fi
 if python3 -c "import continuity_receipt" >/dev/null 2>&1; then
   exec python3 -m continuity_receipt.verify "$DIR/bundle.json"
 fi
-echo "No continuity-receipt verifier found. Install with: pip install continuity-receipt" >&2
+if python3 -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('continuity_receipt') else 1)" >/dev/null 2>&1; then
+  echo "continuity-receipt source is on PYTHONPATH, but required runtime dependency 'cryptography>=42' is missing. Install with: pip install cryptography (or pip install continuity-receipt)" >&2
+  exit 2
+fi
+echo "No continuity-receipt verifier found. Install with: pip install continuity-receipt (requires Python dependency cryptography>=42)" >&2
 exit 2
 """
 

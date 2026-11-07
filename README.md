@@ -139,7 +139,8 @@ Every schema-valid vector is verified against the schema for its spec version in
   - Python: `continuity_receipt/` — primary reference implementation with full CLI tooling and PACMI evaluator.
   - Rust: `rust/` — high-performance verifier crate with identical verdict/error semantics.
   - JavaScript: `js/` — TypeScript / JS npm package (`continuity-receipt`).
-- **Standards context:** The format is developed as a contribution to the emerging neutral layer for verifiable agentic computing (IETF SCITT and W3C Agent Identity & Memory Interoperability CG).
+- **Standards context (`CPR-05` / `DEC-21`):** The format is developed as a contribution to the emerging neutral layer for verifiable agentic computing (IETF SCITT and W3C Agent Identity & Memory Interoperability CG). The IETF draft and `SCITT_MAPPING.md` are **design-only** specifications today: the five wire-integration work items (exact registered bytes, COSE Sign1 envelope, receipt conveyance, Transparency Service policy, and byte-level COSE test vectors) are explicitly scheduled as future work rather than claimed as shipped code in `0.5.x`.
+- **Hosted verifier & anchored-chain corpus notes (`CPR-03`, `CPR-04`):** The hosted verifier (`https://api.whitemagic.dev/verify`) tracks the published PyPI `continuity-receipt` release line (`0.5.4`) and accepts both pure `continuity-receipt/0.1–0.6` bundles and WhiteMagic Gen 3 hybrid `0.5` bundles (`profile_spec: "continuity-receipt/0.5#session" | "continuity-receipt/0.5#state_transition"`). The 14-case anchored-chain evaluation report in `ANCHORING.md` is recorded as project-authored benchmark evidence; reproducible offline anchor/head verification vectors (`10a–10c`, `25a–25f`) live in `vectors/`.
 
 ## The stack
 
