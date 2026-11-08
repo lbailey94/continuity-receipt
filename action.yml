@@ -1,0 +1,100 @@
+name: 'Verify Continuity Receipts'
+description: 'Verify IETF SCITT and Causal Provenance Receipts (CPR 0.5.4) offline or against WhiteMagic verification rails.'
+author: 'Lucas Bailey <lucas@whitemagic.dev>'
+branding:
+  icon: 'shield-check'
+  color: 'purple'
+
+inputs:
+  bundle:
+    description: 'Path to receipt bundle JSON file or glob pattern (e.g. receipts/*.json)'
+    required: true
+  api-url:
+    description: 'Verification API endpoint (defaults to https://api.whitemagic.dev/verify; set to "offline" for pure local verification)'
+    required: false
+    default: 'https://api.whitemagic.dev/verify'
+  require-anchor:
+    description: 'Whether detached OpenTimestamps proof is strictly required'
+    required: false
+    default: 'false'
+  fail-on-provisional:
+    description: 'Fail step if verdict is PROVISIONAL (defaults to false; only UNTRUSTED/INSUFFICIENT fails by default)'
+    required: false
+    default: 'false'
+
+outputs:
+  verdict:
+    description: 'Verification verdict (TRUSTED, PROVISIONAL, INSUFFICIENT_EVIDENCE, UNTRUSTED)'
+  receipt-digest:
+    description: 'SHA-256 canonical digest of the verified bundle'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install continuity-receipt verifier
+      shell: bash
+      run: |
+        pip install --upgrade continuity-receipt
+
+    - name: Execute Verification
+      id: verify
+      shell: bash
+      env:
+        BUNDLE_PATH: ${{ inputs.bundle }}
+        API_URL: ${{ inputs.api-url }}
+        REQUIRE_ANCHOR: ${{ inputs.require-anchor }}
+        FAIL_PROVISIONAL: ${{ inputs.fail-on-provisional }}
+      run: |
+        python3 - << 'EOF'
+        import json, os, sys, urllib.request, pathlib
+
+        bundle_path = os.environ["BUNDLE_PATH"]
+        api_url = os.environ.get("API_URL", "https://api.whitemagic.dev/verify")
+        req_anchor = os.environ.get("REQUIRE_ANCHOR", "false").lower() == "true"
+        fail_provisional = os.environ.get("FAIL_PROVISIONAL", "false").lower() == "true"
+
+        path = pathlib.Path(bundle_path)
+        if not path.is_file():
+            print(f"Error: Bundle file not found at {bundle_path}", file=sys.stderr)
+            sys.exit(2)
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+        if api_url.lower() == "offline":
+            from continuity_receipt.verify import verify_bundle
+            result = verify_bundle(data, require_anchor=req_anchor)
+            verdict = result.verdict
+            digest = (result.summary or {}).get("chain_head") or ""
+        else:
+            req_url = f"{api_url}?receipt=1"
+            if req_anchor:
+                req_url += "&require_anchor=1"
+            req = urllib.request.Request(
+                req_url,
+                data=json.dumps(data).encode("utf-8"),
+                headers={"Content-Type": "application/json", "User-Agent": "gh-action/cpr-verify-1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+            verdict = res_data.get("verdict", "UNTRUSTED")
+            digest = res_data.get("digest") or (res_data.get("summary") or {}).get("chain_head") or ""
+
+        gh_out = os.environ.get("GITHUB_OUTPUT")
+        if gh_out:
+            with open(gh_out, "a", encoding="utf-8") as fh:
+                fh.write(f"verdict={verdict}\n")
+                fh.write(f"receipt-digest={digest}\n")
+        print(f"Verification Verdict: {verdict} (Digest: {digest})")
+
+        if verdict == "UNTRUSTED" or verdict == "INSUFFICIENT_EVIDENCE":
+            print(f"::error::Verification failed with verdict {verdict}")
+            sys.exit(1)
+        if fail_provisional and verdict == "PROVISIONAL":
+            print(f"::error::Verification failed with provisional verdict")
+            sys.exit(1)
+        EOF
