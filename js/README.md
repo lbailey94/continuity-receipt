@@ -20,7 +20,7 @@ verdicts and error codes for the published vector corpus.
 ## Install
 
 ```sh
-npm install continuity-receipt
+npm install continuity-receipt@0.1.2
 ```
 
 ## CLI

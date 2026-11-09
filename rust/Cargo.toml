@@ -24,6 +24,10 @@ path = "src/bin/continuity-receipt-disclose.rs"
 name = "continuity-receipt-verify-receipt"
 path = "src/bin/continuity-receipt-verify-receipt.rs"
 
+[[bin]]
+name = "continuity-receipt-anchor"
+path = "src/bin/continuity-receipt-anchor.rs"
+
 [dependencies]
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 ed25519-dalek = "2"

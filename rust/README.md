@@ -3,10 +3,11 @@
 Second, independent implementation of the Causal Provenance Receipts (CPR / Continuity Receipt) verifier for
 `continuity-receipt/0.1`-`0.6` bundles and verification receipts
 (companion v1), including the 0.4 agreement-binding rules carried into 0.5.
-Provides both `cpr-verify` and `continuity-receipt-verify` binaries.
-Published crate 0.5.1 supports specs 0.1–0.5 and accepts the experimental 0.6
-candidate (the chain-head rules landed after 0.5.1; this checkout carries
-them).
+Provides `continuity-receipt-verify`, `continuity-receipt-disclose`,
+`continuity-receipt-verify-receipt`, and `continuity-receipt-anchor` binaries.
+Published crate **0.5.2** supports specs 0.1–0.5 and accepts the experimental 0.6
+candidate (including `authority.grant`, `chain_head` freshness, and W3C UC-9 / PACMI
+vectors `26_*`).
 The Python implementation in `../continuity_receipt/` remains the
 reference; this crate exists for the two-independent-implementations bar,
 native embedding, and single-binary deployment.
@@ -20,11 +21,11 @@ error codes, verdict precedence, and JSON output shape as
 ## Install
 
 ```sh
-cargo add continuity-receipt@=0.5.1        # published library
-cargo install continuity-receipt --version 0.5.1  # published CLIs
+cargo add continuity-receipt@=0.5.2        # published library
+cargo install continuity-receipt --version 0.5.2  # published CLIs
 ```
 
-The published 0.5 line is frozen; this checkout additionally tracks the
+The published 0.5 line is qualified in [`../RELEASE_CANDIDATE.md`](../RELEASE_CANDIDATE.md); this checkout additionally tracks the
 experimental 0.6 candidate (`SPEC_0.6_DRAFT.md`). Publication runbook:
 [`PUBLISH.md`](PUBLISH.md).
 
@@ -113,7 +114,9 @@ substitute for proof-of-work or confirmation checks.
 cargo test
 ```
 
-The vector runner reads `../vectors/manifest.json` and checks all 40 bundle
+The vector runner reads `../vectors/manifest.json` (40 vectors),
+`../vectors/manifest-0.5.json` (21 vectors), and `../vectors/manifest-0.6.json`
+(19 vectors) and checks all 80 bundle
 vectors against their expected verdict and error code; `tests/verification.rs`
 does the same for the 21 verification-receipt vectors
 (`../vectors/verification/manifest.json`), including consistency violations

@@ -58,23 +58,25 @@ Verification verdicts (IETF CTQ-aligned):
 ## Layout
 
 ```
-SPEC.md                    the v0.5 specification (normative; 0.1-0.5 supported)
+SPEC.md                    the v0.5 specification (normative; 0.1-0.5 supported, 0.6 draft)
 VERIFICATION_RECEIPTS.md   companion: signed statements about a verification run
 CONFORMANCE.md             conformance criteria, verification profiles, and disclosures
 CONFORMANCE_TABLE.md       rule-by-rule conformance matrix (audit surface)
+RELEASE_CANDIDATE.md       qualified registry artifact SHA-256 digests (PyPI, crates.io, npm)
 THREAT_MODEL.md            what receipts prove, and what they do not
 ANCHORING.md               anchoring policy: OpenTimestamps default, chain optional
 SIGNING.md                 tag signing policy and public verification keys
 SECURITY.md                vulnerability reporting and security boundaries
 CHANGELOG.md               version release history and breaking changes
 CONTRIBUTING.md            DCO, test rules, scope
+action.yml                 composite GitHub Action for CI bundle verification (offline or hosted)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
-continuity_receipt/        reference implementation (Python, cryptography>=42)
-rust/                      second implementation (verifier crate; cargo test)
-js/                        third implementation (JavaScript / TypeScript verifier)
-vectors/                   40 bundle vectors + 21 verification-receipt vectors
-examples/                  worked examples and integration fixtures
-tests/                     conformance test suite
+continuity_receipt/        reference implementation (Python, cryptography>=42, trace_shrink, pacmi)
+rust/                      second implementation (verifier crate 0.5.2; cargo test)
+js/                        third implementation (JavaScript / TypeScript verifier 0.1.2)
+vectors/                   80 bundle vectors (0.1-0.6) + 21 verification-receipt vectors
+examples/                  worked examples (WM session, gate-lite, claim review, AIC rollback)
+tests/                     conformance, differential, and receiver acceptance test suite
 ```
 
 ## Quickstart
@@ -124,10 +126,19 @@ curl -s -X POST https://api.whitemagic.dev/erc8004/validate \
 - **Attestation format:** The advertised `ValidationResponse` carries typed attestation fields signed with an Ed25519 `did:key`.
 - **Gating:** Keyed or x402 micro-lease on Base to `0x213b6bB4fB073E86167c58DA6Cb6E9477557DaA8`. Live details: `https://api.whitemagic.dev/info` · docs: `https://api.whitemagic.dev/docs`.
 
-## Test vectors
+## Test vectors & worked examples
 
-- **40 bundle vectors** with machine-readable expectations in `vectors/manifest.json` (human index: `vectors/INDEX.md`): 0.1 conformance (`01`–`10c`), 0.2 additions (succession records, millisecond timestamps, counterparty attestations, revocation semantics, Merkle provenance, anchor typing), 0.3 additions (offer → accept binding `16`–`16d`, selective disclosure `16e`/`16f`), 0.4 additions (bound stages `17`–`17j`, mixed-version `18`, negative controls `19`–`21`), and 0.5 additions (sandbox vocabulary, runner profile, state commitment).
-- **21 verification-receipt vectors** in `vectors/verification/` (manifest + `INDEX.md`): valid TRUSTED/PROVISIONAL/INSUFFICIENT_EVIDENCE records (errors, reasons, summary), signature/verdict tampering, wrong bundle, bad kind/version/verdict/timestamp/digest/error-codes, consistency violations, and issuer revocation controls.
+- **80 bundle vectors across three manifests:**
+  - `vectors/manifest.json` (**40 vectors**, human index: [`vectors/INDEX.md`](vectors/INDEX.md)): 0.1 conformance (`01`–`10c`), 0.2 additions (succession records, millisecond timestamps, counterparty attestations, revocation semantics, Merkle provenance, anchor typing), 0.3 additions (offer → accept binding `16`–`16d`, selective disclosure `16e`/`16f`), and 0.4 additions (bound stages `17`–`17j`, mixed-version `18`, negative controls `19`–`21`).
+  - `vectors/manifest-0.5.json` (**21 vectors**, human index: [`vectors/INDEX_0.5.md`](vectors/INDEX_0.5.md)): 0.5 local authority, `bwrap`/`landlock` sandbox vocabulary, signed `runner_profile` digests, `state.commitment` integer bounds, and carried agreement bindings (`22`–`23b`).
+  - `vectors/manifest-0.6.json` (**19 vectors**, human index: [`vectors/INDEX_0.6.md`](vectors/INDEX_0.6.md)): 0.6 candidate `authority.grant` rules (`24`–`24j`), `chain_head` sequence/digest/anchor freshness checks (`25a`–`25f`), and W3C AI Agent Memory Interoperability (UC-9 / PACMI) erasure-resurrection and counterfactual vectors (`26_pacmi_erasure_resurrection.json`, `26b`, `26c`).
+- **21 verification-receipt vectors** in `vectors/verification/` (manifest + `INDEX.md`): valid `TRUSTED`/`PROVISIONAL`/`INSUFFICIENT_EVIDENCE` records (errors, reasons, summary), signature/verdict tampering, wrong bundle, bad kind/version/verdict/timestamp/digest/error-codes, consistency violations, and issuer revocation controls.
+- **Worked examples (`examples/`):**
+  - [`examples/01_wm_governed_session/`](examples/01_wm_governed_session/) — governed session intake and selective redaction bundles.
+  - [`examples/02_gate_lite_state_commitment/`](examples/02_gate_lite_state_commitment/) — `mandalaos-gate-lite` sandbox execution bound to `state.commitment` with Python and Rust verdicts.
+  - [`examples/03_public_text_claim_review/`](examples/03_public_text_claim_review/) — reproducible claim-review pipeline over pinned public text excerpts.
+  - [`examples/04_aic_statutory_bundle/`](examples/04_aic_statutory_bundle/) — anchored `chain_head`, off-store `state.commitment`, `trace_guard` execution binding, and snapshot-rollback refusal (`head_mismatch`).
+- **CI GitHub Action (`action.yml`):** Use `lbailey94/continuity-receipt@main` in GitHub Actions workflows with `bundle: path/or/glob/*.json` and `api-url: offline` (or `https://api.whitemagic.dev/verify`) to gate pull requests on cryptographic receipt verification.
 
 Every schema-valid vector is verified against the schema for its spec version in CI.
 

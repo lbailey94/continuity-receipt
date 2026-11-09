@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.4 (Python) / 0.5.2 (Rust) / 0.1.2 (JS) — 2026-11-04 & 2026-11-08
+
+Qualified registry publications (`PyPI 0.5.4`, `crates.io 0.5.2`, `npm 0.1.2`; SHA-256 digests recorded in `RELEASE_CANDIDATE.md`) plus post-publication conformance examples and CI tooling:
+
+- **Strict calendar & summary parity (`330461b`, `993cbd7`).** Enforced strict RFC 3339 calendar bounds and aligned Rust malformed-issuer summary output with the Python reference verifier.
+- **W3C UC-9 / PACMI conformance vectors & receiver suite (`5d6de9d`).** Added vectors `26_pacmi_erasure_resurrection.json`, `26b_pacmi_high_water_counterfactual.json`, and `26c_pacmi_in_store_no_anchor.json` (`cpr-check-pacmi --table`), plus receiver acceptance tests covering erasure resurrection, authority revocation conflict, and `derived_from` scope.
+- **Deterministic trace & state counterexample shrinking (`continuity_receipt/trace_shrink.py`).** Added delta-debugging / binary-search shrinking (`shrink_trace`, `shrink_counterexample`) for minimal reproducible predicate-failure bundles.
+- **AIC statutory rollback-freshness example set (`68c0302`).** Added `examples/04_aic_statutory_bundle/` demonstrating anchored `chain_head`, off-store `state.commitment`, `trace_guard` execution binding, and snapshot-rollback refusal (`head_mismatch`).
+- **Composite GitHub Action (`06c23fd`).** Added `action.yml` for offline (`api-url: offline`) and hosted (`https://api.whitemagic.dev/verify`) CPR bundle verification in CI workflows.
+
 ## Unreleased — experimental witness custody follow-up
 
 The local receiver CLI exposes a separately retained expected witness checkpoint

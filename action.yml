@@ -51,50 +51,69 @@ runs:
         FAIL_PROVISIONAL: ${{ inputs.fail-on-provisional }}
       run: |
         python3 - << 'EOF'
-        import json, os, sys, urllib.request, pathlib
+        import glob, json, os, sys, urllib.request, pathlib
 
-        bundle_path = os.environ["BUNDLE_PATH"]
+        bundle_pattern = os.environ["BUNDLE_PATH"]
         api_url = os.environ.get("API_URL", "https://api.whitemagic.dev/verify")
         req_anchor = os.environ.get("REQUIRE_ANCHOR", "false").lower() == "true"
         fail_provisional = os.environ.get("FAIL_PROVISIONAL", "false").lower() == "true"
 
-        path = pathlib.Path(bundle_path)
-        if not path.is_file():
-            print(f"Error: Bundle file not found at {bundle_path}", file=sys.stderr)
+        direct_path = pathlib.Path(bundle_pattern)
+        if direct_path.is_file():
+            paths = [direct_path]
+        else:
+            paths = [pathlib.Path(p) for p in sorted(glob.glob(bundle_pattern, recursive=True)) if pathlib.Path(p).is_file()]
+
+        if not paths:
+            print(f"Error: No bundle file(s) matched {bundle_pattern}", file=sys.stderr)
             sys.exit(2)
 
-        data = json.loads(path.read_text(encoding="utf-8"))
+        final_verdict = "TRUSTED"
+        last_digest = ""
+        failed = False
 
-        if api_url.lower() == "offline":
-            from continuity_receipt.verify import verify_bundle
-            result = verify_bundle(data, require_anchor=req_anchor)
-            verdict = result.verdict
-            digest = (result.summary or {}).get("chain_head") or ""
-        else:
-            req_url = f"{api_url}?receipt=1"
-            if req_anchor:
-                req_url += "&require_anchor=1"
-            req = urllib.request.Request(
-                req_url,
-                data=json.dumps(data).encode("utf-8"),
-                headers={"Content-Type": "application/json", "User-Agent": "gh-action/cpr-verify-1.0"}
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                res_data = json.loads(resp.read().decode("utf-8"))
-            verdict = res_data.get("verdict", "UNTRUSTED")
-            digest = res_data.get("digest") or (res_data.get("summary") or {}).get("chain_head") or ""
+        for path in paths:
+            data = json.loads(path.read_text(encoding="utf-8"))
+
+            if api_url.lower() == "offline":
+                from continuity_receipt.verify import verify_bundle
+                result = verify_bundle(data, require_anchor=req_anchor)
+                verdict = result.verdict
+                digest = (result.summary or {}).get("chain_head") or ""
+            else:
+                req_url = f"{api_url}?receipt=1"
+                if req_anchor:
+                    req_url += "&require_anchor=1"
+                req = urllib.request.Request(
+                    req_url,
+                    data=json.dumps(data).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "User-Agent": "gh-action/cpr-verify-1.0"}
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    res_data = json.loads(resp.read().decode("utf-8"))
+                verdict = res_data.get("verdict", "UNTRUSTED")
+                digest = res_data.get("digest") or (res_data.get("summary") or {}).get("chain_head") or ""
+
+            last_digest = digest
+            print(f"[{path}] Verification Verdict: {verdict} (Digest: {digest})")
+
+            if verdict in ("UNTRUSTED", "INSUFFICIENT_EVIDENCE"):
+                print(f"::error file={path}::Verification failed with verdict {verdict}")
+                final_verdict = verdict
+                failed = True
+            elif verdict == "PROVISIONAL":
+                if final_verdict == "TRUSTED":
+                    final_verdict = "PROVISIONAL"
+                if fail_provisional:
+                    print(f"::error file={path}::Verification failed with provisional verdict")
+                    failed = True
 
         gh_out = os.environ.get("GITHUB_OUTPUT")
         if gh_out:
             with open(gh_out, "a", encoding="utf-8") as fh:
-                fh.write(f"verdict={verdict}\n")
-                fh.write(f"receipt-digest={digest}\n")
-        print(f"Verification Verdict: {verdict} (Digest: {digest})")
+                fh.write(f"verdict={final_verdict}\n")
+                fh.write(f"receipt-digest={last_digest}\n")
 
-        if verdict == "UNTRUSTED" or verdict == "INSUFFICIENT_EVIDENCE":
-            print(f"::error::Verification failed with verdict {verdict}")
-            sys.exit(1)
-        if fail_provisional and verdict == "PROVISIONAL":
-            print(f"::error::Verification failed with provisional verdict")
+        if failed:
             sys.exit(1)
         EOF
