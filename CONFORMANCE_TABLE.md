@@ -44,7 +44,7 @@ generates the malformed-input corpus in both implementations.
 | `task.termination` present | 0.1–0.5 | `_check_cross_record` | `check_cross_record` | 01 | 04 | |
 | Provenance form `sha256:` / `merkle-sha256:` | 0.2–0.5 | `_check_provenance` | `check_provenance` | 15 | 15b | |
 | Counterparty attestation signing rule; absence reported, not penalized | 0.2–0.5 | `_check_attestations` | `check_attestations` | 13 | 13b | |
-| Revocation statements self-signed; `revoked_at <= issued_at` → `key_revoked`; invalid statements fail closed | 0.2–0.5 | `_check_revocations` | `check_revocations` | 14b | 14a, unit `test_forged_statement_fails_closed` | external lists are 0.3 tooling (`REVOCATION_DISTRIBUTION.md`) |
+| Revocation statements self-signed; `revoked_at <= issued_at` → `key_revoked`; invalid statements fail closed | 0.2–0.5 | `_check_revocations` | `check_revocations` | 14b | 14a, unit `test_forged_statement_fails_closed` | external lists are 0.3 tooling (`continuity_receipt/revocations.py`, `verifier-capabilities.json`) |
 | Anchor digest binding; type enum when metadata present | 0.1–0.5 (enum 0.2+) | `_check_anchors` | `check_anchors` | 10b (`--require-anchor`), 01 | 10a, 10c | proof verification is the companion tool, not the verifier |
 | Redaction/erasure semantics; required fields may not be redacted; commitment match | 0.1–0.5 | `_check_redactions` | `check_redactions` | 08 | 07 (PROVISIONAL), 09 (INSUFFICIENT), 20 (`redacted_required`), 21 (`commit_mismatch`) | |
 
@@ -85,7 +85,7 @@ generates the malformed-input corpus in both implementations.
 | Identifier form for opaque labels (`agent_id`, `counterparty.id`, succession authorities, `offer_id`) | `SPEC.md` §3, issue #5 | Labels in practice hold free-form subjects; enforcing a URN/DID form would invalidate real records |
 | Quota enforcement | `SPEC.md` §4.1 (zero = not enforced) | Quotas are policy inputs recorded in the pass, not verifier-enforced limits |
 | Proof-of-work / header-chain validation for anchors | `ANCHORING.md` | Headers are caller-supplied inputs; the companion tool checks proof structure and merkle-root equality only |
-| Revocation-list freshness (a mirror can withhold a statement) | `REVOCATION_DISTRIBUTION.md` | Cryptography cannot detect withholding; polling cadence and multiple mirrors bound it |
+| Revocation-list freshness (a mirror can withhold a statement) | `THREAT_MODEL.md` #7, `SPEC.md` §11 | Cryptography cannot detect withholding; polling cadence and multiple mirrors bound it |
 | CBOR profile, HMAC commitments/domain separation, succession multi-signatures, global revocation roots | `SPEC.md` §11 | Deferred with published reasons; adopt with a demonstrated need |
 | Verification-receipt result correctness — a receipt records a verifier's result; it does not recompute it | `VERIFICATION_RECEIPTS.md` | Re-run the bundle verifier to check a recorded result; the receipt is evidence about the verification run |
 

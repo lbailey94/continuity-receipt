@@ -13,7 +13,7 @@ vectors — see [`CONFORMANCE_TABLE.md`](CONFORMANCE_TABLE.md).
 `continuity-receipt/0.1` through `continuity-receipt/0.5` (0.5 published
 2026-09-30; tooling 0.5.1). `continuity-receipt/0.6` is accepted as an
 experimental development candidate, not a published spec
-(`SPEC_0.6_DRAFT.md`). Unknown versions are refused (`version_unsupported`)
+(`schema/continuity-receipt-0.6.schema.json`, `CONFORMANCE_TABLE.md` §G). Unknown versions are refused (`version_unsupported`)
 rather than guessed at. Each receipt carries its own `spec` and is verified
 under that version's rules; mixed-version bundles are legal (SPEC §10).
 
@@ -49,7 +49,7 @@ under that version's rules; mixed-version bundles are legal (SPEC §10).
 
 The list above describes the published 0.1–0.5 surface. The 0.6 development
 candidate adds shape-only `authority.grant` / `authority_ref` binding and the
-optional bundle-level `chain_head` commitment (`SPEC_0.6_DRAFT.md`).
+optional bundle-level `chain_head` commitment (`schema/continuity-receipt-0.6.schema.json`, `CONFORMANCE_TABLE.md` §G).
 
 ## Verification receipts (companion, version 1)
 
@@ -160,6 +160,6 @@ CI runs these (plus the disclosure and anchor differentials);
   supplied inputs).
 - **Revocation-list freshness.** A mirror can withhold a statement; polling
   cadence and multiple mirrors bound that, cryptography does not
-  (`REVOCATION_DISTRIBUTION.md`).
+  (`THREAT_MODEL.md` #7, `continuity_receipt/revocations.py`).
 - CBOR encoding, HMAC commitments, succession multi-signatures, global
-  revocation roots — see `ROADMAP.md`.
+  revocation roots — see `SPEC.md` §11 (`Deferred`).

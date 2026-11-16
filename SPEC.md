@@ -4,7 +4,8 @@
 
 **Status:** `continuity-receipt/0.5` (CPR core) — published 2026-09-30. `0.1`–`0.4`
 remain supported by the verifier; `0.6` is an experimental development
-candidate (`SPEC_0.6_DRAFT.md` & `SPEC_0.6_PQ_PROFILE_DRAFT.md`). Open items in §11.
+candidate (`schema/continuity-receipt-0.6.schema.json`, `CONFORMANCE_TABLE.md` §G,
+and `vectors/manifest-0.6.json`). Open items in §11.
 **Date:** 0.1 draft 2026-09-17; 0.2 released 2026-09-18; 0.3 released 2026-09-23;
 0.4 released 2026-09-24; 0.5 released 2026-09-30.
 **Home:** this repository — versioned independently of any product release
@@ -14,7 +15,7 @@ train.
 
 - **Local authority and unconfined execution vocabulary:** `session.pass.created.mandala_class`
   gains `local`. `task.execution.sandbox_class` accepts `bwrap`, `landlock`,
-  `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none` (§4.5).
+  `bwrap-landlock`, `microvm-ch`, `microvm-fc`, and `none` (§4.3).
 - **Runner profile binding:** A 0.5 `task.execution` with `sandbox_class: "bwrap"`
   must carry a signed `runner_profile` (`profile_id`, `executable_digest`, `invocation_digest`).
 - **state.commitment:** New record type supporting chain-head and file-snapshot state
@@ -236,6 +237,17 @@ by the offeree. An accept whose offer is not in the bundle is
 `INSUFFICIENT_EVIDENCE`, never silently trusted; an accept that nothing
 references is PROVISIONAL (linkage evidence missing).
 
+### 4.10 `state.commitment` (0.5)
+`state_kind` (non-empty string, e.g. `chain-head` or `file-snapshot-v1`),
+`scope` (non-empty label string naming the committed store or scope), `count`
+(exact JSON integer in `0..2^53-1`), `head_digest` (grounded `sha256:` digest
+of the committed head); optional `merkle_root` (`merkle-sha256:` digest or
+`null`). Valid on `continuity-receipt/0.5` and `0.6` receipts (`unknown_type`
+on `0.1`–`0.4`; vector `22f`). The core verifier checks shape and bounds only —
+it does not recompute the referenced store state, count, `head_digest`, or
+`merkle_root`, and treats `state_kind` and `scope` as opaque labels
+(`CONFORMANCE_TABLE.md` §F).
+
 ## 5. Canonicalization and signing
 
 - JSON canonicalization: **RFC 8785 (JCS)**. `continuity-receipt/0.1` is
@@ -316,7 +328,9 @@ error was recorded, else `INSUFFICIENT_EVIDENCE`, else `PROVISIONAL`, else
    `issued_at` fails (`key_revoked`). Receipts issued before revocation remain
    valid. Statements may also be distributed in external revocation lists
    (0.3 tooling; identical statement shape, same per-statement signatures,
-   `--revocations` in the reference CLI — see `REVOCATION_DISTRIBUTION.md`).
+   `--revocations` in the reference CLI — implemented in
+   `continuity_receipt/revocations.py`, `verifier-capabilities.json`, and
+   `CONFORMANCE_TABLE.md` §B).
 6. Anchors (optional): if present, the committed digest must match the
    receipt; anchor metadata, when present, must declare one of the known types
    (`opentimestamps`, `public-chain`, `custom`); if anchors are absent and the
@@ -343,7 +357,7 @@ insufficient-evidence reasons, not errors; `agreement_unreferenced` and
 codes; its vocabulary and shape failures are reported as `malformed`. The 0.6
 candidate adds `authority_before_grant`, `authority_agent_mismatch`,
 `authority_expired`, `head_mismatch`, and `head_anchor_invalid`
-(experimental; `SPEC_0.6_DRAFT.md`).
+(experimental; `schema/continuity-receipt-0.6.schema.json`, `CONFORMANCE_TABLE.md` §G).
 
 ## 8. Interop mapping (informative)
 
@@ -461,7 +475,7 @@ vectors 17–17j; schema 0.4; Python + Rust parity (differential 36/36).
    implementer request.
 3. **Revocation distribution** — **tooling landed 2026-09-21:** static-list
    convention + `--revocations` merge with per-statement signatures
-   (`REVOCATION_DISTRIBUTION.md`); monitoring guidance recorded. Remaining:
+   (`continuity_receipt/revocations.py`, `THREAT_MODEL.md` #7); monitoring guidance recorded. Remaining:
    transparency-log omission evidence, only with a consumer that needs it.
 4. **Anchor proof verification** — **landed 2026-09-21** as the companion
    tool `continuity-receipt-anchor` (OpenTimestamps proofs checked against a
