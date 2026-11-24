@@ -20,8 +20,8 @@ are fully supported. Open development items are listed in [`SPEC.md`](SPEC.md) �
 | Artifact | Published observed version | Published install |
 |---|---|---|
 | Spec / wire format | `continuity-receipt/0.5` (published 2026-09-30) | — |
-| Python reference + CLIs | **0.5.4** | `pip install continuity-receipt==0.5.4` |
-| Rust verifier + CLIs | **0.5.2** | `cargo install continuity-receipt --version 0.5.2` |
+| Python reference + CLIs | **0.5.5** | `pip install continuity-receipt==0.5.5` |
+| Rust verifier + CLIs | **0.5.3** | `cargo install continuity-receipt --version 0.5.3` |
 | JavaScript / TypeScript verifier | **0.1.2** | `npm install continuity-receipt@0.1.2` |
 
 These package versions were published and their registry digests checked on
@@ -72,7 +72,7 @@ CONTRIBUTING.md            DCO, test rules, scope
 action.yml                 composite GitHub Action for CI bundle verification (offline or hosted)
 schema/                    JSON Schema (2020-12): bundles + verification receipts
 continuity_receipt/        reference implementation (Python, cryptography>=42, trace_shrink, pacmi)
-rust/                      second implementation (verifier crate 0.5.2; cargo test)
+rust/                      second implementation (verifier crate 0.5.3; cargo test)
 js/                        third implementation (JavaScript / TypeScript verifier 0.1.2)
 vectors/                   80 bundle vectors (0.1-0.6) + 21 verification-receipt vectors
 examples/                  worked examples (WM session, gate-lite, claim review, AIC rollback)
@@ -145,7 +145,7 @@ Every schema-valid vector is verified against the schema for its spec version in
 ## Status and provenance
 
 - **Origin:** Developed in the MandalaOS gate-lite work, where it passed acceptance G1–G8 and the wider project suite. This repository is the format's public home; it versions independently of any product release train.
-- **Releases:** `0.1` (spec, reference verifier, 11 vectors) → `0.2` (succession, revocation, Merkle provenance, anchor typing, schema) → `0.3` (agreements, digest binding, verification receipts v1) → `0.4` (bound chains, hostile-input hardening, conformance table) → `0.5` (local authority, sandbox profiles, state commitments, duplicate-member rejection) → `0.5.4` (strict RFC 3339 calendar bounds and wire spelling).
+- **Releases:** `0.1` (spec, reference verifier, 11 vectors) → `0.2` (succession, revocation, Merkle provenance, anchor typing, schema) → `0.3` (agreements, digest binding, verification receipts v1) → `0.4` (bound chains, hostile-input hardening, conformance table) → `0.5` (local authority, sandbox profiles, state commitments, duplicate-member rejection) → `0.5.4` (strict RFC 3339 calendar bounds and wire spelling) → `0.5.5` (verifier performance optimization pass, Rust `0.5.3`).
 - **Implementations:**
   - Python: `continuity_receipt/` — primary reference implementation with full CLI tooling and PACMI evaluator.
   - Rust: `rust/` — high-performance verifier crate with identical verdict/error semantics.

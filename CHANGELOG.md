@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.5 (Python) / 0.5.3 (Rust) — 2026-11-23
+
+Verifier performance optimization release (`afe6859`, zero wire or verdict changes):
+
+- **Single-pass canonicalization & digest caching (`continuity_receipt/verify.py`).** Eliminated redundant unsigned-view `canonical_bytes` passes between chain-link validation, Ed25519 signature verification, agreements, authority grants, anchors, and `chain_head`; narrowed depth and redaction walks to container nodes only.
+- **Iterative float/depth guard & encoder reuse (`continuity_receipt/canon.py`, `keys.py`, `records.py`).** Replaced recursive `_reject_floats` with a `sys.getrecursionlimit()`-bounded iterative check, reused `JSONEncoder`, added an `O(1)` base58 decode map, and added `isinstance(..., str)`-guarded LRU caches for `did_key_to_pubkey`, `validate_timestamp`, and `parse_timestamp` (`-65.4%` Python call count, `1.34x` faster 86-vector sweep, `86/86` exact verdicts, `114/114` Python tests, `40/40` Python == Rust differential match).
+- **Zero-copy strict JSON member dedup (`rust/src/strict_json.rs`).** Borrowed `Cow<'a, str>` slices in `Scanner::object` for unescaped keys (`46/46` Rust tests pass).
+
 ## 0.5.4 (Python) / 0.5.2 (Rust) / 0.1.2 (JS) — 2026-11-04 & 2026-11-08
 
 Qualified registry publications (`PyPI 0.5.4`, `crates.io 0.5.2`, `npm 0.1.2`; SHA-256 digests recorded in `RELEASE_CANDIDATE.md`) plus post-publication conformance examples and CI tooling:
