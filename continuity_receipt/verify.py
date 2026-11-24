@@ -12,7 +12,7 @@ from dataclasses import dataclass, field as dc_field
 from . import agreements, keys, records
 from . import strict_json
 from .bundle import receipt_digest
-from .canon import canonical_bytes, commit_field
+from .canon import canonical_bytes, commit_field, sha256_prefixed
 from .revocations import merge_statements, verify_statements
 
 ANCHOR_TYPES = ("opentimestamps", "public-chain", "custom")
@@ -55,6 +55,15 @@ def _try_digest(receipt: dict) -> str | None:
         return None
 
 
+def _try_canonical_and_digest(receipt: dict) -> tuple[bytes | None, str | None]:
+    """Compute unsigned canonical bytes + sha256 receipt_digest in a single pass."""
+    try:
+        raw = canonical_bytes(records.unsigned_view(receipt))
+        return raw, sha256_prefixed(raw)
+    except (TypeError, ValueError):
+        return None, None
+
+
 def _depth_exceeded(node, limit: int) -> bool:
     """Iterative depth probe so hostile nesting cannot exhaust the stack."""
     stack = [(node, 1)]
@@ -62,23 +71,42 @@ def _depth_exceeded(node, limit: int) -> bool:
         current, depth = stack.pop()
         if depth > limit:
             return True
-        if isinstance(current, dict):
-            stack.extend((value, depth + 1) for value in current.values())
-        elif isinstance(current, list):
-            stack.extend((value, depth + 1) for value in current)
+        t = type(current)
+        if t is dict or isinstance(current, dict):
+            if current:
+                nxt = depth + 1
+                if nxt > limit:
+                    return True
+                for value in current.values():
+                    vt = type(value)
+                    if vt is dict or vt is list or isinstance(value, (dict, list)):
+                        stack.append((value, nxt))
+        elif t is list or isinstance(current, list):
+            if current:
+                nxt = depth + 1
+                if nxt > limit:
+                    return True
+                for value in current:
+                    vt = type(value)
+                    if vt is dict or vt is list or isinstance(value, (dict, list)):
+                        stack.append((value, nxt))
     return False
 
 
 def _iter_redactions(node, path, out):
-    if isinstance(node, dict):
+    if type(node) is dict or isinstance(node, dict):
         if node.get("redacted") is True:
             out.append((path, node))
             return
         for key, value in node.items():
-            _iter_redactions(value, f"{path}.{key}" if path else key, out)
-    elif isinstance(node, list):
+            vt = type(value)
+            if vt is dict or vt is list or isinstance(value, (dict, list)):
+                _iter_redactions(value, f"{path}.{key}" if path else key, out)
+    elif type(node) is list or isinstance(node, list):
         for index, value in enumerate(node):
-            _iter_redactions(value, f"{path}[{index}]", out)
+            vt = type(value)
+            if vt is dict or vt is list or isinstance(value, (dict, list)):
+                _iter_redactions(value, f"{path}[{index}]", out)
 
 
 def _check_shape(result: VerifyResult, bundle: dict, receipts: list) -> None:
@@ -151,6 +179,7 @@ def verify_bundle(
 
     task_id = bundle.get("task_id")
     expected_prev = None
+    digest_cache: dict[int, str | None] = {}
 
     for index, receipt in enumerate(receipts):
         if not isinstance(receipt, dict):
@@ -190,7 +219,8 @@ def verify_bundle(
             _fatal(result, "chain_break", f"seq {receipt.get('seq')} != position {index}", rid)
         if receipt.get("prev") != expected_prev:
             _fatal(result, "chain_break", "prev digest mismatch", rid)
-        digest = _try_digest(receipt)
+        message, digest = _try_canonical_and_digest(receipt)
+        digest_cache[id(receipt)] = digest
         if digest is None:
             _fatal(result, "malformed", "receipt is not canonically encodable (floats are rejected)", rid)
             expected_prev = None
@@ -208,9 +238,7 @@ def verify_bundle(
             _fatal(result, "bad_signature", "missing or unsupported sig", rid)
         else:
             issuer_id = issuer.get("id", "") if isinstance(issuer, dict) else ""
-            try:
-                message = canonical_bytes(records.unsigned_view(receipt))
-            except (TypeError, ValueError):
+            if message is None:
                 _fatal(result, "bad_signature", "receipt is not canonically encodable", rid)
             else:
                 if not isinstance(issuer_id, str) or not keys.verify(issuer_id, message, sig["value"]):
@@ -221,14 +249,14 @@ def verify_bundle(
     if not isinstance(disclosure_map, dict):
         disclosure_map = None
     _check_cross_record(result, well_formed)
-    _check_agreements(result, well_formed)
-    _check_authority(result, well_formed)
+    _check_agreements(result, well_formed, digest_cache)
+    _check_authority(result, well_formed, digest_cache)
     _check_redactions(result, well_formed, disclosure_map or {})
     _check_attestations(result, well_formed)
     _check_provenance(result, well_formed)
     _check_revocations(result, bundle, well_formed, external_revocations)
-    _check_anchors(result, bundle, well_formed, require_anchor)
-    _check_chain_head(result, bundle, well_formed, require_anchor)
+    _check_anchors(result, bundle, well_formed, require_anchor, digest_cache)
+    _check_chain_head(result, bundle, well_formed, require_anchor, digest_cache)
 
     types = [r.get("type") for r in well_formed]
     summary = {
@@ -420,7 +448,9 @@ def _check_cross_record(result: VerifyResult, receipts: list) -> None:
         _fatal(result, "missing_termination", "task has no termination receipt")
 
 
-def _check_agreements(result: VerifyResult, receipts: list) -> None:
+def _check_agreements(
+    result: VerifyResult, receipts: list, digest_cache: dict[int, str | None] | None = None
+) -> None:
     """Offer → accept binding: 0.3 resolves the offer; 0.4 carries the binding.
 
     0.3 (unchanged): `offer_ref` resolves to an offer in the bundle; `offer_id`
@@ -448,7 +478,7 @@ def _check_agreements(result: VerifyResult, receipts: list) -> None:
         record_type = r.get("type")
         if record_type not in ("agreement.offer", "agreement.accept"):
             continue
-        digest = _try_digest(r)
+        digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
         if digest is None:
             continue
         (offers if record_type == "agreement.offer" else accepts)[digest] = r
@@ -506,7 +536,9 @@ def _check_agreements(result: VerifyResult, receipts: list) -> None:
     _check_agreement_completeness(result, receipts, accepts, referenced)
 
 
-def _check_authority(result: VerifyResult, receipts: list) -> None:
+def _check_authority(
+    result: VerifyResult, receipts: list, digest_cache: dict[int, str | None] | None = None
+) -> None:
     """0.6 authority binding (shape only — identity is never resolved):
 
     - A `authority.grant` receipt defines a scoped authority. Its `principal`
@@ -525,7 +557,7 @@ def _check_authority(result: VerifyResult, receipts: list) -> None:
     for r in receipts:
         if r.get("type") != "authority.grant":
             continue
-        digest = _try_digest(r)
+        digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
         if digest is not None:
             grants[digest] = r
 
@@ -888,7 +920,13 @@ def _required_field_for_path(path: str, receipts: list) -> str | None:
     return None
 
 
-def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_anchor: bool) -> None:
+def _check_anchors(
+    result: VerifyResult,
+    bundle: dict,
+    receipts: list,
+    require_anchor: bool,
+    digest_cache: dict[int, str | None] | None = None,
+) -> None:
     anchors = bundle.get("anchors")
     if not anchors:
         if require_anchor:
@@ -907,7 +945,11 @@ def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_a
             continue
         target_key = anchor.get("target")
         target = by_id.get(target_key) if isinstance(target_key, str) else None
-        digest = _try_digest(target) if target is not None else None
+        digest = (
+            (digest_cache[id(target)] if digest_cache is not None and id(target) in digest_cache else _try_digest(target))
+            if target is not None
+            else None
+        )
         if target is None or digest is None or anchor.get("hash") != digest:
             _fatal(result, "anchor_invalid", f"anchor invalid for {anchor.get('target')}")
             continue
@@ -926,7 +968,11 @@ def _check_anchors(result: VerifyResult, bundle: dict, receipts: list, require_a
 
 
 def _check_chain_head(
-    result: VerifyResult, bundle: dict, receipts: list, require_anchor: bool
+    result: VerifyResult,
+    bundle: dict,
+    receipts: list,
+    require_anchor: bool,
+    digest_cache: dict[int, str | None] | None = None,
 ) -> None:
     """Optional bundle-level commitment to the final receipt.
 
@@ -943,7 +989,7 @@ def _check_chain_head(
     last = receipts[-1] if receipts else None
     if not isinstance(last, dict):
         return  # empty/ill-formed chains already carry their own error
-    digest = _try_digest(last)
+    digest = digest_cache[id(last)] if digest_cache is not None and id(last) in digest_cache else _try_digest(last)
     if digest is None:
         return  # not canonically encodable; already recorded
     if (

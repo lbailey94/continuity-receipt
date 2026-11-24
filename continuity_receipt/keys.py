@@ -1,5 +1,6 @@
 """Ed25519 keys, signing, and did:key encoding for Continuity Receipts."""
 import base64
+import functools
 import hashlib
 import secrets
 
@@ -11,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 
 _B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+_B58_MAP = {ch: idx for idx, ch in enumerate(_B58_ALPHABET)}
 _MULTICODEC_ED25519 = b"\xed\x01"
 
 
@@ -31,8 +33,12 @@ def b58encode(data: bytes) -> str:
 
 def b58decode(text: str) -> bytes:
     number = 0
-    for char in text:
-        number = number * 58 + _B58_ALPHABET.index(char)
+    bmap = _B58_MAP
+    try:
+        for char in text:
+            number = number * 58 + bmap[char]
+    except KeyError as exc:
+        raise ValueError("invalid base58 character") from exc
     raw = number.to_bytes((number.bit_length() + 7) // 8, "big")
     pad = 0
     for char in text:
@@ -75,13 +81,20 @@ def pubkey_to_did_key(pub) -> str:
     return "did:key:z" + b58encode(_MULTICODEC_ED25519 + raw)
 
 
-def did_key_to_pubkey(did: str) -> Ed25519PublicKey:
+@functools.lru_cache(maxsize=2048)
+def _did_key_to_pubkey_cached(did: str) -> Ed25519PublicKey:
     if not did.startswith("did:key:z"):
         raise ValueError(f"unsupported did:key form: {did[:24]}")
     raw = b58decode(did[len("did:key:z") :])
     if not raw.startswith(_MULTICODEC_ED25519) or len(raw) != 34:
         raise ValueError("did:key is not an Ed25519 key")
     return Ed25519PublicKey.from_public_bytes(raw[2:])
+
+
+def did_key_to_pubkey(did: str) -> Ed25519PublicKey:
+    if not isinstance(did, str):
+        raise ValueError(f"unsupported did:key form: {did!r}")
+    return _did_key_to_pubkey_cached(did)
 
 
 def generate(seed: bytes | None = None) -> tuple[str, Ed25519PrivateKey]:

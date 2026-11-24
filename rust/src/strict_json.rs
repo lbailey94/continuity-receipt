@@ -1,6 +1,7 @@
 //! JSON decoder which rejects duplicate object names before serde_json::Value
 //! can silently overwrite them. Values are parsed by serde_json afterward, so
 //! its arbitrary-precision number behavior stays identical to the verifier.
+use std::borrow::Cow;
 use std::collections::HashSet;
 
 use serde_json::Value;
@@ -61,13 +62,18 @@ impl<'a> Scanner<'a> {
         self.at += 1;
         self.whitespace();
         if self.bytes.get(self.at) == Some(&b'}') { self.at += 1; return Ok(()); }
-        let mut names = HashSet::new();
+        let mut names: HashSet<Cow<'a, str>> = HashSet::new();
         loop {
             self.whitespace();
             let encoded = self.string()?;
-            let name: String = serde_json::from_str(encoded).map_err(|error| error.to_string())?;
-            if !names.insert(name.clone()) {
-                return Err(format!("duplicate JSON object member: {name:?}"));
+            let name: Cow<'a, str> = if !encoded.as_bytes().contains(&b'\\') {
+                Cow::Borrowed(&encoded[1..encoded.len() - 1])
+            } else {
+                Cow::Owned(serde_json::from_str::<String>(encoded).map_err(|error| error.to_string())?)
+            };
+            if !names.insert(name) {
+                let dup: String = serde_json::from_str(encoded).map_err(|error| error.to_string())?;
+                return Err(format!("duplicate JSON object member: {dup:?}"));
             }
             self.whitespace();
             if self.bytes.get(self.at) != Some(&b':') { return Err("expected ':' after JSON object member".into()); }

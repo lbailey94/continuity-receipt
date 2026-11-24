@@ -101,24 +101,41 @@ def utc_now_rfc3339(ms: bool = False) -> str:
     return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+import functools
+from datetime import datetime, timezone
+
+@functools.lru_cache(maxsize=2048)
+def _parse_timestamp_cached(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+@functools.lru_cache(maxsize=2048)
+def _validate_timestamp_str(value: str) -> bool:
+    if not _TIMESTAMP_RE.fullmatch(value):
+        return False
+    try:
+        _parse_timestamp_cached(value)
+    except ValueError:
+        return False
+    return True
+
+
 def validate_timestamp(value) -> bool:
     """Check both the complete wire spelling and the calendar/time ranges.
 
     The reference profile uses years 0001–9999 and seconds 00–59. Leap-second
     notation is unsupported; it must fail validation before date arithmetic.
     """
-    if not isinstance(value, str) or not _TIMESTAMP_RE.fullmatch(value):
+    if not isinstance(value, str):
         return False
-    try:
-        parse_timestamp(value)
-    except ValueError:
-        return False
-    return True
+    return _validate_timestamp_str(value)
 
 
 def parse_timestamp(value: str) -> datetime:
     """Parse a validated timestamp; second and millisecond precision compare correctly."""
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if not isinstance(value, str):
+        raise TypeError("timestamp must be str")
+    return _parse_timestamp_cached(value)
 
 
 def validate_body(record_type: str, body: dict, spec: str | None = None) -> None:
