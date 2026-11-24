@@ -7,6 +7,13 @@ _CANON_ENCODE = json.JSONEncoder(
     separators=(",", ":"), ensure_ascii=False, sort_keys=True
 ).encode
 
+try:
+    import orjson as _orjson
+    _ORJSON_SORT_KEYS = _orjson.OPT_SORT_KEYS
+except ImportError:
+    _orjson = None
+    _ORJSON_SORT_KEYS = 0
+
 
 def canonical_bytes(obj) -> bytes:
     """Deterministic bytes for signing and hashing.
@@ -17,6 +24,11 @@ def canonical_bytes(obj) -> bytes:
     requires. Full RFC 8785 edge cases tracked as spec §11 open item 1.
     """
     _reject_floats(obj)
+    if _orjson is not None:
+        try:
+            return _orjson.dumps(obj, option=_ORJSON_SORT_KEYS)
+        except TypeError:
+            pass
     return _CANON_ENCODE(obj).encode("utf-8")
 
 

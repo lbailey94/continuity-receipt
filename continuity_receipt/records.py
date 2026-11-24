@@ -178,7 +178,11 @@ def new_envelope(
 
 
 def unsigned_view(receipt: dict) -> dict:
-    return {key: value for key, value in receipt.items() if key != "sig"}
+    if "sig" not in receipt:
+        return dict(receipt)
+    view = dict(receipt)
+    del view["sig"]
+    return view
 
 
 def attestation_view(body: dict) -> dict:

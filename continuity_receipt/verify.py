@@ -20,6 +20,9 @@ PROVENANCE_PREFIXES = ("sha256:", "merkle-sha256:")
 MAX_RECEIPTS = 10_000
 MAX_NESTING_DEPTH = 64
 MAX_BUNDLE_BYTES = 8 * 1024 * 1024
+_SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_MERKLE_RE = re.compile(r"^merkle-sha256:[0-9a-f]{64}$")
+_SCALAR_TYPES = (str, int, bool, type(None), float)
 
 
 @dataclass
@@ -64,49 +67,72 @@ def _try_canonical_and_digest(receipt: dict) -> tuple[bytes | None, str | None]:
         return None, None
 
 
-def _depth_exceeded(node, limit: int) -> bool:
-    """Iterative depth probe so hostile nesting cannot exhaust the stack."""
+def _scan_depth_and_redactions(node, limit: int) -> tuple[bool, bool]:
+    """Iterative depth probe + redaction existence flag in a single tree pass."""
     stack = [(node, 1)]
+    has_redactions = False
     while stack:
         current, depth = stack.pop()
         if depth > limit:
-            return True
+            return True, has_redactions
         t = type(current)
-        if t is dict or isinstance(current, dict):
+        if t is dict:
+            is_d = True
+        elif t is list:
+            is_d = False
+        elif isinstance(current, dict):
+            is_d = True
+        elif isinstance(current, list):
+            is_d = False
+        else:
+            continue
+        if is_d:
+            if not has_redactions and current.get("redacted") is True:
+                has_redactions = True
             if current:
                 nxt = depth + 1
                 if nxt > limit:
-                    return True
+                    return True, has_redactions
                 for value in current.values():
                     vt = type(value)
-                    if vt is dict or vt is list or isinstance(value, (dict, list)):
+                    if vt is dict or vt is list or (vt not in _SCALAR_TYPES and isinstance(value, (dict, list))):
                         stack.append((value, nxt))
-        elif t is list or isinstance(current, list):
-            if current:
-                nxt = depth + 1
-                if nxt > limit:
-                    return True
-                for value in current:
-                    vt = type(value)
-                    if vt is dict or vt is list or isinstance(value, (dict, list)):
-                        stack.append((value, nxt))
-    return False
+        elif current:
+            nxt = depth + 1
+            if nxt > limit:
+                return True, has_redactions
+            for value in current:
+                vt = type(value)
+                if vt is dict or vt is list or (vt not in _SCALAR_TYPES and isinstance(value, (dict, list))):
+                    stack.append((value, nxt))
+    return False, has_redactions
+
+
+def _depth_exceeded(node, limit: int) -> bool:
+    """Iterative depth probe so hostile nesting cannot exhaust the stack."""
+    too_deep, _ = _scan_depth_and_redactions(node, limit)
+    return too_deep
 
 
 def _iter_redactions(node, path, out):
-    if type(node) is dict or isinstance(node, dict):
-        if node.get("redacted") is True:
-            out.append((path, node))
-            return
-        for key, value in node.items():
-            vt = type(value)
-            if vt is dict or vt is list or isinstance(value, (dict, list)):
-                _iter_redactions(value, f"{path}.{key}" if path else key, out)
-    elif type(node) is list or isinstance(node, list):
-        for index, value in enumerate(node):
-            vt = type(value)
-            if vt is dict or vt is list or isinstance(value, (dict, list)):
-                _iter_redactions(value, f"{path}[{index}]", out)
+    stack = [(node, path)]
+    while stack:
+        current, cur_path = stack.pop()
+        t = type(current)
+        if t is dict or (t is not list and isinstance(current, dict)):
+            if current.get("redacted") is True:
+                out.append((cur_path, current))
+                continue
+            prefix = f"{cur_path}." if cur_path else ""
+            for key, value in current.items():
+                vt = type(value)
+                if vt is dict or vt is list or (vt not in _SCALAR_TYPES and isinstance(value, (dict, list))):
+                    stack.append((value, f"{prefix}{key}"))
+        elif t is list or isinstance(current, list):
+            for index, value in enumerate(current):
+                vt = type(value)
+                if vt is dict or vt is list or (vt not in _SCALAR_TYPES and isinstance(value, (dict, list))):
+                    stack.append((value, f"{cur_path}[{index}]"))
 
 
 def _check_shape(result: VerifyResult, bundle: dict, receipts: list) -> None:
@@ -159,9 +185,11 @@ def verify_bundle(
     if not isinstance(bundle, dict):
         _fatal(result, "malformed", "bundle is not an object")
         return _finish(result)
-    if _depth_exceeded(bundle, MAX_NESTING_DEPTH):
+    too_deep, has_redactions = _scan_depth_and_redactions(bundle, MAX_NESTING_DEPTH)
+    if too_deep:
         _fatal(result, "nesting_too_deep", f"bundle nesting exceeds depth {MAX_NESTING_DEPTH}")
         return _finish(result)
+    result._has_redactions = has_redactions
 
     if bundle.get("spec") not in records.SUPPORTED_SPECS:
         _fatal(result, "version_unsupported", f"spec={bundle.get('spec')!r}")
@@ -291,29 +319,26 @@ def _check_05_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
         if body.get("sandbox_class") == "bwrap" and "runner_profile" not in body:
             _fatal(result, "malformed", "bwrap execution requires runner_profile", rid)
         if "runner_profile" in body:
-            digest = re.compile(r"^sha256:[0-9a-f]{64}$")
             if (not isinstance(profile, dict)
                     or set(profile) != {"profile_id", "executable_digest", "invocation_digest"}
                     or not isinstance(profile.get("profile_id"), str)
                     or not profile["profile_id"]
                     or not isinstance(profile.get("executable_digest"), str)
-                    or not digest.fullmatch(profile["executable_digest"])
+                    or not _SHA256_RE.fullmatch(profile["executable_digest"])
                     or not isinstance(profile.get("invocation_digest"), str)
-                    or not digest.fullmatch(profile["invocation_digest"])):
+                    or not _SHA256_RE.fullmatch(profile["invocation_digest"])):
                 _fatal(result, "malformed", "runner_profile must contain a nonempty profile_id and sha256 executable_digest and invocation_digest", rid)
     if record_type == "state.commitment":
-        digest = re.compile(r"^sha256:[0-9a-f]{64}$")
-        merkle = re.compile(r"^merkle-sha256:[0-9a-f]{64}$")
         if not isinstance(body.get("state_kind"), str) or not body["state_kind"]:
             _fatal(result, "malformed", "state_kind must be nonempty text", rid)
         if not isinstance(body.get("scope"), str) or not body["scope"]:
             _fatal(result, "malformed", "scope must be nonempty text", rid)
         if isinstance(body.get("count"), bool) or not isinstance(body.get("count"), int) or not 0 <= body["count"] <= 2**53 - 1:
             _fatal(result, "malformed", "count must be an exact JSON integer from 0 through 2^53-1", rid)
-        if not isinstance(body.get("head_digest"), str) or not digest.fullmatch(body["head_digest"]):
+        if not isinstance(body.get("head_digest"), str) or not _SHA256_RE.fullmatch(body["head_digest"]):
             _fatal(result, "malformed", "head_digest must be a sha256 digest", rid)
         root = body.get("merkle_root")
-        if root is not None and (not isinstance(root, str) or not merkle.fullmatch(root)):
+        if root is not None and (not isinstance(root, str) or not _MERKLE_RE.fullmatch(root)):
             _fatal(result, "malformed", "merkle_root must be a merkle-sha256 digest", rid)
 
 
@@ -321,7 +346,6 @@ def _check_06_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
     """Validate the 0.6 authority vocabulary (shape only; no identity claims)."""
     if record_type != "authority.grant":
         return
-    digest = re.compile(r"^sha256:[0-9a-f]{64}$")
     if not isinstance(body.get("grant_id"), str) or not body["grant_id"]:
         _fatal(result, "malformed", "grant_id must be nonempty text", rid)
     principal = body.get("principal")
@@ -355,7 +379,7 @@ def _check_06_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
     if body.get("constraints") is not None and not isinstance(body["constraints"], dict):
         _fatal(result, "malformed", "constraints must be an object", rid)
     policy_ref = body.get("policy_ref")
-    if policy_ref is not None and (not isinstance(policy_ref, str) or not digest.fullmatch(policy_ref)):
+    if policy_ref is not None and (not isinstance(policy_ref, str) or not _SHA256_RE.fullmatch(policy_ref)):
         _fatal(result, "malformed", "policy_ref must be a sha256 digest", rid)
     gate_ref = body.get("gate_ref")
     if gate_ref is not None and (not isinstance(gate_ref, str) or not gate_ref):
@@ -363,18 +387,35 @@ def _check_06_body(result: VerifyResult, record_type: str, body: dict, rid) -> N
 
 
 def _check_cross_record(result: VerifyResult, receipts: list) -> None:
-    pass_receipts = [r for r in receipts if r.get("type") == "session.pass.created"]
-    if not pass_receipts:
+    pass_receipt = None
+    decisions = []
+    settlements = []
+    first_delivery = None
+    has_termination = False
+    for index, receipt in enumerate(receipts):
+        rtype = receipt.get("type")
+        if rtype == "session.pass.created":
+            if pass_receipt is None:
+                pass_receipt = receipt
+        elif rtype == "task.decision":
+            decisions.append(receipt)
+        elif rtype == "settlement":
+            settlements.append((index, receipt))
+        elif rtype == "delivery.attestation":
+            if first_delivery is None:
+                first_delivery = index
+        elif rtype == "task.termination":
+            has_termination = True
+
+    if pass_receipt is None:
         _fatal(result, "malformed", "chain has no session.pass.created receipt")
         return
-    pass_body = pass_receipts[0].get("body")
+    pass_body = pass_receipt.get("body")
     if not isinstance(pass_body, dict):
         return
     policy_version = pass_body.get("policy_version")
 
-    for receipt in receipts:
-        if receipt.get("type") != "task.decision":
-            continue
+    for receipt in decisions:
         body = receipt.get("body")
         if not isinstance(body, dict):
             continue
@@ -393,15 +434,11 @@ def _check_cross_record(result: VerifyResult, receipts: list) -> None:
             result,
             "malformed",
             "pass spend_cap is not an object",
-            pass_receipts[0].get("receipt_id"),
+            pass_receipt.get("receipt_id"),
         )
         spend_cap = None
-    type_by_seq = {index: r.get("type") for index, r in enumerate(receipts)}
-    settlement_indexes = [i for i, t in type_by_seq.items() if t == "settlement"]
-    delivery_indexes = [i for i, t in type_by_seq.items() if t == "delivery.attestation"]
 
-    for index in settlement_indexes:
-        settlement = receipts[index]
+    for index, settlement in settlements:
         body = settlement.get("body")
         if not isinstance(body, dict):
             continue
@@ -434,9 +471,7 @@ def _check_cross_record(result: VerifyResult, receipts: list) -> None:
                     f"settlement {amount} exceeds cap {spend_cap}",
                     settlement.get("receipt_id"),
                 )
-        if body.get("gated_on_delivery") and (
-            not delivery_indexes or min(delivery_indexes) > index
-        ):
+        if body.get("gated_on_delivery") and (first_delivery is None or first_delivery > index):
             _fatal(
                 result,
                 "delivery_before_settlement",
@@ -444,7 +479,7 @@ def _check_cross_record(result: VerifyResult, receipts: list) -> None:
                 settlement.get("receipt_id"),
             )
 
-    if "task.termination" not in type_by_seq.values():
+    if not has_termination:
         _fatal(result, "missing_termination", "task has no termination receipt")
 
 
@@ -474,31 +509,33 @@ def _check_agreements(
     """
     offers: dict = {}
     accepts: dict = {}
+    accept_list: list = []
+    bound_with_ref: list = []
     for r in receipts:
         record_type = r.get("type")
-        if record_type not in ("agreement.offer", "agreement.accept"):
-            continue
-        digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
-        if digest is None:
-            continue
-        (offers if record_type == "agreement.offer" else accepts)[digest] = r
+        if record_type == "agreement.offer" or record_type == "agreement.accept":
+            if record_type == "agreement.accept":
+                accept_list.append(r)
+            digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
+            if digest is None:
+                continue
+            (offers if record_type == "agreement.offer" else accepts)[digest] = r
+        elif (
+            record_type in agreements.BOUND_TYPES
+            and r.get("spec") in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6")
+        ):
+            body = r.get("body")
+            if isinstance(body, dict) and body.get("agreement_ref") is not None:
+                bound_with_ref.append((r, body["agreement_ref"]))
 
-    for receipt in receipts:
-        if receipt.get("type") == "agreement.accept":
-            _check_accept(result, receipt, offers)
+    if not accept_list and not bound_with_ref and not accepts:
+        return
+
+    for receipt in accept_list:
+        _check_accept(result, receipt, offers)
 
     referenced: set = set()
-    for receipt in receipts:
-        if receipt.get("type") not in agreements.BOUND_TYPES:
-            continue
-        if receipt.get("spec") not in ("continuity-receipt/0.4", "continuity-receipt/0.5", "continuity-receipt/0.6"):
-            continue
-        body = receipt.get("body")
-        if not isinstance(body, dict):
-            continue
-        ref = body.get("agreement_ref")
-        if ref is None:
-            continue
+    for receipt, ref in bound_with_ref:
         accept = accepts.get(ref) if isinstance(ref, str) else None
         if accept is None:
             result.insufficient_reasons.append(
@@ -533,7 +570,8 @@ def _check_agreements(
                 receipt.get("receipt_id"),
             )
 
-    _check_agreement_completeness(result, receipts, accepts, referenced)
+    if accepts:
+        _check_agreement_completeness(result, receipts, accepts, referenced)
 
 
 def _check_authority(
@@ -554,25 +592,23 @@ def _check_authority(
       them out-of-band (same posture as the state.commitment `scope` label).
     """
     grants: dict = {}
+    bound_with_ref: list = []
     for r in receipts:
-        if r.get("type") != "authority.grant":
-            continue
-        digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
-        if digest is not None:
-            grants[digest] = r
+        rtype = r.get("type")
+        if rtype == "authority.grant":
+            digest = digest_cache[id(r)] if digest_cache is not None and id(r) in digest_cache else _try_digest(r)
+            if digest is not None:
+                grants[digest] = r
+        elif rtype in agreements.BOUND_TYPES and r.get("spec") == "continuity-receipt/0.6":
+            body = r.get("body")
+            if isinstance(body, dict) and body.get("authority_ref") is not None:
+                bound_with_ref.append((r, body["authority_ref"]))
+
+    if not grants and not bound_with_ref:
+        return
 
     referenced: set = set()
-    for receipt in receipts:
-        if receipt.get("type") not in agreements.BOUND_TYPES:
-            continue
-        if receipt.get("spec") != "continuity-receipt/0.6":
-            continue
-        body = receipt.get("body")
-        if not isinstance(body, dict):
-            continue
-        ref = body.get("authority_ref")
-        if ref is None:
-            continue
+    for receipt, ref in bound_with_ref:
         grant = grants.get(ref) if isinstance(ref, str) else None
         if grant is None:
             result.insufficient_reasons.append(
@@ -750,6 +786,8 @@ def _check_agreement_completeness(
 
 
 def _check_redactions(result: VerifyResult, receipts: list, disclosure_map: dict) -> None:
+    if not getattr(result, "_has_redactions", True):
+        return
     redactions: list[tuple[str, dict]] = []
     _iter_redactions(receipts, "receipts", redactions)
     for path, field in redactions:
@@ -866,8 +904,12 @@ def _check_revocations(
     revocation remain valid; invalid statements are themselves an error
     (fail-closed).
     """
-    bundle_revocations = bundle.get("revocations") or []
-    if not isinstance(bundle_revocations, list):
+    bundle_revocations = bundle.get("revocations")
+    if not bundle_revocations and external_revocations is None:
+        return
+    if bundle_revocations is None:
+        bundle_revocations = []
+    elif not isinstance(bundle_revocations, list):
         return
     if not all(isinstance(statement, dict) for statement in bundle_revocations):
         return

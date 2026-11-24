@@ -11,6 +11,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
+try:
+    from nacl import bindings as _nacl_bindings
+    from nacl.exceptions import CryptoError as _NaclCryptoError
+    _crypto_sign_open = _nacl_bindings.crypto_sign_open
+except ImportError:
+    _crypto_sign_open = None
+    _NaclCryptoError = ValueError
+
 _B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 _B58_MAP = {ch: idx for idx, ch in enumerate(_B58_ALPHABET)}
 _MULTICODEC_ED25519 = b"\xed\x01"
@@ -82,13 +90,20 @@ def pubkey_to_did_key(pub) -> str:
 
 
 @functools.lru_cache(maxsize=2048)
-def _did_key_to_pubkey_cached(did: str) -> Ed25519PublicKey:
+def _did_key_to_raw_cached(did: str) -> bytes:
     if not did.startswith("did:key:z"):
         raise ValueError(f"unsupported did:key form: {did[:24]}")
     raw = b58decode(did[len("did:key:z") :])
     if not raw.startswith(_MULTICODEC_ED25519) or len(raw) != 34:
         raise ValueError("did:key is not an Ed25519 key")
-    return Ed25519PublicKey.from_public_bytes(raw[2:])
+    pub = raw[2:]
+    Ed25519PublicKey.from_public_bytes(pub)
+    return pub
+
+
+@functools.lru_cache(maxsize=2048)
+def _did_key_to_pubkey_cached(did: str) -> Ed25519PublicKey:
+    return Ed25519PublicKey.from_public_bytes(_did_key_to_raw_cached(did))
 
 
 def did_key_to_pubkey(did: str) -> Ed25519PublicKey:
@@ -113,9 +128,16 @@ def sign(private: Ed25519PrivateKey, message: bytes) -> str:
 
 def verify(pubkey_did: str, message: bytes, signature_b64u: str) -> bool:
     try:
+        if _crypto_sign_open is not None and isinstance(pubkey_did, str) and isinstance(signature_b64u, str):
+            raw_pub = _did_key_to_raw_cached(pubkey_did)
+            sig = b64u_decode(signature_b64u)
+            if len(sig) != 64:
+                return False
+            _crypto_sign_open(sig + message, raw_pub)
+            return True
         did_key_to_pubkey(pubkey_did).verify(b64u_decode(signature_b64u), message)
         return True
-    except (InvalidSignature, ValueError):
+    except (InvalidSignature, _NaclCryptoError, ValueError, TypeError):
         return False
 
 
